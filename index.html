@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent 应用开发知识库 | democt</title>
+    <meta name="description" content="从核心概念到生产落地，按学习路径组织 Agent 工程能力。46篇笔记，5大板块，16天学习计划。">
+    <link rel="stylesheet" href="css/camp.css">
+</head>
+<body>
+
+<!-- ===== Top Nav ===== -->
+<nav class="top-nav">
+    <div class="top-nav-inner">
+        <a href="/" class="brand"><span class="brand-dot"></span> Agent 知识库</a>
+        <ul class="top-nav-links">
+            <li><a href="#roadmap">学习路径</a></li>
+            <li><a href="#knowledge">知识体系</a></li>
+            <li><a href="#faq">查漏补缺</a></li>
+        </ul>
+        <div class="top-nav-user"></div>
+    </div>
+</nav>
+
+<!-- ===== Hero ===== -->
+<section class="hero">
+    <div class="container">
+        <h1>Agent 应用开发<span class="accent">知识库</span></h1>
+        <p class="subtitle">从核心概念到生产落地，按学习路径组织 Agent 工程能力。适合从零梳理，也适合临考查漏。</p>
+        <div class="hero-cta">
+            <a href="learn/core.html" class="btn btn-primary">开始学习</a>
+            <a href="#roadmap" class="btn btn-secondary">查看路线</a>
+        </div>
+    </div>
+</section>
+
+<!-- ===== Stats ===== -->
+<div class="container">
+    <div class="stats-bar">
+        <div class="stat-item">
+            <div class="stat-value">5</div>
+            <div class="stat-label">知识模块</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-value">46</div>
+            <div class="stat-label">知识笔记</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-value">5</div>
+            <div class="stat-label">学习阶段</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-value">16</div>
+            <div class="stat-label">天学习计划</div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== Roadmap ===== -->
+<section class="section" id="roadmap">
+    <div class="container">
+        <div class="section-header">
+            <h2>推荐学习路径</h2>
+            <p>按学习顺序走，先建立认知框架，再掌握实现手段，最后端到端交付。</p>
+        </div>
+        <div class="roadmap-grid">
+            <a href="learn/core.html" class="roadmap-card step-1">
+                <div class="card-icon">📚</div>
+                <div class="card-step">阶段一</div>
+                <div class="card-title">核心基础</div>
+                <div class="card-desc">先建立正确认知，搞清楚 Agent 是什么、怎么运转、怎么评估。</div>
+                <div class="card-count">5 篇笔记</div>
+                <span class="card-arrow">→</span>
+            </a>
+            <a href="learn/engineering.html" class="roadmap-card step-2">
+                <div class="card-icon">⚙️</div>
+                <div class="card-step">阶段二</div>
+                <div class="card-title">工程能力</div>
+                <div class="card-desc">掌握构建 Agent 所需的具体技术手段：提示词、工具调用、RAG、流式输出。</div>
+                <div class="card-count">12 篇笔记</div>
+                <span class="card-arrow">→</span>
+            </a>
+            <a href="learn/architecture.html" class="roadmap-card step-3">
+                <div class="card-icon">🏗️</div>
+                <div class="card-step">阶段三</div>
+                <div class="card-title">系统架构</div>
+                <div class="card-desc">理解复杂 Agent 系统的设计原理：框架选型、多 Agent 协作、MCP、安全。</div>
+                <div class="card-count">10 篇笔记</div>
+                <span class="card-arrow">→</span>
+            </a>
+            <a href="learn/production.html" class="roadmap-card step-4">
+                <div class="card-icon">🚀</div>
+                <div class="card-step">阶段四</div>
+                <div class="card-title">生产实战</div>
+                <div class="card-desc">端到端交付 Agent 应用的完整路径：全栈开发、调试排障、成本优化。</div>
+                <div class="card-count">10 篇笔记</div>
+                <span class="card-arrow">→</span>
+            </a>
+            <a href="learn/toolchain.html" class="roadmap-card step-5">
+                <div class="card-icon">🔧</div>
+                <div class="card-step">阶段五</div>
+                <div class="card-title">工具链</div>
+                <div class="card-desc">贯穿开发全程的基础设施和效率工具，按需查阅，不必全读。</div>
+                <div class="card-count">10 篇笔记</div>
+                <span class="card-arrow">→</span>
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- ===== Knowledge System ===== -->
+<section class="section" id="knowledge" style="padding-top:24px">
+    <div class="container">
+        <div class="section-header">
+            <h2>知识体系总览</h2>
+            <p>像目录一样按层展开，方便快速定位每个知识点。</p>
+        </div>
+
+        <!-- Layer 1: 核心基础 -->
+        <div class="layer-section">
+            <div class="layer-header">
+                <span class="layer-dot" style="background:var(--layer-base)"></span>
+                <span class="layer-title">基础层 — 先建立正确认知</span>
+                <span class="layer-count">5 篇</span>
+            </div>
+            <div class="knowledge-grid">
+                <a href="knowledge/what-is-agent.html" class="knowledge-card" data-id="what-is-agent">
+                    <div class="kc-title"><span class="read-check" id="chk-what-is-agent"></span>什么是 Agent？核心概念与能力边界</div>
+                    <div class="kc-desc">Agent 的定义、与普通 LLM 调用的区别、五种核心能力、四种常见架构模式。</div>
+                </a>
+                <a href="knowledge/workflow-vs-agent.html" class="knowledge-card" data-id="workflow-vs-agent">
+                    <div class="kc-title"><span class="read-check" id="chk-workflow-vs-agent"></span>Workflow 与 Agent 对比</div>
+                    <div class="kc-desc">Workflow vs Agent 五维度对比、Agentic Workflow 融合架构、选型决策树。</div>
+                </a>
+                <a href="knowledge/react-loop-agent-control.html" class="knowledge-card" data-id="react-loop-agent-control">
+                    <div class="kc-title"><span class="read-check" id="chk-react-loop-agent-control"></span>ReAct 循环与 Agent 控制流程</div>
+                    <div class="kc-desc">ReAct 原理、思考-行动-观察循环、生产级实现要点。</div>
+                </a>
+                <a href="knowledge/agent-memory-patterns.html" class="knowledge-card" data-id="agent-memory-patterns">
+                    <div class="kc-title"><span class="read-check" id="chk-agent-memory-patterns"></span>Agent 记忆系统设计模式</div>
+                    <div class="kc-desc">四层记忆模型、窗口截断/摘要滚动/分层检索策略。</div>
+                </a>
+                <a href="knowledge/agent-evaluation.html" class="knowledge-card" data-id="agent-evaluation">
+                    <div class="kc-title"><span class="read-check" id="chk-agent-evaluation"></span>Agent 评估与测试方法论</div>
+                    <div class="kc-desc">组件级/端到端/生产监控三层评估、LLM-as-Judge、Golden Dataset。</div>
+                </a>
+            </div>
+        </div>
+
+        <!-- Layer 2: 工程能力 -->
+        <div class="layer-section">
+            <div class="layer-header">
+                <span class="layer-dot" style="background:var(--layer-capability)"></span>
+                <span class="layer-title">能力层 — 掌握实现手段</span>
+                <span class="layer-count">12 篇</span>
+            </div>
+            <div class="knowledge-grid">
+                <a href="knowledge/prompt-engineering.html" class="knowledge-card" data-id="prompt-engineering">
+                    <div class="kc-title"><span class="read-check" id="chk-prompt-engineering"></span>提示词工程进阶</div>
+                    <div class="kc-desc">Prompt 黄金结构、CoT、Few-shot、结构化输出、角色扮演。</div>
+                </a>
+                <a href="knowledge/function-calling-deep-dive.html" class="knowledge-card" data-id="function-calling-deep-dive">
+                    <div class="kc-title"><span class="read-check" id="chk-function-calling-deep-dive"></span>Function Calling 原理与实践</div>
+                    <div class="kc-desc">工具调用底层机制、JSON Schema 定义、并行调用、参数幻觉。</div>
+                </a>
+                <a href="knowledge/tool-calling-advanced.html" class="knowledge-card" data-id="tool-calling-advanced">
+                    <div class="kc-title"><span class="read-check" id="chk-tool-calling-advanced"></span>Tool Calling 进阶</div>
+                    <div class="kc-desc">工具网关、多工具编排、描述工程、错误重试、安全沙箱。</div>
+                </a>
+                <a href="knowledge/tool-system-design-patterns.html" class="knowledge-card" data-id="tool-system-design-patterns">
+                    <div class="kc-title"><span class="read-check" id="chk-tool-system-design-patterns"></span>Agent 工具系统设计六模式</div>
+                    <div class="kc-desc">从混乱到有序的工具设计模式。</div>
+                </a>
+                <a href="knowledge/rag-architecture.html" class="knowledge-card" data-id="rag-architecture">
+                    <div class="kc-title"><span class="read-check" id="chk-rag-architecture"></span>RAG 架构深度解析</div>
+                    <div class="kc-desc">三代演进、5种检索策略、4种分块方案、查询优化。</div>
+                </a>
+                <a href="knowledge/rag-pitfalls-optimization.html" class="knowledge-card" data-id="rag-pitfalls-optimization">
+                    <div class="kc-title"><span class="read-check" id="chk-rag-pitfalls-optimization"></span>RAG 常见陷阱与优化</div>
+                    <div class="kc-desc">分块不当/纯向量检索/查询不匹配等5大陷阱及对策。</div>
+                </a>
+                <a href="knowledge/rag-query-rewriting.html" class="knowledge-card" data-id="rag-query-rewriting">
+                    <div class="kc-title"><span class="read-check" id="chk-rag-query-rewriting"></span>RAG 查询重写策略</div>
+                    <div class="kc-desc">让检索精准命中的4种查询重写技术。</div>
+                </a>
+                <a href="knowledge/rag-production-deployment.html" class="knowledge-card" data-id="rag-production-deployment">
+                    <div class="kc-title"><span class="read-check" id="chk-rag-production-deployment"></span>RAG 生产化部署指南</div>
+                    <div class="kc-desc">文档处理管线、混合检索、重排序、增量索引、缓存策略。</div>
+                </a>
+                <a href="knowledge/embedding-model-guide.html" class="knowledge-card" data-id="embedding-model-guide">
+                    <div class="kc-title"><span class="read-check" id="chk-embedding-model-guide"></span>嵌入模型选型指南</div>
+                    <div class="kc-desc">OpenAI/BGE/E5/M3E/text2vec对比、维度选择、降级方案。</div>
+                </a>
+                <a href="knowledge/vector-db-comparison.html" class="knowledge-card" data-id="vector-db-comparison">
+                    <div class="kc-title"><span class="read-check" id="chk-vector-db-comparison"></span>向量数据库对比</div>
+                    <div class="kc-desc">Chroma/Qdrant/Milvus/Pinecone选型决策树。</div>
+                </a>
+                <a href="knowledge/streaming-architecture.html" class="knowledge-card" data-id="streaming-architecture">
+                    <div class="kc-title"><span class="read-check" id="chk-streaming-architecture"></span>流式架构设计</div>
+                    <div class="kc-desc">SSE vs WebSocket、事件类型、中断恢复、前端渲染优化。</div>
+                </a>
+                <a href="knowledge/structured-output.html" class="knowledge-card" data-id="structured-output">
+                    <div class="kc-title"><span class="read-check" id="chk-structured-output"></span>结构化输出实现</div>
+                    <div class="kc-desc">JSON Mode/Function Calling/约束解码对比、Schema设计原则。</div>
+                </a>
+            </div>
+        </div>
+
+        <!-- Layer 3: 系统架构 -->
+        <div class="layer-section">
+            <div class="layer-header">
+                <span class="layer-dot" style="background:var(--layer-arch)"></span>
+                <span class="layer-title">实现层 — 理解复杂系统</span>
+                <span class="layer-count">10 篇</span>
+            </div>
+            <div class="knowledge-grid">
+                <a href="knowledge/agent-framework-selection.html" class="knowledge-card" data-id="agent-framework-selection">
+                    <div class="kc-title"><span class="read-check" id="chk-agent-framework-selection"></span>Agent 框架选型指南</div>
+                    <div class="kc-desc">LangGraph/CrewAI/AutoGen/Dify四大流派对比、选型决策树。</div>
+                </a>
+                <a href="knowledge/multi-agent-collaboration.html" class="knowledge-card" data-id="multi-agent-collaboration">
+                    <div class="kc-title"><span class="read-check" id="chk-multi-agent-collaboration"></span>多 Agent 协作架构</div>
+                    <div class="kc-desc">5种协作模式、三大框架深度对比、生产级设计要点。</div>
+                </a>
+                <a href="knowledge/task-planning-patterns.html" class="knowledge-card" data-id="task-planning-patterns">
+                    <div class="kc-title"><span class="read-check" id="chk-task-planning-patterns"></span>任务规划模式汇总</div>
+                    <div class="kc-desc">从Andon到DAG的5种规划模式、DAG拓扑排序实现。</div>
+                </a>
+                <a href="knowledge/mcp-protocol.html" class="knowledge-card" data-id="mcp-protocol">
+                    <div class="kc-title"><span class="read-check" id="chk-mcp-protocol"></span>MCP 协议解析</div>
+                    <div class="kc-desc">Host-Client-Server三层架构、4类核心能力、传输层对比。</div>
+                </a>
+                <a href="knowledge/mcp-server-practice.html" class="knowledge-card" data-id="mcp-server-practice">
+                    <div class="kc-title"><span class="read-check" id="chk-mcp-server-practice"></span>MCP Server 开发实战</div>
+                    <div class="kc-desc">从零构建生产级MCP服务、错误处理/认证/日志/SSE模式。</div>
+                </a>
+                <a href="knowledge/mcp-skill-backend-advanced.html" class="knowledge-card" data-id="mcp-skill-backend-advanced">
+                    <div class="kc-title"><span class="read-check" id="chk-mcp-skill-backend-advanced"></span>MCP Server 与 Skill 生命周期管理</div>
+                    <div class="kc-desc">4种高阶模式、Skill三层架构、后端横切关注点。</div>
+                </a>
+                <a href="knowledge/openclaw-skill-architecture.html" class="knowledge-card" data-id="openclaw-skill-architecture">
+                    <div class="kc-title"><span class="read-check" id="chk-openclaw-skill-architecture"></span>OpenClaw Skill 系统架构</div>
+                    <div class="kc-desc">按需加载的模块化Agent能力设计。</div>
+                </a>
+                <a href="knowledge/skill-design-guide.html" class="knowledge-card" data-id="skill-design-guide">
+                    <div class="kc-title"><span class="read-check" id="chk-skill-design-guide"></span>Skill 设计与开发指南</div>
+                    <div class="kc-desc">Skill vs Tool vs Plugin边界、SKILL.md写法、设计原则。</div>
+                </a>
+                <a href="knowledge/a2a-protocol.html" class="knowledge-card" data-id="a2a-protocol">
+                    <div class="kc-title"><span class="read-check" id="chk-a2a-protocol"></span>A2A 协议详解</div>
+                    <div class="kc-desc">AgentCard/Task/Message/Artifact、JSON-RPC、与MCP互补。</div>
+                </a>
+                <a href="knowledge/agent-security.html" class="knowledge-card" data-id="agent-security">
+                    <div class="kc-title"><span class="read-check" id="chk-agent-security"></span>Agent 安全机制</div>
+                    <div class="kc-desc">5大攻击面、Prompt注入防护、JWT双Token、6大设计原则。</div>
+                </a>
+                <a href="knowledge/agent-guardrails.html" class="knowledge-card" data-id="agent-guardrails">
+                    <div class="kc-title"><span class="read-check" id="chk-agent-guardrails"></span>Agent Guardrails 运行时安全</div>
+                    <div class="kc-desc">三层纵深防御、Forge/AgentDoG实战、操作分级审批。</div>
+                </a>
+            </div>
+        </div>
+
+        <!-- Layer 4: 生产实战 -->
+        <div class="layer-section">
+            <div class="layer-header">
+                <span class="layer-dot" style="background:var(--layer-prod)"></span>
+                <span class="layer-title">生产层 — 端到端交付</span>
+                <span class="layer-count">10 篇</span>
+            </div>
+            <div class="knowledge-grid">
+                <a href="knowledge/agent-fullstack-development.html" class="knowledge-card" data-id="agent-fullstack-development">
+                    <div class="kc-title"><span class="read-check" id="chk-agent-fullstack-development"></span>Agent 全栈开发实践</div>
+                    <div class="kc-desc">从零到生产级7大阶段：引擎/工具/RAG/记忆/前后端/部署/可观测性。</div>
+                </a>
+                <a href="knowledge/backend-agent-integration.html" class="knowledge-card" data-id="backend-agent-integration">
+                    <div class="kc-title"><span class="read-check" id="chk-backend-agent-integration"></span>后端服务与 Agent 集成模式</div>
+                    <div class="kc-desc">同步/SSE流式/异步任务3种模式、会话管理、数据库设计。</div>
+                </a>
+                <a href="knowledge/multimodal-agent.html" class="knowledge-card" data-id="multimodal-agent">
+                    <div class="kc-title"><span class="read-check" id="chk-multimodal-agent"></span>多模态 Agent 入门</div>
+                    <div class="kc-desc">原生多模态/视觉工具调用/混合策略3种实现路径。</div>
+                </a>
+                <a href="knowledge/agent-debugging-troubleshooting.html" class="knowledge-card" data-id="agent-debugging-troubleshooting">
+                    <div class="kc-title"><span class="read-check" id="chk-agent-debugging-troubleshooting"></span>Agent 调试与排障</div>
+                    <div class="kc-desc">死循环/参数幻觉/RAG质量差/上下文溢出/路由错误5大问题排查。</div>
+                </a>
+                <a href="knowledge/llm-observability.html" class="knowledge-card" data-id="llm-observability">
+                    <div class="kc-title"><span class="read-check" id="chk-llm-observability"></span>LLM 可观测性</div>
+                    <div class="kc-desc">Tracing/评估/监控/调试4层体系、LangSmith/LangFuse/OpenTelemetry。</div>
+                </a>
+                <a href="knowledge/llm-hallucination.html" class="knowledge-card" data-id="llm-hallucination">
+                    <div class="kc-title"><span class="read-check" id="chk-llm-hallucination"></span>LLM 幻觉问题与对策</div>
+                    <div class="kc-desc">5种幻觉类型、RAG/约束生成/输出校验/温度控制5类缓解策略。</div>
+                </a>
+                <a href="knowledge/semantic-cache.html" class="knowledge-card" data-id="semantic-cache">
+                    <div class="kc-title"><span class="read-check" id="chk-semantic-cache"></span>语义缓存实现</div>
+                    <div class="kc-desc">Embedding相似度缓存、阈值调优、TTL/LRU/分级策略。</div>
+                </a>
+                <a href="knowledge/cost-optimization.html" class="knowledge-card" data-id="cost-optimization">
+                    <div class="kc-title"><span class="read-check" id="chk-cost-optimization"></span>Agent 成本优化手册</div>
+                    <div class="kc-desc">模型分级/缓存/Prompt瘦身/工具调用优化/输出控制/降级6大策略。</div>
+                </a>
+                <a href="knowledge/token-optimization-guide.html" class="knowledge-card" data-id="token-optimization-guide">
+                    <div class="kc-title"><span class="read-check" id="chk-token-optimization-guide"></span>Token 优化实战指南</div>
+                    <div class="kc-desc">7大策略让成本砍半：模型选择/缓存/压缩/结构化/流式/批处理/监控。</div>
+                </a>
+            </div>
+        </div>
+
+        <!-- Layer 5: 工具链 -->
+        <div class="layer-section">
+            <div class="layer-header">
+                <span class="layer-dot" style="background:var(--layer-tool)"></span>
+                <span class="layer-title">工具层 — 贯穿全程的基础设施</span>
+                <span class="layer-count">10 篇</span>
+            </div>
+            <div class="knowledge-grid">
+                <a href="knowledge/vibe-coding-guide.html" class="knowledge-card" data-id="vibe-coding-guide">
+                    <div class="kc-title"><span class="read-check" id="chk-vibe-coding-guide"></span>Vibe Coding 实战指南</div>
+                    <div class="kc-desc">Cursor/Claude Code/Copilot对比、5步工作流、7个翻车现场。</div>
+                </a>
+                <a href="knowledge/astro5-migration-guide.html" class="knowledge-card" data-id="astro5-migration-guide">
+                    <div class="kc-title"><span class="read-check" id="chk-astro5-migration-guide"></span>Astro 5.x 迁移实战</div>
+                    <div class="kc-desc">破坏性变更与兼容性处理。</div>
+                </a>
+                <a href="knowledge/content-classification-design.html" class="knowledge-card" data-id="content-classification-design">
+                    <div class="kc-title"><span class="read-check" id="chk-content-classification-design"></span>内容分类系统设计</div>
+                    <div class="kc-desc">从混乱到有序的信息架构实践。</div>
+                </a>
+                <a href="knowledge/frontend-state-bug-patterns.html" class="knowledge-card" data-id="frontend-state-bug-patterns">
+                    <div class="kc-title"><span class="read-check" id="chk-frontend-state-bug-patterns"></span>前端状态管理常见 Bug</div>
+                    <div class="kc-desc">多源状态冲突的诊断与修复。</div>
+                </a>
+                <a href="knowledge/search-architecture-selection.html" class="knowledge-card" data-id="search-architecture-selection">
+                    <div class="kc-title"><span class="read-check" id="chk-search-architecture-selection"></span>客户端搜索 vs 服务端检索</div>
+                    <div class="kc-desc">静态站点搜索方案选型指南。</div>
+                </a>
+                <a href="knowledge/static-site-search-design.html" class="knowledge-card" data-id="static-site-search-design">
+                    <div class="kc-title"><span class="read-check" id="chk-static-site-search-design"></span>静态站点搜索方案设计</div>
+                    <div class="kc-desc">从零实现全站搜索。</div>
+                </a>
+                <a href="knowledge/vercel-deployment-guide.html" class="knowledge-card" data-id="vercel-deployment-guide">
+                    <div class="kc-title"><span class="read-check" id="chk-vercel-deployment-guide"></span>Vercel 部署全流程与排障手册</div>
+                    <div class="kc-desc">部署配置、常见问题、性能优化。</div>
+                </a>
+                <a href="knowledge/git-bash-windows-fix.html" class="knowledge-card" data-id="git-bash-windows-fix">
+                    <div class="kc-title"><span class="read-check" id="chk-git-bash-windows-fix"></span>Git Bash on Windows 排障指南</div>
+                    <div class="kc-desc">环境变量、凭证与弹窗问题。</div>
+                </a>
+                <a href="knowledge/powershell-scripting-guide.html" class="knowledge-card" data-id="powershell-scripting-guide">
+                    <div class="kc-title"><span class="read-check" id="chk-powershell-scripting-guide"></span>PowerShell 实战指南</div>
+                    <div class="kc-desc">执行策略、编码与跨平台脚本。</div>
+                </a>
+                <a href="knowledge/xbrowser-cdp-debugging.html" class="knowledge-card" data-id="xbrowser-cdp-debugging">
+                    <div class="kc-title"><span class="read-check" id="chk-xbrowser-cdp-debugging"></span>xbrowser 浏览器自动化调试</div>
+                    <div class="kc-desc">CDP协议与实战模式。</div>
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ===== FAQ / 查漏 ===== -->
+<section class="section" id="faq" style="padding-top:16px">
+    <div class="container">
+        <div class="section-header">
+            <h2>按问题查漏</h2>
+            <p>如果时间有限，可以从这些问题倒推薄弱章节。</p>
+        </div>
+        <div class="faq-list">
+            <div class="faq-item">
+                <a href="knowledge/workflow-vs-agent.html"><span class="faq-q">Q</span> 如何判断一个需求该用 Workflow 还是 Agent？</a>
+            </div>
+            <div class="faq-item">
+                <a href="knowledge/rag-pitfalls-optimization.html"><span class="faq-q">Q</span> RAG 效果差时应该优先排查哪几层？</a>
+            </div>
+            <div class="faq-item">
+                <a href="knowledge/function-calling-deep-dive.html"><span class="faq-q">Q</span> Function Calling 的 Schema 怎样设计才稳定？</a>
+            </div>
+            <div class="faq-item">
+                <a href="knowledge/agent-memory-patterns.html"><span class="faq-q">Q</span> Agent Memory 和普通会话历史有什么区别？</a>
+            </div>
+            <div class="faq-item">
+                <a href="knowledge/agent-evaluation.html"><span class="faq-q">Q</span> 怎么评估一个 Agent 是否真的在进步？</a>
+            </div>
+            <div class="faq-item">
+                <a href="knowledge/agent-security.html"><span class="faq-q">Q</span> Prompt 注入在工具调用里怎么防？</a>
+            </div>
+            <div class="faq-item">
+                <a href="knowledge/cost-optimization.html"><span class="faq-q">Q</span> Agent 调用成本太高，有哪些立竿见影的降本手段？</a>
+            </div>
+            <div class="faq-item">
+                <a href="knowledge/multi-agent-collaboration.html"><span class="faq-q">Q</span> 多 Agent 协作该选哪种模式？调度者还是对等？</a>
+            </div>
+            <div class="faq-item">
+                <a href="knowledge/mcp-protocol.html"><span class="faq-q">Q</span> MCP 和 A2A 是什么关系？各解决什么问题？</a>
+            </div>
+            <div class="faq-item">
+                <a href="knowledge/agent-debugging-troubleshooting.html"><span class="faq-q">Q</span> Agent 陷入死循环怎么排查？</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ===== Bottom CTA ===== -->
+<section class="section" style="text-align:center; padding-top:24px">
+    <div class="container">
+        <p style="color:var(--text-secondary);margin-bottom:20px;font-size:0.95rem">从第一章开始，逐步补齐 Agent 工程能力</p>
+        <a href="learn/core.html" class="btn btn-primary">开始学习</a>
+    </div>
+</section>
+
+<!-- ===== Footer ===== -->
+<footer class="site-footer">
+    <div class="footer-inner">
+        <p>&copy; 2026 democt &middot; Agent 应用开发知识库</p>
+    </div>
+</footer>
+
+<!-- ===== Scripts ===== -->
+<script src="js/progress.js"></script>
+<script src="js/auth.js"></script>
+<script>
+// All note IDs for progress tracking
+const allNoteIds = [
+    'what-is-agent','workflow-vs-agent','react-loop-agent-control','agent-memory-patterns','agent-evaluation',
+    'prompt-engineering','function-calling-deep-dive','tool-calling-advanced','tool-system-design-patterns',
+    'rag-architecture','rag-pitfalls-optimization','rag-query-rewriting','rag-production-deployment',
+    'embedding-model-guide','vector-db-comparison','streaming-architecture','structured-output',
+    'agent-framework-selection','multi-agent-collaboration','task-planning-patterns',
+    'mcp-protocol','mcp-server-practice','mcp-skill-backend-advanced','openclaw-skill-architecture',
+    'skill-design-guide','a2a-protocol','agent-security','agent-guardrails',
+    'agent-fullstack-development','backend-agent-integration','multimodal-agent',
+    'agent-debugging-troubleshooting','llm-observability','llm-hallucination',
+    'semantic-cache','cost-optimization','token-optimization-guide',
+    'vibe-coding-guide','astro5-migration-guide','content-classification-design',
+    'frontend-state-bug-patterns','search-architecture-selection','static-site-search-design',
+    'vercel-deployment-guide','git-bash-windows-fix','powershell-scripting-guide','xbrowser-cdp-debugging'
+];
+
+function refreshProgress() {
+    // Update all check marks
+    document.querySelectorAll('.read-check').forEach(el => {
+        const id = el.id.replace('chk-', '');
+        if (ProgressTracker.isRead(id)) {
+            el.classList.add('read');
+            el.innerHTML = '&#10003;';
+        } else {
+            el.classList.remove('read');
+            el.innerHTML = '';
+        }
+    });
+    // Update nav progress
+    Auth.updateNavProgress();
+}
+
+// Init
+Auth.init();
+refreshProgress();
+</script>
+</body>
+</html>
