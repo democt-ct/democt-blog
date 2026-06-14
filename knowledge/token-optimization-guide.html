@@ -1,0 +1,364 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLM Token 优化实战：七大策略让成本砍半 — democt</title>
+    <link rel="stylesheet" href="../assets/common.css">
+
+<style>
+/* ===== 文章侧边栏（两层结构） ===== */
+.article-layout {
+    display: flex;
+    gap: 32px;
+    align-items: flex-start;
+}
+.article-sidebar {
+    width: 240px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 24px;
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+.article-sidebar::-webkit-scrollbar { width: 4px; }
+.article-sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+/* 返回首页 */
+.sb-back {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 16px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--accent);
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+}
+.sb-back:hover { background: var(--accent-soft); }
+
+/* 分组导航区 */
+.sb-groups { border-bottom: 1px solid var(--border); }
+
+.sb-group-header {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 8px 14px 4px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text);
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.15s;
+}
+.sb-group-header:hover { color: var(--accent); }
+.sb-group-header .sb-collapse {
+    font-size: 0.55rem;
+    color: var(--text-muted);
+    transition: transform 0.2s;
+    width: 12px;
+    flex-shrink: 0;
+}
+.sb-group-header .sb-collapse.collapsed { transform: rotate(-90deg); }
+.sb-group-header .sb-gcount {
+    margin-left: auto;
+    font-size: 0.72rem;
+    font-weight: 400;
+    color: var(--text-muted);
+    background: var(--tag-bg);
+    padding: 0 6px;
+    border-radius: 10px;
+}
+
+.sb-group-items { overflow: hidden; transition: max-height 0.25s ease; }
+.sb-group-items.collapsed { max-height: 0; }
+
+.sb-note-link {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    padding: 5px 14px 5px 24px;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+    transition: all 0.12s;
+    border-left: 3px solid transparent;
+}
+.sb-note-link:hover {
+    color: var(--text);
+    background: var(--accent-soft);
+}
+.sb-note-link.active {
+    color: var(--accent);
+    background: var(--accent-soft);
+    border-left-color: var(--accent);
+    font-weight: 600;
+}
+.sb-note-link .sb-ndate {
+    font-size: 0.68rem;
+    opacity: 0.6;
+    white-space: nowrap;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+/* 文章目录区 */
+.sb-toc {
+    padding: 8px 0 12px;
+}
+.sb-toc-title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--text);
+    padding: 4px 16px 8px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+.sb-toc-link {
+    display: block;
+    padding: 3px 16px 3px 24px;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    line-height: 1.45;
+    transition: all 0.12s;
+    border-left: 2px solid transparent;
+}
+.sb-toc-link:hover {
+    color: var(--accent);
+    background: var(--accent-soft);
+}
+.sb-toc-link.h3 {
+    padding-left: 36px;
+    font-size: 0.76rem;
+}
+
+.article-content {
+    flex: 1;
+    min-width: 0;
+}
+
+/* 响应式 */
+@media (max-width: 900px) {
+    .article-layout { flex-direction: column; }
+    .article-sidebar {
+        width: 100%;
+        position: static;
+        max-height: none;
+        order: 2;
+        margin-top: 32px;
+    }
+    .article-content { order: 1; }
+}
+
+.container { --max-width: 1100px; max-width: 1100px; }
+</style>
+
+<style>
+.read-status-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #fff;
+    border-top: 1px solid #e2e8f0;
+    padding: 10px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    z-index: 50;
+    font-size: 0.88rem;
+}
+.read-status-bar .rs-btn {
+    padding: 6px 18px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: all 0.15s;
+}
+.read-status-bar .rs-btn:hover { border-color: #5b6abf; color: #5b6abf; }
+.read-status-bar .rs-btn.rs-read { background: #5b6abf; color: #fff; border-color: #5b6abf; }
+</style>
+</head>
+<body>
+<div class="container">
+    <nav class="breadcrumb"><a href="../index.html">首页</a> / 知识笔记</nav>
+    <div class="article-layout">
+<aside class="article-sidebar"><a href="../index.html#knowledge" class="sb-back">← 返回首页</a><div class="sb-groups"><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>🤖 Agent 基础</span><span class="sb-gcount">9</span></div><div class="sb-group-items collapsed"><a href="multi-agent-collaboration.html" class="sb-note-link"><span>多Agent协作架构：从单Agent到智能体网络</span><span class="sb-ndate">06-11</span></a><a href="agent-guardrails.html" class="sb-note-link"><span>Agent Guardrails：运行时安全护…</span><span class="sb-ndate">06-11</span></a><a href="agent-fullstack-development.html" class="sb-note-link"><span>Agent 全栈开发实战</span><span class="sb-ndate">06-10</span></a><a href="agent-debugging-troubleshooting.html" class="sb-note-link"><span>Agent 流程调试与问题排查实战</span><span class="sb-ndate">06-10</span></a><a href="multimodal-agent.html" class="sb-note-link"><span>多模态 Agent 入门</span><span class="sb-ndate">06-09</span></a><a href="agent-evaluation.html" class="sb-note-link"><span>Agent 评估与测试方法论</span><span class="sb-ndate">06-08</span></a><a href="agent-memory-patterns.html" class="sb-note-link"><span>Agent 记忆系统设计模式</span><span class="sb-ndate">06-07</span></a><a href="agent-security.html" class="sb-note-link"><span>Agent 安全红宝书</span><span class="sb-ndate">06-03</span></a><a href="what-is-agent.html" class="sb-note-link"><span>什么是 Agent？核心概念与能力边界</span><span class="sb-ndate">05-15</span></a></div><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>💬 提示词与工具</span><span class="sb-gcount">4</span></div><div class="sb-group-items collapsed"><a href="tool-calling-advanced.html" class="sb-note-link"><span>Tool Calling 进阶：工具网关与多工…</span><span class="sb-ndate">06-10</span></a><a href="structured-output.html" class="sb-note-link"><span>结构化输出完全指南</span><span class="sb-ndate">06-06</span></a><a href="function-calling-deep-dive.html" class="sb-note-link"><span>Function Calling 原理与实践</span><span class="sb-ndate">05-26</span></a><a href="prompt-engineering.html" class="sb-note-link"><span>提示词工程进阶：从入门到系统化</span><span class="sb-ndate">05-18</span></a></div><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>🔍 RAG 与检索</span><span class="sb-gcount">5</span></div><div class="sb-group-items collapsed"><a href="rag-pitfalls-optimization.html" class="sb-note-link"><span>RAG 落地常见陷阱与优化策略</span><span class="sb-ndate">06-10</span></a><a href="rag-production-deployment.html" class="sb-note-link"><span>RAG 生产化部署：从原型到高性能系统</span><span class="sb-ndate">06-10</span></a><a href="vector-db-comparison.html" class="sb-note-link"><span>向量数据库对比：选型指南</span><span class="sb-ndate">05-24</span></a><a href="embedding-model-guide.html" class="sb-note-link"><span>Embedding 模型选型与对比</span><span class="sb-ndate">05-22</span></a><a href="rag-architecture.html" class="sb-note-link"><span>RAG 架构深度解析：从朴素到模块化</span><span class="sb-ndate">05-20</span></a></div><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse">▼</span><span>🧠 LLM 深入</span><span class="sb-gcount">4</span></div><div class="sb-group-items"><a href="cost-optimization.html" class="sb-note-link"><span>Agent 成本优化手册</span><span class="sb-ndate">06-10</span></a><a href="semantic-cache.html" class="sb-note-link"><span>LLM 语义缓存策略</span><span class="sb-ndate">06-07</span></a><a href="llm-observability.html" class="sb-note-link"><span>AI 应用的可观测性</span><span class="sb-ndate">06-01</span></a><a href="llm-hallucination.html" class="sb-note-link"><span>LLM 幻觉现象与缓解策略</span><span class="sb-ndate">05-30</span></a></div><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>🔌 架构与协议</span><span class="sb-gcount">7</span></div><div class="sb-group-items collapsed"><a href="agent-framework-selection.html" class="sb-note-link"><span>Agent框架选型指南：2026年全景对比</span><span class="sb-ndate">06-11</span></a><a href="a2a-protocol.html" class="sb-note-link"><span>A2A协议：Agent间通信的开放标准</span><span class="sb-ndate">06-11</span></a><a href="mcp-server-practice.html" class="sb-note-link"><span>MCP Server 开发实战</span><span class="sb-ndate">06-10</span></a><a href="mcp-skill-backend-advanced.html" class="sb-note-link"><span>MCP Server 开发实战 &amp; Skill…</span><span class="sb-ndate">06-10</span></a><a href="streaming-architecture.html" class="sb-note-link"><span>流式架构设计实践</span><span class="sb-ndate">06-09</span></a><a href="task-planning-patterns.html" class="sb-note-link"><span>从 Andon 到 DAG：任务规划模式汇总</span><span class="sb-ndate">06-05</span></a><a href="mcp-protocol.html" class="sb-note-link"><span>MCP 协议解析：Agent 的 USB-C</span><span class="sb-ndate">05-28</span></a></div><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>⚡ Skill 开发</span><span class="sb-gcount">1</span></div><div class="sb-group-items collapsed"><a href="skill-design-guide.html" class="sb-note-link"><span>Skill 设计与开发指南</span><span class="sb-ndate">06-10</span></a></div><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>🖥️ 后端开发</span><span class="sb-gcount">1</span></div><div class="sb-group-items collapsed"><a href="backend-agent-integration.html" class="sb-note-link"><span>后端服务与 Agent 集成模式</span><span class="sb-ndate">06-10</span></a></div><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>🏗️ 全栈开发</span><span class="sb-gcount">1</span></div><div class="sb-group-items collapsed"><a href="vibe-coding-guide.html" class="sb-note-link"><span>Vibe Coding：AI辅助编程实战指南</span><span class="sb-ndate">06-11</span></a></div></div><div class="sb-toc"><div class="sb-toc-title">📑 本页目录</div><a href="#section-0" class="sb-toc-link">Token 即成本</a><a href="#section-1" class="sb-toc-link">七大优化策略</a><a href="#subsection-0" class="sb-toc-link h3">1. 工具结果截断</a><a href="#subsection-1" class="sb-toc-link h3">2. 意图分类精简工具</a><a href="#subsection-2" class="sb-toc-link h3">3. 按需展开历史上下文</a><a href="#subsection-3" class="sb-toc-link h3">4. 流式输出（SSE）</a><a href="#subsection-4" class="sb-toc-link h3">5. 结构化输出约束</a><a href="#subsection-5" class="sb-toc-link h3">6. Prompt 压缩</a><a href="#subsection-6" class="sb-toc-link h3">7. 结果去重合并</a><a href="#section-2" class="sb-toc-link">实际效果</a></div></aside>
+<div class="article-content">
+<article>
+        <h1>LLM Token 优化实战：七大策略让成本砍半</h1>
+        <div class="meta"><span class="date">2026-06-11</span><span class="tag-list"><span>LLM</span><span>Token优化</span><span>成本控制</span><span>生产实践</span></span></div>
+
+        <h2 id="section-0">Token 即成本</h2>
+        <p>在 LLM 应用中，Token 是最直接的成本单元。一个中等复杂度的 Agent 对话可能消耗 5K-20K tokens，按 GPT-4 定价算就是 $0.15-$0.60 一次。日活 1000 用户，月成本轻松过万。优化 Token 不是"锦上添花"，是"生存必需"。</p>
+
+        <h2 id="section-1">七大优化策略</h2>
+
+        <h3 id="subsection-0">1. 工具结果截断</h3>
+        <p>工具调用可能返回海量数据（网页全文、数据库导出等）。直接塞进上下文窗口既浪费 Token 又稀释关键信息。</p>
+        <pre><code>MAX_RESULT_CHARS = 2000  # 约 500 tokens
+
+def smart_truncate(text: str) -&gt; str:
+    if len(text) &lt;= MAX_RESULT_CHARS:
+        return text
+    # 在语义边界截断：找最后一个完整句子
+    truncated = text[:MAX_RESULT_CHARS]
+    last_period = max(truncated.rfind('。'), truncated.rfind('. '))
+    if last_period &gt; MAX_RESULT_CHARS * 0.5:
+        truncated = truncated[:last_period + 1]
+    return f"{truncated}\n\n(结果已截断，原始 {len(text)} 字符。缩小查询范围可获完整结果)"</code></pre>
+    <p><strong>避坑</strong>：截断不能在 JSON 或代码块中间。如果截断位置在 ``` 或 { } 中间，需要向前回溯到边界。</p>
+
+        <h3 id="subsection-1">2. 意图分类精简工具</h3>
+        <p>20 个工具每个占用约 300-500 tokens。如果只注入 5 个相关工具，节省 4500-7500 tokens/轮。</p>
+        <pre><code># 用便宜模型先做意图分类（一次约 200 tokens）
+intent = cheap_model.classify(query)  # → "database_query"
+# 只注入对应分组的 5 个工具（vs 全部 20 个）
+tools = TOOL_GROUPS[intent]  # 节省 ~4500 tokens</code></pre>
+
+        <h3 id="subsection-2">3. 按需展开历史上下文</h3>
+        <p>使用 LCM（Lossless Context Management）机制：长对话不直接截断，而是压缩为摘要并保留引用。Agent 需要细节时再按需展开。</p>
+        <pre><code># 不是这样（全量注入）：
+messages = all_history  # 可能 50K+ tokens
+
+# 而是这样（摘要 + 按需展开）：
+summary = compress_history(all_history)   # 约 2K tokens
+messages = [system_prompt, summary, current_question]
+# 当 Agent 需要某个历史细节时，通过 tool_call 获取</code></pre>
+
+        <h3 id="subsection-3">4. 流式输出（SSE）</h3>
+        <p>流式输出不减少 Token，但改善用户体验——用户不必等待所有 Token 生成完毕才能看到内容。Server-Sent Events 是标准做法：</p>
+        <pre><code># 后端 SSE 响应
+event: start
+data: {"session_id": "abc123"}
+
+event: token
+data: {"content": "Agent"}
+
+event: token
+data: {"content": " 的核心是"}
+
+event: tool
+data: {"name": "search", "status": "running"}
+
+event: done
+data: {"total_tokens": 4521}</code></pre>
+
+        <h3 id="subsection-4">5. 结构化输出约束</h3>
+        <p>用 JSON Schema 约束输出格式，让 LLM 跳过"解释性废话"：</p>
+        <pre><code># 不用自然语言描述结果（Token 多）
+"我找到了 3 个相关文档，分别是：第一个文档讲的是..."
+
+# 用结构化输出（Token 少且可解析）
+{"results": [{"title": "RAG优化", "score": 0.92}, ...]}</code></pre>
+
+        <h3 id="subsection-5">6. Prompt 压缩</h3>
+        <p>把角色扮演式的冗长描述替换为精炼指令：</p>
+        <pre><code># ❌ 冗余（~200 tokens）
+"你是一个专业的、经验丰富的 AI 助手。你的任务是帮助用户解决技术问题。
+ 你总是仔细思考后再回答，你的回答准确、全面、有条理..."
+
+# ✅ 精炼（~30 tokens）
+"技术专家。回答准确、结构化。不确定时明确说明。"</code></pre>
+
+        <h3 id="subsection-6">7. 结果去重合并</h3>
+        <p>并行工具调用可能返回高度重叠的结果。在提交给 LLM 之前先做语义去重：</p>
+        <pre><code># 用 ROUGE-L 或简单的 Jaccard 相似度去重
+unique_results = deduplicate(parallel_results, threshold=0.85)
+# 去重后可能从 3000 tokens 降到 1200 tokens</code></pre>
+
+        <h2 id="section-2">实际效果</h2>
+        <table>
+            <tr><th>优化措施</th><th>预估节省</th><th>实现难度</th></tr>
+            <tr><td>工具结果截断</td><td>20-40%</td><td>低</td></tr>
+            <tr><td>意图分类精简工具</td><td>30-50%</td><td>中</td></tr>
+            <tr><td>按需展开历史</td><td>30-60%</td><td>高</td></tr>
+            <tr><td>Prompt 压缩</td><td>10-20%</td><td>低</td></tr>
+            <tr><td>结构化输出</td><td>15-30%</td><td>低</td></tr>
+        </table>
+        <p>组合使用以上策略，通常可以将每轮对话的 Token 消耗降低 <strong>40-60%</strong>。</p>
+    </article>
+</div>
+</div>
+</div>
+<script>
+function toggleSbGroup(header) {
+    const items = header.nextElementSibling;
+    const icon = header.querySelector('.sb-collapse');
+    if (items.classList.contains('collapsed')) {
+        items.classList.remove('collapsed');
+        items.style.maxHeight = items.scrollHeight + 'px';
+        if (icon) icon.classList.remove('collapsed');
+    } else {
+        items.classList.add('collapsed');
+        items.style.maxHeight = '0';
+        if (icon) icon.classList.add('collapsed');
+    }
+}
+document.querySelectorAll('.sb-group-items:not(.collapsed)').forEach(function(el) {
+    el.style.maxHeight = el.scrollHeight + 'px';
+});
+</script>
+
+<div class="read-status-bar" id="readStatusBar">
+    <span id="readStatusText">未标记</span>
+    <button class="rs-btn" id="readStatusBtn" onclick="toggleRead()">标记为已读</button>
+</div>
+<script>window.__NOTE_ID__ = 'token-optimization-guide';</script>
+
+<script src="../js/progress.js"></script>
+<script src="../js/auth.js"></script>
+<script>
+(function() {
+    const NOTE_ID = 'token-optimization-guide';
+    // Auto-mark as read after 5 seconds on page
+    setTimeout(function() {
+        if (ProgressTracker.isLoggedIn()) {
+            if (!ProgressTracker.isRead(NOTE_ID)) {
+                ProgressTracker.markRead(NOTE_ID);
+            }
+        }
+    }, 5000);
+})();
+</script>
+
+<script>
+const NOTE_ID_CURRENT = window.__NOTE_ID__ || '';
+function toggleRead() {
+    if (!ProgressTracker.isLoggedIn()) {
+        alert('请先登录以同步学习进度');
+        return;
+    }
+    if (ProgressTracker.isRead(NOTE_ID_CURRENT)) {
+        ProgressTracker.markUnread(NOTE_ID_CURRENT);
+    } else {
+        ProgressTracker.markRead(NOTE_ID_CURRENT);
+    }
+    updateReadBar();
+}
+function updateReadBar() {
+    const btn = document.getElementById('readStatusBtn');
+    const text = document.getElementById('readStatusText');
+    if (!btn || !text) return;
+    const isRead = ProgressTracker.isRead(NOTE_ID_CURRENT);
+    btn.textContent = isRead ? '取消已读' : '标记为已读';
+    btn.className = 'rs-btn' + (isRead ? ' rs-read' : '');
+    text.textContent = isRead ? '已读' : '未标记';
+}
+updateReadBar();
+</script>
+</body>
+</html>
