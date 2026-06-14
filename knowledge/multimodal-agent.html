@@ -1,0 +1,317 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多模态 Agent 入门 — democt</title>
+    <link rel="stylesheet" href="../assets/common.css">
+
+<style>
+/* ===== 文章侧边栏（两层结构） ===== */
+.article-layout {
+    display: flex;
+    gap: 32px;
+    align-items: flex-start;
+}
+.article-sidebar {
+    width: 240px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 24px;
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+.article-sidebar::-webkit-scrollbar { width: 4px; }
+.article-sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+/* 返回首页 */
+.sb-back {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 16px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--accent);
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+}
+.sb-back:hover { background: var(--accent-soft); }
+
+/* 分组导航区 */
+.sb-groups { border-bottom: 1px solid var(--border); }
+
+.sb-group-header {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 8px 14px 4px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text);
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.15s;
+}
+.sb-group-header:hover { color: var(--accent); }
+.sb-group-header .sb-collapse {
+    font-size: 0.55rem;
+    color: var(--text-muted);
+    transition: transform 0.2s;
+    width: 12px;
+    flex-shrink: 0;
+}
+.sb-group-header .sb-collapse.collapsed { transform: rotate(-90deg); }
+.sb-group-header .sb-gcount {
+    margin-left: auto;
+    font-size: 0.72rem;
+    font-weight: 400;
+    color: var(--text-muted);
+    background: var(--tag-bg);
+    padding: 0 6px;
+    border-radius: 10px;
+}
+
+.sb-group-items { overflow: hidden; transition: max-height 0.25s ease; }
+.sb-group-items.collapsed { max-height: 0; }
+
+.sb-note-link {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    padding: 5px 14px 5px 24px;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+    transition: all 0.12s;
+    border-left: 3px solid transparent;
+}
+.sb-note-link:hover {
+    color: var(--text);
+    background: var(--accent-soft);
+}
+.sb-note-link.active {
+    color: var(--accent);
+    background: var(--accent-soft);
+    border-left-color: var(--accent);
+    font-weight: 600;
+}
+.sb-note-link .sb-ndate {
+    font-size: 0.68rem;
+    opacity: 0.6;
+    white-space: nowrap;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+/* 文章目录区 */
+.sb-toc {
+    padding: 8px 0 12px;
+}
+.sb-toc-title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--text);
+    padding: 4px 16px 8px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+.sb-toc-link {
+    display: block;
+    padding: 3px 16px 3px 24px;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    line-height: 1.45;
+    transition: all 0.12s;
+    border-left: 2px solid transparent;
+}
+.sb-toc-link:hover {
+    color: var(--accent);
+    background: var(--accent-soft);
+}
+.sb-toc-link.h3 {
+    padding-left: 36px;
+    font-size: 0.76rem;
+}
+
+.article-content {
+    flex: 1;
+    min-width: 0;
+}
+
+/* 响应式 */
+@media (max-width: 900px) {
+    .article-layout { flex-direction: column; }
+    .article-sidebar {
+        width: 100%;
+        position: static;
+        max-height: none;
+        order: 2;
+        margin-top: 32px;
+    }
+    .article-content { order: 1; }
+}
+
+.container { --max-width: 1100px; max-width: 1100px; }
+</style>
+
+<style>
+.read-status-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #fff;
+    border-top: 1px solid #e2e8f0;
+    padding: 10px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    z-index: 50;
+    font-size: 0.88rem;
+}
+.read-status-bar .rs-btn {
+    padding: 6px 18px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: all 0.15s;
+}
+.read-status-bar .rs-btn:hover { border-color: #5b6abf; color: #5b6abf; }
+.read-status-bar .rs-btn.rs-read { background: #5b6abf; color: #fff; border-color: #5b6abf; }
+</style>
+</head>
+<body>
+<div class="container">
+    <nav class="breadcrumb"><a href="../index.html">首页</a> / 知识笔记</nav>
+    <div class="article-layout">
+<aside class="article-sidebar"><a href="../index.html#knowledge" class="sb-back">← 返回首页</a><div class="sb-groups"><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse">▼</span><span>🤖 Agent 基础</span><span class="sb-gcount">9</span></div><div class="sb-group-items"><a href="multi-agent-collaboration.html" class="sb-note-link"><span>多Agent协作架构：从单Agent到智能体网络</span><span class="sb-ndate">06-11</span></a><a href="agent-guardrails.html" class="sb-note-link"><span>Agent Guardrails：运行时安全护…</span><span class="sb-ndate">06-11</span></a><a href="agent-fullstack-development.html" class="sb-note-link"><span>Agent 全栈开发实战</span><span class="sb-ndate">06-10</span></a><a href="agent-debugging-troubleshooting.html" class="sb-note-link"><span>Agent 流程调试与问题排查实战</span><span class="sb-ndate">06-10</span></a><a href="multimodal-agent.html" class="sb-note-link active"><span>多模态 Agent 入门</span><span class="sb-ndate">06-09</span></a><a href="agent-evaluation.html" class="sb-note-link"><span>Agent 评估与测试方法论</span><span class="sb-ndate">06-08</span></a><a href="agent-memory-patterns.html" class="sb-note-link"><span>Agent 记忆系统设计模式</span><span class="sb-ndate">06-07</span></a><a href="agent-security.html" class="sb-note-link"><span>Agent 安全红宝书</span><span class="sb-ndate">06-03</span></a><a href="what-is-agent.html" class="sb-note-link"><span>什么是 Agent？核心概念与能力边界</span><span class="sb-ndate">05-15</span></a></div><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>💬 提示词与工具</span><span class="sb-gcount">4</span></div><div class="sb-group-items collapsed"><a href="tool-calling-advanced.html" class="sb-note-link"><span>Tool Calling 进阶：工具网关与多工…</span><span class="sb-ndate">06-10</span></a><a href="structured-output.html" class="sb-note-link"><span>结构化输出完全指南</span><span class="sb-ndate">06-06</span></a><a href="function-calling-deep-dive.html" class="sb-note-link"><span>Function Calling 原理与实践</span><span class="sb-ndate">05-26</span></a><a href="prompt-engineering.html" class="sb-note-link"><span>提示词工程进阶：从入门到系统化</span><span class="sb-ndate">05-18</span></a></div><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>🔍 RAG 与检索</span><span class="sb-gcount">5</span></div><div class="sb-group-items collapsed"><a href="rag-pitfalls-optimization.html" class="sb-note-link"><span>RAG 落地常见陷阱与优化策略</span><span class="sb-ndate">06-10</span></a><a href="rag-production-deployment.html" class="sb-note-link"><span>RAG 生产化部署：从原型到高性能系统</span><span class="sb-ndate">06-10</span></a><a href="vector-db-comparison.html" class="sb-note-link"><span>向量数据库对比：选型指南</span><span class="sb-ndate">05-24</span></a><a href="embedding-model-guide.html" class="sb-note-link"><span>Embedding 模型选型与对比</span><span class="sb-ndate">05-22</span></a><a href="rag-architecture.html" class="sb-note-link"><span>RAG 架构深度解析：从朴素到模块化</span><span class="sb-ndate">05-20</span></a></div><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>🧠 LLM 深入</span><span class="sb-gcount">4</span></div><div class="sb-group-items collapsed"><a href="cost-optimization.html" class="sb-note-link"><span>Agent 成本优化手册</span><span class="sb-ndate">06-10</span></a><a href="semantic-cache.html" class="sb-note-link"><span>LLM 语义缓存策略</span><span class="sb-ndate">06-07</span></a><a href="llm-observability.html" class="sb-note-link"><span>AI 应用的可观测性</span><span class="sb-ndate">06-01</span></a><a href="llm-hallucination.html" class="sb-note-link"><span>LLM 幻觉现象与缓解策略</span><span class="sb-ndate">05-30</span></a></div><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>🔌 架构与协议</span><span class="sb-gcount">7</span></div><div class="sb-group-items collapsed"><a href="agent-framework-selection.html" class="sb-note-link"><span>Agent框架选型指南：2026年全景对比</span><span class="sb-ndate">06-11</span></a><a href="a2a-protocol.html" class="sb-note-link"><span>A2A协议：Agent间通信的开放标准</span><span class="sb-ndate">06-11</span></a><a href="mcp-server-practice.html" class="sb-note-link"><span>MCP Server 开发实战</span><span class="sb-ndate">06-10</span></a><a href="mcp-skill-backend-advanced.html" class="sb-note-link"><span>MCP Server 开发实战 &amp; Skill…</span><span class="sb-ndate">06-10</span></a><a href="streaming-architecture.html" class="sb-note-link"><span>流式架构设计实践</span><span class="sb-ndate">06-09</span></a><a href="task-planning-patterns.html" class="sb-note-link"><span>从 Andon 到 DAG：任务规划模式汇总</span><span class="sb-ndate">06-05</span></a><a href="mcp-protocol.html" class="sb-note-link"><span>MCP 协议解析：Agent 的 USB-C</span><span class="sb-ndate">05-28</span></a></div><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>⚡ Skill 开发</span><span class="sb-gcount">1</span></div><div class="sb-group-items collapsed"><a href="skill-design-guide.html" class="sb-note-link"><span>Skill 设计与开发指南</span><span class="sb-ndate">06-10</span></a></div><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>🖥️ 后端开发</span><span class="sb-gcount">1</span></div><div class="sb-group-items collapsed"><a href="backend-agent-integration.html" class="sb-note-link"><span>后端服务与 Agent 集成模式</span><span class="sb-ndate">06-10</span></a></div><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>🏗️ 全栈开发</span><span class="sb-gcount">1</span></div><div class="sb-group-items collapsed"><a href="vibe-coding-guide.html" class="sb-note-link"><span>Vibe Coding：AI辅助编程实战指南</span><span class="sb-ndate">06-11</span></a></div></div><div class="sb-toc"><div class="sb-toc-title">📑 本页目录</div><a href="#section-0" class="sb-toc-link">什么是多模态 Agent</a><a href="#section-1" class="sb-toc-link">三种实现路径</a><a href="#subsection-0" class="sb-toc-link h3">1. 多模态 LLM 原生支持</a><a href="#subsection-1" class="sb-toc-link h3">2. 视觉工具调用 (Tool-based Vision)</a><a href="#subsection-2" class="sb-toc-link h3">3. 混合策略</a><a href="#section-2" class="sb-toc-link">实践场景</a><a href="#section-3" class="sb-toc-link">推荐策略</a></div></aside>
+<div class="article-content">
+<article>
+        <h1>多模态 Agent 入门</h1>
+        <div class="meta"><span class="date">2026-06-09</span><span class="tag-list"><span>多模态</span><span>Agent</span><span>Vision</span><span>架构</span></span></div>
+
+        <h2 id="section-0">什么是多模态 Agent</h2>
+        <p>传统 Agent 只能处理文本输入。多模态 Agent 扩展了感知范围——能理解图片、图表、文档扫描件、甚至音视频。这在医疗影像分析、工业质检、图纸问答等场景至关重要。</p>
+
+        <h2 id="section-1">三种实现路径</h2>
+
+        <h3 id="subsection-0">1. 多模态 LLM 原生支持</h3>
+        <p>GPT-4V、Claude 3 Vision、Qwen-VL 等模型原生支持图片输入。最简单——直接把图片作为消息的一部分传入，LLM 自动理解并作出反应。</p>
+        <pre><code>// OpenAI API 多模态消息
+{
+  "role": "user",
+  "content": [
+    { "type": "text", "text": "这张 X 光片有什么异常？" },
+    { "type": "image_url", "image_url": { "url": "..." } }
+  ]
+}</code></pre>
+        <p><strong>优点</strong>：开发成本低、视觉理解能力强<br>
+        <strong>缺点</strong>：Token 消耗大（每张图 ≈ 数百至上千 Token）、延迟高</p>
+
+        <h3 id="subsection-1">2. 视觉工具调用 (Tool-based Vision)</h3>
+        <p>Agent 将图片处理交给专用工具——OCR 提取文字、图像描述模型生成文本摘要、目标检测模型标注区域。LLM 只处理文字。</p>
+        <pre><code>用户: "这个发票的总金额是多少？"
+Agent 思考: 需要 OCR 提取文字
+  → 调用 ocr_extract(image_path) → "金额: ¥12,800"
+  → 推理: 总金额是 12,800 元
+  → 回复用户</code></pre>
+        <p><strong>优点</strong>：Token 消耗低、延迟可接受、工具可替换<br>
+        <strong>缺点</strong>：信息在工具转换中有损失</p>
+
+        <h3 id="subsection-2">3. 混合策略</h3>
+        <p>先用轻量视觉工具做预筛选，复杂场景再走多模态 LLM 深度分析。平衡成本与效果的最佳实践。</p>
+
+        <h2 id="section-2">实践场景</h2>
+        <ul>
+            <li><strong>文档问答</strong>：PDF/扫描件 → OCR → 文本检索 → RAG 回答</li>
+            <li><strong>图表分析</strong>：截图 → 图表描述模型 → 结构化数据 → 推理分析</li>
+            <li><strong>视觉导航</strong>：UI 截图 → 元素定位 → 操作决策 → 点击执行</li>
+            <li><strong>图纸审查</strong>：CAD 图 → 区域标注 → 规则检查 → 报告生成</li>
+        </ul>
+
+        <h2 id="section-3">推荐策略</h2>
+        <p>起步阶段用路径 2（工具调用），成本可控、效果明确。当场景需要在图片中做复杂推理（空间关系、表情理解、图表判断）时，升级到路径 3（混合）或路径 1（原生）。关键指标：<strong>图片处理耗时 &lt; LLM 推理耗时</strong>才值得引入。</p>
+    </article>
+</div>
+</div>
+</div>
+<script>
+function toggleSbGroup(header) {
+    const items = header.nextElementSibling;
+    const icon = header.querySelector('.sb-collapse');
+    if (items.classList.contains('collapsed')) {
+        items.classList.remove('collapsed');
+        items.style.maxHeight = items.scrollHeight + 'px';
+        if (icon) icon.classList.remove('collapsed');
+    } else {
+        items.classList.add('collapsed');
+        items.style.maxHeight = '0';
+        if (icon) icon.classList.add('collapsed');
+    }
+}
+document.querySelectorAll('.sb-group-items:not(.collapsed)').forEach(function(el) {
+    el.style.maxHeight = el.scrollHeight + 'px';
+});
+</script>
+
+<div class="read-status-bar" id="readStatusBar">
+    <span id="readStatusText">未标记</span>
+    <button class="rs-btn" id="readStatusBtn" onclick="toggleRead()">标记为已读</button>
+</div>
+<script>window.__NOTE_ID__ = 'multimodal-agent';</script>
+
+<script src="../js/progress.js"></script>
+<script src="../js/auth.js"></script>
+<script>
+(function() {
+    const NOTE_ID = 'multimodal-agent';
+    // Auto-mark as read after 5 seconds on page
+    setTimeout(function() {
+        if (ProgressTracker.isLoggedIn()) {
+            if (!ProgressTracker.isRead(NOTE_ID)) {
+                ProgressTracker.markRead(NOTE_ID);
+            }
+        }
+    }, 5000);
+})();
+</script>
+
+<script>
+const NOTE_ID_CURRENT = window.__NOTE_ID__ || '';
+function toggleRead() {
+    if (!ProgressTracker.isLoggedIn()) {
+        alert('请先登录以同步学习进度');
+        return;
+    }
+    if (ProgressTracker.isRead(NOTE_ID_CURRENT)) {
+        ProgressTracker.markUnread(NOTE_ID_CURRENT);
+    } else {
+        ProgressTracker.markRead(NOTE_ID_CURRENT);
+    }
+    updateReadBar();
+}
+function updateReadBar() {
+    const btn = document.getElementById('readStatusBtn');
+    const text = document.getElementById('readStatusText');
+    if (!btn || !text) return;
+    const isRead = ProgressTracker.isRead(NOTE_ID_CURRENT);
+    btn.textContent = isRead ? '取消已读' : '标记为已读';
+    btn.className = 'rs-btn' + (isRead ? ' rs-read' : '');
+    text.textContent = isRead ? '已读' : '未标记';
+}
+updateReadBar();
+</script>
+</body>
+</html>
