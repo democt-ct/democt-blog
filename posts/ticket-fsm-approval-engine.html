@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>工单状态机与审批引擎的设计模式 — democt</title>
+    <link rel="stylesheet" href="../assets/common.css">
+
+<style>
+/* ===== 文章侧边栏（两层结构） ===== */
+.article-layout {
+    display: flex;
+    gap: 32px;
+    align-items: flex-start;
+}
+.article-sidebar {
+    width: 240px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 24px;
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+.article-sidebar::-webkit-scrollbar { width: 4px; }
+.article-sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+/* 返回首页 */
+.sb-back {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 16px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--accent);
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+}
+.sb-back:hover { background: var(--accent-soft); }
+
+/* 分组导航区 */
+.sb-groups { border-bottom: 1px solid var(--border); }
+
+.sb-group-header {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 8px 14px 4px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text);
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.15s;
+}
+.sb-group-header:hover { color: var(--accent); }
+.sb-group-header .sb-collapse {
+    font-size: 0.55rem;
+    color: var(--text-muted);
+    transition: transform 0.2s;
+    width: 12px;
+    flex-shrink: 0;
+}
+.sb-group-header .sb-collapse.collapsed { transform: rotate(-90deg); }
+.sb-group-header .sb-gcount {
+    margin-left: auto;
+    font-size: 0.72rem;
+    font-weight: 400;
+    color: var(--text-muted);
+    background: var(--tag-bg);
+    padding: 0 6px;
+    border-radius: 10px;
+}
+
+.sb-group-items { overflow: hidden; transition: max-height 0.25s ease; }
+.sb-group-items.collapsed { max-height: 0; }
+
+.sb-note-link {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    padding: 5px 14px 5px 24px;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+    transition: all 0.12s;
+    border-left: 3px solid transparent;
+}
+.sb-note-link:hover {
+    color: var(--text);
+    background: var(--accent-soft);
+}
+.sb-note-link.active {
+    color: var(--accent);
+    background: var(--accent-soft);
+    border-left-color: var(--accent);
+    font-weight: 600;
+}
+.sb-note-link .sb-ndate {
+    font-size: 0.68rem;
+    opacity: 0.6;
+    white-space: nowrap;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+/* 文章目录区 */
+.sb-toc {
+    padding: 8px 0 12px;
+}
+.sb-toc-title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--text);
+    padding: 4px 16px 8px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+.sb-toc-link {
+    display: block;
+    padding: 3px 16px 3px 24px;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    line-height: 1.45;
+    transition: all 0.12s;
+    border-left: 2px solid transparent;
+}
+.sb-toc-link:hover {
+    color: var(--accent);
+    background: var(--accent-soft);
+}
+.sb-toc-link.h3 {
+    padding-left: 36px;
+    font-size: 0.76rem;
+}
+
+.article-content {
+    flex: 1;
+    min-width: 0;
+}
+
+/* 响应式 */
+@media (max-width: 900px) {
+    .article-layout { flex-direction: column; }
+    .article-sidebar {
+        width: 100%;
+        position: static;
+        max-height: none;
+        order: 2;
+        margin-top: 32px;
+    }
+    .article-content { order: 1; }
+}
+
+.container { --max-width: 1100px; max-width: 1100px; }
+</style>
+</head>
+<body>
+<div class="container">
+    <nav class="breadcrumb"><a href="../index.html">首页</a> / 笔记</nav>
+    <div class="article-layout">
+<aside class="article-sidebar"><a href="../index.html#garden" class="sb-back">← 返回首页</a><div class="sb-groups"><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>🏥 患者Agent</span><span class="sb-gcount">5</span></div><div class="sb-group-items collapsed"><a href="code-optimization-practices.html" class="sb-note-link"><span>代码优化实践：跨域合并与上下文隔离</span><span class="sb-ndate">06-05</span></a><a href="patient-allergy-safety.html" class="sb-note-link"><span>患者过敏安全机制的设计</span><span class="sb-ndate">06-01</span></a><a href="memory-system-engineering.html" class="sb-note-link"><span>记忆系统的工程实践：四层架构的坑与对策</span><span class="sb-ndate">05-25</span></a><a href="query-lifecycle.html" class="sb-note-link"><span>患者 Agent 问答的完整生命周期</span><span class="sb-ndate">05-20</span></a><a href="frontend-progressive-optimization.html" class="sb-note-link"><span>前端界面优化的渐进方案</span><span class="sb-ndate">05-18</span></a></div><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>✈️ 旅行规划师</span><span class="sb-gcount">2</span></div><div class="sb-group-items collapsed"><a href="amap-poi-pipeline.html" class="sb-note-link"><span>从模糊地点到精确 POI</span><span class="sb-ndate">05-30</span></a><a href="cloudflare-worker-travel-arch.html" class="sb-note-link"><span>AI 旅行规划师的 Cloudflare Wo…</span><span class="sb-ndate">04-25</span></a></div><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse">▼</span><span>🏢 企业多Agent</span><span class="sb-gcount">6</span></div><div class="sb-group-items"><a href="action-card-templates.html" class="sb-note-link"><span>对话驱动的企业工作台：操作卡片模板</span><span class="sb-ndate">06-09</span></a><a href="planner-dag-task-decomposition.html" class="sb-note-link"><span>Planner 与 DAG 任务分解</span><span class="sb-ndate">06-08</span></a><a href="agent-communication-protocol.html" class="sb-note-link"><span>多 Agent 通信协议设计</span><span class="sb-ndate">06-07</span></a><a href="ticket-fsm-approval-engine.html" class="sb-note-link active"><span>工单状态机与审批引擎设计</span><span class="sb-ndate">06-06</span></a><a href="skills-layer-design.html" class="sb-note-link"><span>Skills 层设计：Agent 中的业务抽象</span><span class="sb-ndate">06-04</span></a><a href="hybrid-rag-practice.html" class="sb-note-link"><span>企业 RAG 系统的混合检索实践</span><span class="sb-ndate">06-03</span></a></div><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>🛠️ 工程实践</span><span class="sb-gcount">5</span></div><div class="sb-group-items collapsed"><a href="self-react-vs-langgraph.html" class="sb-note-link"><span>自研 ReAct vs LangGraph</span><span class="sb-ndate">06-10</span></a><a href="agent-design-patterns.html" class="sb-note-link"><span>Agent 应用的几种设计模式</span><span class="sb-ndate">06-08</span></a><a href="agent-security-practice.html" class="sb-note-link"><span>Agent 应用安全实践</span><span class="sb-ndate">06-05</span></a><a href="langgraph-state-management.html" class="sb-note-link"><span>LangGraph 状态管理深入理解</span><span class="sb-ndate">06-05</span></a><a href="tool-calling-best-practices.html" class="sb-note-link"><span>Tool Calling 实践中的几个坑</span><span class="sb-ndate">05-28</span></a></div></div><div class="sb-toc"><div class="sb-toc-title">📑 本页目录</div><a href="#section-0" class="sb-toc-link">工单状态机 (FSM)</a><a href="#section-1" class="sb-toc-link">审批引擎</a></div></aside>
+<div class="article-content">
+<article>
+        <h1>工单状态机与审批引擎的设计模式</h1>
+        <div class="meta"><span class="date">2026-06-06</span><span class="tag-list"><span>系统设计</span><span>状态机</span><span>审批</span></span></div>
+
+        <p>企业应用中的审批和工单是状态流转的典型场景。在我们的多专家 Agent 系统中，用两个模块统一处理。</p>
+
+        <h2 id="section-0">工单状态机 (FSM)</h2>
+        <pre><code>待处理 → 处理中 → 已完成
+   ↓         ↓         ↓
+  已关闭  ←  └── 重开 ─┘
+   ↑
+  升级</code></pre>
+        <p>所有状态转移都有严格校验，非法转换返回 error 而非静默失败，保证数据一致性。</p>
+
+        <h2 id="section-1">审批引擎</h2>
+        <p>统一处理请假、报销的审批流程，核心思路是 <strong>规则配置 + 汇报链 = 审批步骤</strong>。</p>
+        
+        <table>
+            <tr><th>请假天数</th><th>层级</th><th>审批链</th></tr>
+            <tr><td>≤ 3 天</td><td>1 级</td><td>直属上级</td></tr>
+            <tr><td>≤ 7 天</td><td>2 级</td><td>直属上级 → 部门负责人</td></tr>
+            <tr><td>> 7 天</td><td>3 级</td><td>直属上级 → 部门负责人 → HR 总监</td></tr>
+        </table>
+
+        <table>
+            <tr><th>报销金额</th><th>层级</th><th>审批链</th></tr>
+            <tr><td>< 5,000 元</td><td>1 级</td><td>直属上级</td></tr>
+            <tr><td>≥ 5,000 元</td><td>2 级</td><td>直属上级 → 财务经理</td></tr>
+        </table>
+
+        <p>两个模块结合 Skills 层设计，Agent 只需要简单的 ReAct 调用就能完成复杂的多步流转。</p>
+        <p class="back-link"><a href="../index.html">← 返回首页</a></p>
+    </article>
+</div>
+</div>
+</div>
+<script>
+function toggleSbGroup(header) {
+    const items = header.nextElementSibling;
+    const icon = header.querySelector('.sb-collapse');
+    if (items.classList.contains('collapsed')) {
+        items.classList.remove('collapsed');
+        items.style.maxHeight = items.scrollHeight + 'px';
+        if (icon) icon.classList.remove('collapsed');
+    } else {
+        items.classList.add('collapsed');
+        items.style.maxHeight = '0';
+        if (icon) icon.classList.add('collapsed');
+    }
+}
+document.querySelectorAll('.sb-group-items:not(.collapsed)').forEach(function(el) {
+    el.style.maxHeight = el.scrollHeight + 'px';
+});
+</script>
+</body>
+</html>
