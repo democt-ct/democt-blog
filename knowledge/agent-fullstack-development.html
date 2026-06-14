@@ -1,0 +1,584 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent 全栈开发实战：从零到生产级 Agent 应用 — democt</title>
+    <link rel="stylesheet" href="../assets/common.css">
+
+<style>
+/* ===== 文章侧边栏（两层结构） ===== */
+.article-layout {
+    display: flex;
+    gap: 32px;
+    align-items: flex-start;
+}
+.article-sidebar {
+    width: 240px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 24px;
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+.article-sidebar::-webkit-scrollbar { width: 4px; }
+.article-sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+/* 返回首页 */
+.sb-back {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 16px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--accent);
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+}
+.sb-back:hover { background: var(--accent-soft); }
+
+/* 分组导航区 */
+.sb-groups { border-bottom: 1px solid var(--border); }
+
+.sb-group-header {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 8px 14px 4px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text);
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.15s;
+}
+.sb-group-header:hover { color: var(--accent); }
+.sb-group-header .sb-collapse {
+    font-size: 0.55rem;
+    color: var(--text-muted);
+    transition: transform 0.2s;
+    width: 12px;
+    flex-shrink: 0;
+}
+.sb-group-header .sb-collapse.collapsed { transform: rotate(-90deg); }
+.sb-group-header .sb-gcount {
+    margin-left: auto;
+    font-size: 0.72rem;
+    font-weight: 400;
+    color: var(--text-muted);
+    background: var(--tag-bg);
+    padding: 0 6px;
+    border-radius: 10px;
+}
+
+.sb-group-items { overflow: hidden; transition: max-height 0.25s ease; }
+.sb-group-items.collapsed { max-height: 0; }
+
+.sb-note-link {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    padding: 5px 14px 5px 24px;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+    transition: all 0.12s;
+    border-left: 3px solid transparent;
+}
+.sb-note-link:hover {
+    color: var(--text);
+    background: var(--accent-soft);
+}
+.sb-note-link.active {
+    color: var(--accent);
+    background: var(--accent-soft);
+    border-left-color: var(--accent);
+    font-weight: 600;
+}
+.sb-note-link .sb-ndate {
+    font-size: 0.68rem;
+    opacity: 0.6;
+    white-space: nowrap;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+/* 文章目录区 */
+.sb-toc {
+    padding: 8px 0 12px;
+}
+.sb-toc-title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--text);
+    padding: 4px 16px 8px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+.sb-toc-link {
+    display: block;
+    padding: 3px 16px 3px 24px;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    line-height: 1.45;
+    transition: all 0.12s;
+    border-left: 2px solid transparent;
+}
+.sb-toc-link:hover {
+    color: var(--accent);
+    background: var(--accent-soft);
+}
+.sb-toc-link.h3 {
+    padding-left: 36px;
+    font-size: 0.76rem;
+}
+
+.article-content {
+    flex: 1;
+    min-width: 0;
+}
+
+/* 响应式 */
+@media (max-width: 900px) {
+    .article-layout { flex-direction: column; }
+    .article-sidebar {
+        width: 100%;
+        position: static;
+        max-height: none;
+        order: 2;
+        margin-top: 32px;
+    }
+    .article-content { order: 1; }
+}
+
+.container { --max-width: 1100px; max-width: 1100px; }
+</style>
+
+<style>
+.read-status-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #fff;
+    border-top: 1px solid #e2e8f0;
+    padding: 10px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    z-index: 50;
+    font-size: 0.88rem;
+}
+.read-status-bar .rs-btn {
+    padding: 6px 18px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: all 0.15s;
+}
+.read-status-bar .rs-btn:hover { border-color: #5b6abf; color: #5b6abf; }
+.read-status-bar .rs-btn.rs-read { background: #5b6abf; color: #fff; border-color: #5b6abf; }
+</style>
+</head>
+<body>
+<div class="container">
+    <nav class="breadcrumb"><a href="../index.html">首页</a> / 知识笔记</nav>
+    <div class="article-layout">
+<aside class="article-sidebar"><a href="../index.html#knowledge" class="sb-back">← 返回首页</a><div class="sb-groups"><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse">▼</span><span>🤖 Agent 基础</span><span class="sb-gcount">9</span></div><div class="sb-group-items"><a href="multi-agent-collaboration.html" class="sb-note-link"><span>多Agent协作架构：从单Agent到智能体网络</span><span class="sb-ndate">06-11</span></a><a href="agent-guardrails.html" class="sb-note-link"><span>Agent Guardrails：运行时安全护…</span><span class="sb-ndate">06-11</span></a><a href="agent-fullstack-development.html" class="sb-note-link active"><span>Agent 全栈开发实战</span><span class="sb-ndate">06-10</span></a><a href="agent-debugging-troubleshooting.html" class="sb-note-link"><span>Agent 流程调试与问题排查实战</span><span class="sb-ndate">06-10</span></a><a href="multimodal-agent.html" class="sb-note-link"><span>多模态 Agent 入门</span><span class="sb-ndate">06-09</span></a><a href="agent-evaluation.html" class="sb-note-link"><span>Agent 评估与测试方法论</span><span class="sb-ndate">06-08</span></a><a href="agent-memory-patterns.html" class="sb-note-link"><span>Agent 记忆系统设计模式</span><span class="sb-ndate">06-07</span></a><a href="agent-security.html" class="sb-note-link"><span>Agent 安全红宝书</span><span class="sb-ndate">06-03</span></a><a href="what-is-agent.html" class="sb-note-link"><span>什么是 Agent？核心概念与能力边界</span><span class="sb-ndate">05-15</span></a></div><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>💬 提示词与工具</span><span class="sb-gcount">4</span></div><div class="sb-group-items collapsed"><a href="tool-calling-advanced.html" class="sb-note-link"><span>Tool Calling 进阶：工具网关与多工…</span><span class="sb-ndate">06-10</span></a><a href="structured-output.html" class="sb-note-link"><span>结构化输出完全指南</span><span class="sb-ndate">06-06</span></a><a href="function-calling-deep-dive.html" class="sb-note-link"><span>Function Calling 原理与实践</span><span class="sb-ndate">05-26</span></a><a href="prompt-engineering.html" class="sb-note-link"><span>提示词工程进阶：从入门到系统化</span><span class="sb-ndate">05-18</span></a></div><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>🔍 RAG 与检索</span><span class="sb-gcount">5</span></div><div class="sb-group-items collapsed"><a href="rag-pitfalls-optimization.html" class="sb-note-link"><span>RAG 落地常见陷阱与优化策略</span><span class="sb-ndate">06-10</span></a><a href="rag-production-deployment.html" class="sb-note-link"><span>RAG 生产化部署：从原型到高性能系统</span><span class="sb-ndate">06-10</span></a><a href="vector-db-comparison.html" class="sb-note-link"><span>向量数据库对比：选型指南</span><span class="sb-ndate">05-24</span></a><a href="embedding-model-guide.html" class="sb-note-link"><span>Embedding 模型选型与对比</span><span class="sb-ndate">05-22</span></a><a href="rag-architecture.html" class="sb-note-link"><span>RAG 架构深度解析：从朴素到模块化</span><span class="sb-ndate">05-20</span></a></div><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>🧠 LLM 深入</span><span class="sb-gcount">4</span></div><div class="sb-group-items collapsed"><a href="cost-optimization.html" class="sb-note-link"><span>Agent 成本优化手册</span><span class="sb-ndate">06-10</span></a><a href="semantic-cache.html" class="sb-note-link"><span>LLM 语义缓存策略</span><span class="sb-ndate">06-07</span></a><a href="llm-observability.html" class="sb-note-link"><span>AI 应用的可观测性</span><span class="sb-ndate">06-01</span></a><a href="llm-hallucination.html" class="sb-note-link"><span>LLM 幻觉现象与缓解策略</span><span class="sb-ndate">05-30</span></a></div><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>🔌 架构与协议</span><span class="sb-gcount">7</span></div><div class="sb-group-items collapsed"><a href="agent-framework-selection.html" class="sb-note-link"><span>Agent框架选型指南：2026年全景对比</span><span class="sb-ndate">06-11</span></a><a href="a2a-protocol.html" class="sb-note-link"><span>A2A协议：Agent间通信的开放标准</span><span class="sb-ndate">06-11</span></a><a href="mcp-server-practice.html" class="sb-note-link"><span>MCP Server 开发实战</span><span class="sb-ndate">06-10</span></a><a href="mcp-skill-backend-advanced.html" class="sb-note-link"><span>MCP Server 开发实战 &amp; Skill…</span><span class="sb-ndate">06-10</span></a><a href="streaming-architecture.html" class="sb-note-link"><span>流式架构设计实践</span><span class="sb-ndate">06-09</span></a><a href="task-planning-patterns.html" class="sb-note-link"><span>从 Andon 到 DAG：任务规划模式汇总</span><span class="sb-ndate">06-05</span></a><a href="mcp-protocol.html" class="sb-note-link"><span>MCP 协议解析：Agent 的 USB-C</span><span class="sb-ndate">05-28</span></a></div><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>⚡ Skill 开发</span><span class="sb-gcount">1</span></div><div class="sb-group-items collapsed"><a href="skill-design-guide.html" class="sb-note-link"><span>Skill 设计与开发指南</span><span class="sb-ndate">06-10</span></a></div><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>🖥️ 后端开发</span><span class="sb-gcount">1</span></div><div class="sb-group-items collapsed"><a href="backend-agent-integration.html" class="sb-note-link"><span>后端服务与 Agent 集成模式</span><span class="sb-ndate">06-10</span></a></div><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>🏗️ 全栈开发</span><span class="sb-gcount">1</span></div><div class="sb-group-items collapsed"><a href="vibe-coding-guide.html" class="sb-note-link"><span>Vibe Coding：AI辅助编程实战指南</span><span class="sb-ndate">06-11</span></a></div></div><div class="sb-toc"><div class="sb-toc-title">📑 本页目录</div><a href="#section-0" class="sb-toc-link">Agent 开发的完整技术栈</a><a href="#section-1" class="sb-toc-link">阶段一：Agent 核心引擎搭建</a><a href="#subsection-0" class="sb-toc-link h3">1.1 选择架构模式</a><a href="#subsection-1" class="sb-toc-link h3">1.2 ReAct 循环的核心实现</a><a href="#section-2" class="sb-toc-link">阶段二：工具系统设计</a><a href="#subsection-2" class="sb-toc-link h3">2.1 工具定义规范</a><a href="#subsection-3" class="sb-toc-link h3">2.2 工具网关模式</a><a href="#section-3" class="sb-toc-link">阶段三：RAG 检索增强</a><a href="#subsection-4" class="sb-toc-link h3">3.1 RAG 的基本流程</a><a href="#subsection-5" class="sb-toc-link h3">3.2 混合检索：关键词 + 语义</a><a href="#subsection-6" class="sb-toc-link h3">3.3 轻量级 RAG 实践：客户端搜索</a><a href="#section-4" class="sb-toc-link">阶段四：记忆系统设计</a><a href="#subsection-7" class="sb-toc-link h3">4.1 三层记忆架构</a><a href="#subsection-8" class="sb-toc-link h3">4.2 记忆压缩策略</a><a href="#section-5" class="sb-toc-link">阶段五：前后端集成</a><a href="#subsection-9" class="sb-toc-link h3">5.1 SSE 流式响应（推荐方案）</a><a href="#subsection-10" class="sb-toc-link h3">5.2 前端消费 SSE</a><a href="#section-6" class="sb-toc-link">阶段六：部署与运维</a><a href="#subsection-11" class="sb-toc-link h3">6.1 部署方案对比</a><a href="#subsection-12" class="sb-toc-link h3">6.2 CI/CD 自动化部署</a><a href="#subsection-13" class="sb-toc-link h3">6.3 框架迁移的坑</a><a href="#section-7" class="sb-toc-link">阶段七：可观测性</a><a href="#subsection-14" class="sb-toc-link h3">7.1 Trace 的重要性</a><a href="#section-8" class="sb-toc-link">关键决策清单</a></div></aside>
+<div class="article-content">
+<article>
+        <h1>Agent 全栈开发实战：从零到生产级 Agent 应用</h1>
+        <div class="meta"><span class="date">2026-06-10</span><span class="tag-list"><span>Agent</span><span>全栈</span><span>工程实践</span><span>开发流程</span></span></div>
+
+        <h2 id="section-0">Agent 开发的完整技术栈</h2>
+        <p>构建一个生产级的 Agent 应用不是简单地调用 LLM API。它涉及前端交互、后端编排、工具集成、记忆管理、RAG 检索、部署运维六个层面。本文梳理从零到一的完整开发路径和每个环节的关键决策。</p>
+
+        <pre><code>┌─────────────────────────────────────────────────────────┐
+│                    前端交互层                              │
+│  聊天界面 · 流式渲染 · 工具调用可视化 · 会话管理           │
+├─────────────────────────────────────────────────────────┤
+│                    API 网关层                             │
+│  认证鉴权(JWT/API Key) · 限流 · 路由 · CORS · 日志        │
+├─────────────────────────────────────────────────────────┤
+│                   Agent 编排层                            │
+│  ReAct 循环 · 任务规划 · 多Agent协调 · 错误恢复             │
+├──────────────┬──────────────────┬────────────────────────┤
+│  工具网关层   │   记忆管理层       │   RAG 检索层            │
+│  Skill 调度   │  短期/长期记忆     │  向量检索 + 重排序      │
+│  MCP 集成     │  会话状态          │  混合检索(关键词+语义)   │
+│  Function Call│  用户画像          │  检索增强生成           │
+├──────────────┴──────────────────┴────────────────────────┤
+│                    基础设施层                              │
+│  PostgreSQL · 向量数据库 · Redis · 消息队列 · 对象存储      │
+└─────────────────────────────────────────────────────────┘</code></pre>
+
+        <h2 id="section-1">阶段一：Agent 核心引擎搭建</h2>
+        <h3 id="subsection-0">1.1 选择架构模式</h3>
+        <p>Agent 的编排引擎是整个系统的核心。三种主流选择：</p>
+        <table>
+            <tr><th>模式</th><th>适用场景</th><th>复杂度</th><th>代表实现</th></tr>
+            <tr><td>ReAct 循环</td><td>需要工具调用的交互式 Agent</td><td>中</td><td>LangGraph AgentExecutor</td></tr>
+            <tr><td>Plan-then-Execute</td><td>复杂的多步骤任务</td><td>高</td><td>AutoGPT、CrewAI</td></tr>
+            <tr><td>Router + Worker</td><td>多领域多能力的 Agent 平台</td><td>高</td><td>OpenAI Swarm</td></tr>
+            <tr><td>Simple Chain</td><td>确定性流程（如文档处理流水线）</td><td>低</td><td>LangChain LCEL</td></tr>
+        </table>
+
+        <h3 id="subsection-1">1.2 ReAct 循环的核心实现</h3>
+        <p>ReAct 循环是所有 Agent 系统的基础。一个健壮的实现必须包含：</p>
+        <pre><code>class AgentExecutor:
+    def __init__(self, llm, tools, memory, max_steps=12, max_time=60):
+        self.llm = llm
+        self.tools = {t.name: t for t in tools}
+        self.memory = memory
+        self.max_steps = max_steps
+        self.max_time = max_time
+        self.action_history = []  # 重复检测
+
+    async def run(self, user_input: str, session_id: str):
+        start_time = time.time()
+        context = await self.memory.load(session_id)
+        messages = [SystemMessage(self.build_system_prompt()),
+                     HumanMessage(user_input)]
+
+        for step in range(self.max_steps):
+            # 超时熔断
+            if time.time() - start_time > self.max_time:
+                messages.append(HumanMessage("请基于已有信息给出最佳回答"))
+                return await self.llm.ainvoke(messages)
+
+            response = await self.llm.ainvoke(messages)
+
+            if response.tool_calls:
+                # 重复检测
+                for tc in response.tool_calls:
+                    key = (tc.name, str(tc.args))
+                    if self.action_history.count(key) >= 2:
+                        messages.append(ToolMessage(
+                            content="已重试2次，请换一种方式",
+                            tool_call_id=tc.id))
+                        continue
+                    self.action_history.append(key)
+
+                    # 执行工具
+                    result = await self.tools[tc.name].arun(**tc.args)
+                    messages.append(ToolMessage(content=result,
+                                                 tool_call_id=tc.id))
+                messages.append(response)  # 保留 assistant 消息
+            else:
+                # 没有工具调用 = 最终回答
+                await self.memory.save(session_id, messages)
+                return response.content</code></pre>
+
+        <h2 id="section-2">阶段二：工具系统设计</h2>
+        <h3 id="subsection-2">2.1 工具定义规范</h3>
+        <p>工具是 Agent 的"手"。工具定义的质量直接影响 Agent 的可靠性：</p>
+        <pre><code># 工具描述的最佳实践
+tool_spec = {
+    "name": "search_knowledge_base",
+    "description": (
+        "在内部知识库中搜索相关文档。"
+        "用于查找技术文档、操作手册、历史记录。"
+        "注意：只能搜索已索引的文档，不支持实时网页搜索。"
+        "如果查询结果为空，说明知识库中没有相关内容，"
+        "请告知用户并建议其他方式。"
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "query": {
+                "type": "string",
+                "description": "搜索关键词，建议用简短的短语而非完整句子"
+            },
+            "top_k": {
+                "type": "integer",
+                "description": "返回结果数量，默认5，最大20",
+                "default": 5,
+                "minimum": 1,
+                "maximum": 20
+            },
+            "category": {
+                "type": "string",
+                "enum": ["技术文档", "操作手册", "FAQ", "历史记录"],
+                "description": "限定搜索的范围分类"
+            }
+        },
+        "required": ["query"]
+    }
+}</code></pre>
+
+        <h3 id="subsection-3">2.2 工具网关模式</h3>
+        <p>当 Agent 拥有超过 10 个工具时，将所有工具定义注入 System Prompt 会消耗大量 Token 并降低选择准确率。工具网关解决这个问题：</p>
+        <pre><code># 两级路由：先分类再选择
+class ToolGateway:
+    def __init__(self):
+        self.categories = {
+            "搜索类": [web_search, kb_search, image_search],
+            "数据类": [sql_query, api_fetch, file_read],
+            "操作类": [send_email, create_ticket, deploy_service],
+            "分析类": [code_review, data_analysis, text_summary]
+        }
+
+    async def resolve(self, intent: str) -> list[Tool]:
+        """根据用户意图返回相关工具子集"""
+        category = await self.classify(intent)
+        return self.categories.get(category, [])
+
+    # 只在 System Prompt 中注入分类而非所有工具
+    # 分类确定后再注入该分类下的具体工具</code></pre>
+
+        <h2 id="section-3">阶段三：RAG 检索增强</h2>
+        <h3 id="subsection-4">3.1 RAG 的基本流程</h3>
+        <p>RAG（Retrieval Augmented Generation）让 Agent 能够基于外部知识回答问题，而不是仅依赖模型训练数据：</p>
+        <pre><code># 完整的 RAG Pipeline
+1. 文档加载    → 从各种来源加载文档（PDF、网页、数据库）
+2. 文档切分    → 按语义边界切分为 chunk（通常 500-1500 token）
+3. 向量化      → 用 Embedding 模型将 chunk 转为向量
+4. 存储索引    → 存入向量数据库（Milvus/Pinecone/Weaviate）
+5. 检索        → 用户查询向量化 → 向量相似度搜索 → 返回 top-k
+6. 重排序      → 用 Cross-Encoder 对结果精排
+7. 生成        → 将检索结果注入 LLM Prompt → 生成回答</code></pre>
+
+        <h3 id="subsection-5">3.2 混合检索：关键词 + 语义</h3>
+        <p>纯向量检索对精确匹配（如错误码、API 名称）效果差。混合检索结合 BM25（关键词）和向量（语义），用 RRF（Reciprocal Rank Fusion）融合结果：</p>
+        <pre><code>def hybrid_search(query, top_k=10):
+    # 向量检索（语义匹配）
+    vector_results = vector_db.search(embed(query), top_k=top_k*2)
+    # BM25 关键词检索（精确匹配）
+    bm25_results = bm25_index.search(query, top_k=top_k*2)
+    # RRF 融合
+    merged = reciprocal_rank_fusion(vector_results, bm25_results, k=60)
+    return merged[:top_k]</code></pre>
+
+        <h3 id="subsection-6">3.3 轻量级 RAG 实践：客户端搜索</h3>
+        <p>对于静态站点或小型知识库，可以用前端搜索引擎替代完整 RAG 栈。例如 Fuse.js 实现客户端模糊搜索：</p>
+        <ul>
+            <li>构建时生成 search-index.json（所有文档的纯文本 + 元数据）</li>
+            <li>前端加载 Fuse.js，配置模糊匹配参数（threshold: 0.4, distance: 100）</li>
+            <li>关键词高亮用 <code>&lt;mark&gt;</code> 标签</li>
+            <li>降级方案：索引加载失败时退化为仅搜索标题/标签</li>
+        </ul>
+        <p><em>实践要点：这是 2026-06-10 博客搜索功能的核心实现方式。适合文档量 &lt; 500 篇的场景，零后端依赖。</em></p>
+
+        <h2 id="section-4">阶段四：记忆系统设计</h2>
+        <h3 id="subsection-7">4.1 三层记忆架构</h3>
+        <table>
+            <tr><th>层级</th><th>存储</th><th>生命周期</th><th>用途</th></tr>
+            <tr><td>工作记忆</td><td>上下文窗口</td><td>单次会话</td><td>当前对话的完整上下文</td></tr>
+            <tr><td>短期记忆</td><td>Redis / 会话存储</td><td>数小时-数天</td><td>跨轮对话的连续上下文</td></tr>
+            <tr><td>长期记忆</td><td>向量数据库 + 结构化存储</td><td>持久化</td><td>用户偏好、重要决策、知识积累</td></tr>
+        </table>
+
+        <h3 id="subsection-8">4.2 记忆压缩策略</h3>
+        <p>上下文窗口有限（通常 4K-200K token），长对话需要压缩。常用策略：</p>
+        <ul>
+            <li><strong>摘要压缩</strong>：用 LLM 定期总结历史对话，用摘要替代原始消息</li>
+            <li><strong>滑动窗口</strong>：只保留最近 N 轮完整对话，更早的用摘要</li>
+            <li><strong>重要性评分</strong>：给每条消息打分，低分消息优先丢弃</li>
+            <li><strong>LCM（Lossless Context Management）</strong>：DAG 结构存储压缩上下文，支持按需展开</li>
+        </ul>
+
+        <h2 id="section-5">阶段五：前后端集成</h2>
+        <h3 id="subsection-9">5.1 SSE 流式响应（推荐方案）</h3>
+        <p>SSE 是 Agent 应用最主流的通信方式，支持：打字机效果的文字流、工具调用进度的实时展示、Thinking 过程的折叠显示。</p>
+        <pre><code># 后端 FastAPI 实现
+@router.post("/chat/stream")
+async def chat_stream(req: ChatRequest):
+    async def event_generator():
+        yield sse_event("start", {"session_id": req.session_id})
+
+        async for event in agent.stream(req.message, req.session_id):
+            match event.type:
+                case "thinking":
+                    yield sse_event("thinking", {"content": event.content})
+                case "token":
+                    yield sse_event("token", {"content": event.token})
+                case "tool_start":
+                    yield sse_event("tool", {"name": event.tool_name,
+                                               "status": "started"})
+                case "tool_end":
+                    yield sse_event("tool", {"name": event.tool_name,
+                                               "status": "done",
+                                               "result": event.result})
+                case "error":
+                    yield sse_event("error", {"message": str(event.error)})
+                case "done":
+                    yield sse_event("done", {})
+
+    return StreamingResponse(event_generator(),
+                             media_type="text/event-stream")</code></pre>
+
+        <h3 id="subsection-10">5.2 前端消费 SSE</h3>
+        <pre><code>// 前端 EventSource 或 fetch + ReadableStream
+const response = await fetch('/chat/stream', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message, session_id })
+});
+
+const reader = response.body.getReader();
+const decoder = new TextDecoder();
+let buffer = '';
+
+while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+
+    // 按 \n\n 分割 SSE 事件
+    const events = buffer.split('\n\n');
+    buffer = events.pop(); // 保留不完整的事件
+
+    for (const event of events) {
+        const data = JSON.parse(event.replace('data: ', ''));
+        handleEvent(data);  // 分发到 UI 更新
+    }
+}</code></pre>
+
+        <h2 id="section-6">阶段六：部署与运维</h2>
+        <h3 id="subsection-11">6.1 部署方案对比</h3>
+        <table>
+            <tr><th>方案</th><th>适用场景</th><th>优点</th><th>缺点</th></tr>
+            <tr><td>Vercel/Netlify</td><td>前端 + Serverless Function</td><td>零配置、自动 SSL、CI/CD</td><td>Function 执行时间限制</td></tr>
+            <tr><td>Railway/Render</td><td>全栈应用</td><td>简单、支持长连接</td><td>成本随规模增长</td></tr>
+            <tr><td>Docker + K8s</td><td>大型生产系统</td><td>完全可控、弹性伸缩</td><td>运维复杂度高</td></tr>
+            <tr><td>云函数 + API Gateway</td><td>事件驱动型 Agent</td><td>按量付费、自动扩容</td><td>冷启动延迟</td></tr>
+        </table>
+
+        <h3 id="subsection-12">6.2 CI/CD 自动化部署</h3>
+        <p>Agent 项目的部署应该全面自动化。以 Vercel + Git 为例（2026-06-10 实践）：</p>
+        <ol>
+            <li>GitHub/GitLab 仓库关联 Vercel 项目</li>
+            <li>main 分支 push 自动触发构建和部署</li>
+            <li>构建命令在 <code>vercel.json</code> 或项目配置中定义</li>
+            <li>预览部署：每个 PR 自动生成独立的预览 URL</li>
+            <li>生产部署：合并到 main 自动更新生产环境</li>
+        </ol>
+        <pre><code># vercel.json 示例（Agent 前端项目）
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "installCommand": "npm install",
+  "framework": "astro"
+}</code></pre>
+
+        <h3 id="subsection-13">6.3 框架迁移的坑</h3>
+        <p>2026-06-10 实践：Astro 4.x → 5.x 升级时 <code>import.meta.glob</code> 的 API 签名变更：</p>
+        <ul>
+            <li>旧版：<code>import.meta.glob('./posts/*.md', true)</code>（第二个参数是 boolean）</li>
+            <li>新版：<code>import.meta.glob('./posts/*.md', { eager: true })</code>（第二个参数是对象）</li>
+            <li>教训：主版本升级前务必阅读 CHANGELOG 中的 Breaking Changes 部分</li>
+            <li>建议：用 <code>npm outdated</code> 定期检查依赖，有计划的渐进升级而非一次性大跳</li>
+        </ul>
+
+        <h2 id="section-7">阶段七：可观测性</h2>
+        <p>Agent 系统比传统应用更需要可观测性，因为 LLM 的非确定性让"复现问题"变得困难。</p>
+        <table>
+            <tr><th>维度</th><th>监控内容</th><th>工具</th></tr>
+            <tr><td>LLM 调用</td><td>输入/输出、Token 用量、延迟、模型</td><td>LangSmith、Helicone</td></tr>
+            <tr><td>工具调用</td><td>工具名、参数、结果、耗时、错误</td><td>OpenTelemetry + 自建</td></tr>
+            <tr><td>Agent 轨迹</td><td>ReAct 每一步的 Thought/Action/Observation</td><td>LangSmith Traces</td></tr>
+            <tr><td>业务指标</td><td>会话数、完成任务数、用户满意度</td><td>Grafana + Prometheus</td></tr>
+            <tr><td>成本</td><td>按模型/用户/会话维度的费用统计</td><td>LLM Proxy 层统计</td></tr>
+        </table>
+
+        <h3 id="subsection-14">7.1 Trace 的重要性</h3>
+        <p>Trace 是可观测性的核心。每个 Agent 会话的完整执行链路应该被记录下来：用户输入 → 每一步 Reasoning → 每个 Tool Call 的请求和响应 → 最终输出。当用户反馈"Agent 回答错了"时，Trace 是定位问题的唯一可靠手段。</p>
+
+        <h2 id="section-8">关键决策清单</h2>
+        <p>开始一个 Agent 项目时，你需要在这些节点上做选择：</p>
+        <ul>
+            <li>✅ 架构模式：ReAct / Plan-Execute / Multi-Agent？</li>
+            <li>✅ 工具系统：直接 Function Call / Tool Gateway / MCP？</li>
+            <li>✅ RAG：需要吗？全量 RAG 还是轻量客户端搜索？</li>
+            <li>✅ 记忆：几层？压缩策略？</li>
+            <li>✅ 流式：SSE / WebSocket / 轮询？</li>
+            <li>✅ 部署：Serverless / 容器 / 传统服务器？</li>
+            <li>✅ 可观测性：用什么记录 Trace？成本如何监控？</li>
+            <li>✅ 认证：API Key / JWT / OAuth？</li>
+        </ul>
+
+        <p class="back-link"><a href="../index.html">← 返回首页</a></p>
+    </article>
+</div>
+</div>
+</div>
+<script>
+function toggleSbGroup(header) {
+    const items = header.nextElementSibling;
+    const icon = header.querySelector('.sb-collapse');
+    if (items.classList.contains('collapsed')) {
+        items.classList.remove('collapsed');
+        items.style.maxHeight = items.scrollHeight + 'px';
+        if (icon) icon.classList.remove('collapsed');
+    } else {
+        items.classList.add('collapsed');
+        items.style.maxHeight = '0';
+        if (icon) icon.classList.add('collapsed');
+    }
+}
+document.querySelectorAll('.sb-group-items:not(.collapsed)').forEach(function(el) {
+    el.style.maxHeight = el.scrollHeight + 'px';
+});
+</script>
+
+<div class="read-status-bar" id="readStatusBar">
+    <span id="readStatusText">未标记</span>
+    <button class="rs-btn" id="readStatusBtn" onclick="toggleRead()">标记为已读</button>
+</div>
+<script>window.__NOTE_ID__ = 'agent-fullstack-development';</script>
+
+<script src="../js/progress.js"></script>
+<script src="../js/auth.js"></script>
+<script>
+(function() {
+    const NOTE_ID = 'agent-fullstack-development';
+    // Auto-mark as read after 5 seconds on page
+    setTimeout(function() {
+        if (ProgressTracker.isLoggedIn()) {
+            if (!ProgressTracker.isRead(NOTE_ID)) {
+                ProgressTracker.markRead(NOTE_ID);
+            }
+        }
+    }, 5000);
+})();
+</script>
+
+<script>
+const NOTE_ID_CURRENT = window.__NOTE_ID__ || '';
+function toggleRead() {
+    if (!ProgressTracker.isLoggedIn()) {
+        alert('请先登录以同步学习进度');
+        return;
+    }
+    if (ProgressTracker.isRead(NOTE_ID_CURRENT)) {
+        ProgressTracker.markUnread(NOTE_ID_CURRENT);
+    } else {
+        ProgressTracker.markRead(NOTE_ID_CURRENT);
+    }
+    updateReadBar();
+}
+function updateReadBar() {
+    const btn = document.getElementById('readStatusBtn');
+    const text = document.getElementById('readStatusText');
+    if (!btn || !text) return;
+    const isRead = ProgressTracker.isRead(NOTE_ID_CURRENT);
+    btn.textContent = isRead ? '取消已读' : '标记为已读';
+    btn.className = 'rs-btn' + (isRead ? ' rs-read' : '');
+    text.textContent = isRead ? '已读' : '未标记';
+}
+updateReadBar();
+</script>
+</body>
+</html>
