@@ -1,0 +1,519 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG 生产化部署：从原型到高性能检索系统的完整路径 — democt</title>
+    <link rel="stylesheet" href="../assets/common.css">
+
+<style>
+/* ===== 文章侧边栏（两层结构） ===== */
+.article-layout {
+    display: flex;
+    gap: 32px;
+    align-items: flex-start;
+}
+.article-sidebar {
+    width: 240px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 24px;
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+.article-sidebar::-webkit-scrollbar { width: 4px; }
+.article-sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+/* 返回首页 */
+.sb-back {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 16px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--accent);
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+}
+.sb-back:hover { background: var(--accent-soft); }
+
+/* 分组导航区 */
+.sb-groups { border-bottom: 1px solid var(--border); }
+
+.sb-group-header {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 8px 14px 4px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text);
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.15s;
+}
+.sb-group-header:hover { color: var(--accent); }
+.sb-group-header .sb-collapse {
+    font-size: 0.55rem;
+    color: var(--text-muted);
+    transition: transform 0.2s;
+    width: 12px;
+    flex-shrink: 0;
+}
+.sb-group-header .sb-collapse.collapsed { transform: rotate(-90deg); }
+.sb-group-header .sb-gcount {
+    margin-left: auto;
+    font-size: 0.72rem;
+    font-weight: 400;
+    color: var(--text-muted);
+    background: var(--tag-bg);
+    padding: 0 6px;
+    border-radius: 10px;
+}
+
+.sb-group-items { overflow: hidden; transition: max-height 0.25s ease; }
+.sb-group-items.collapsed { max-height: 0; }
+
+.sb-note-link {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    padding: 5px 14px 5px 24px;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+    transition: all 0.12s;
+    border-left: 3px solid transparent;
+}
+.sb-note-link:hover {
+    color: var(--text);
+    background: var(--accent-soft);
+}
+.sb-note-link.active {
+    color: var(--accent);
+    background: var(--accent-soft);
+    border-left-color: var(--accent);
+    font-weight: 600;
+}
+.sb-note-link .sb-ndate {
+    font-size: 0.68rem;
+    opacity: 0.6;
+    white-space: nowrap;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+/* 文章目录区 */
+.sb-toc {
+    padding: 8px 0 12px;
+}
+.sb-toc-title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--text);
+    padding: 4px 16px 8px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+.sb-toc-link {
+    display: block;
+    padding: 3px 16px 3px 24px;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    line-height: 1.45;
+    transition: all 0.12s;
+    border-left: 2px solid transparent;
+}
+.sb-toc-link:hover {
+    color: var(--accent);
+    background: var(--accent-soft);
+}
+.sb-toc-link.h3 {
+    padding-left: 36px;
+    font-size: 0.76rem;
+}
+
+.article-content {
+    flex: 1;
+    min-width: 0;
+}
+
+/* 响应式 */
+@media (max-width: 900px) {
+    .article-layout { flex-direction: column; }
+    .article-sidebar {
+        width: 100%;
+        position: static;
+        max-height: none;
+        order: 2;
+        margin-top: 32px;
+    }
+    .article-content { order: 1; }
+}
+
+.container { --max-width: 1100px; max-width: 1100px; }
+</style>
+
+<style>
+.read-status-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #fff;
+    border-top: 1px solid #e2e8f0;
+    padding: 10px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    z-index: 50;
+    font-size: 0.88rem;
+}
+.read-status-bar .rs-btn {
+    padding: 6px 18px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: all 0.15s;
+}
+.read-status-bar .rs-btn:hover { border-color: #5b6abf; color: #5b6abf; }
+.read-status-bar .rs-btn.rs-read { background: #5b6abf; color: #fff; border-color: #5b6abf; }
+</style>
+</head>
+<body>
+<div class="container">
+    <nav class="breadcrumb"><a href="../index.html">首页</a> / 知识笔记</nav>
+    <div class="article-layout">
+<aside class="article-sidebar"><a href="../index.html#knowledge" class="sb-back">← 返回首页</a><div class="sb-groups"><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>🤖 Agent 基础</span><span class="sb-gcount">9</span></div><div class="sb-group-items collapsed"><a href="multi-agent-collaboration.html" class="sb-note-link"><span>多Agent协作架构：从单Agent到智能体网络</span><span class="sb-ndate">06-11</span></a><a href="agent-guardrails.html" class="sb-note-link"><span>Agent Guardrails：运行时安全护…</span><span class="sb-ndate">06-11</span></a><a href="agent-fullstack-development.html" class="sb-note-link"><span>Agent 全栈开发实战</span><span class="sb-ndate">06-10</span></a><a href="agent-debugging-troubleshooting.html" class="sb-note-link"><span>Agent 流程调试与问题排查实战</span><span class="sb-ndate">06-10</span></a><a href="multimodal-agent.html" class="sb-note-link"><span>多模态 Agent 入门</span><span class="sb-ndate">06-09</span></a><a href="agent-evaluation.html" class="sb-note-link"><span>Agent 评估与测试方法论</span><span class="sb-ndate">06-08</span></a><a href="agent-memory-patterns.html" class="sb-note-link"><span>Agent 记忆系统设计模式</span><span class="sb-ndate">06-07</span></a><a href="agent-security.html" class="sb-note-link"><span>Agent 安全红宝书</span><span class="sb-ndate">06-03</span></a><a href="what-is-agent.html" class="sb-note-link"><span>什么是 Agent？核心概念与能力边界</span><span class="sb-ndate">05-15</span></a></div><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>💬 提示词与工具</span><span class="sb-gcount">4</span></div><div class="sb-group-items collapsed"><a href="tool-calling-advanced.html" class="sb-note-link"><span>Tool Calling 进阶：工具网关与多工…</span><span class="sb-ndate">06-10</span></a><a href="structured-output.html" class="sb-note-link"><span>结构化输出完全指南</span><span class="sb-ndate">06-06</span></a><a href="function-calling-deep-dive.html" class="sb-note-link"><span>Function Calling 原理与实践</span><span class="sb-ndate">05-26</span></a><a href="prompt-engineering.html" class="sb-note-link"><span>提示词工程进阶：从入门到系统化</span><span class="sb-ndate">05-18</span></a></div><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse">▼</span><span>🔍 RAG 与检索</span><span class="sb-gcount">5</span></div><div class="sb-group-items"><a href="rag-pitfalls-optimization.html" class="sb-note-link"><span>RAG 落地常见陷阱与优化策略</span><span class="sb-ndate">06-10</span></a><a href="rag-production-deployment.html" class="sb-note-link active"><span>RAG 生产化部署：从原型到高性能系统</span><span class="sb-ndate">06-10</span></a><a href="vector-db-comparison.html" class="sb-note-link"><span>向量数据库对比：选型指南</span><span class="sb-ndate">05-24</span></a><a href="embedding-model-guide.html" class="sb-note-link"><span>Embedding 模型选型与对比</span><span class="sb-ndate">05-22</span></a><a href="rag-architecture.html" class="sb-note-link"><span>RAG 架构深度解析：从朴素到模块化</span><span class="sb-ndate">05-20</span></a></div><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>🧠 LLM 深入</span><span class="sb-gcount">4</span></div><div class="sb-group-items collapsed"><a href="cost-optimization.html" class="sb-note-link"><span>Agent 成本优化手册</span><span class="sb-ndate">06-10</span></a><a href="semantic-cache.html" class="sb-note-link"><span>LLM 语义缓存策略</span><span class="sb-ndate">06-07</span></a><a href="llm-observability.html" class="sb-note-link"><span>AI 应用的可观测性</span><span class="sb-ndate">06-01</span></a><a href="llm-hallucination.html" class="sb-note-link"><span>LLM 幻觉现象与缓解策略</span><span class="sb-ndate">05-30</span></a></div><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>🔌 架构与协议</span><span class="sb-gcount">7</span></div><div class="sb-group-items collapsed"><a href="agent-framework-selection.html" class="sb-note-link"><span>Agent框架选型指南：2026年全景对比</span><span class="sb-ndate">06-11</span></a><a href="a2a-protocol.html" class="sb-note-link"><span>A2A协议：Agent间通信的开放标准</span><span class="sb-ndate">06-11</span></a><a href="mcp-server-practice.html" class="sb-note-link"><span>MCP Server 开发实战</span><span class="sb-ndate">06-10</span></a><a href="mcp-skill-backend-advanced.html" class="sb-note-link"><span>MCP Server 开发实战 &amp; Skill…</span><span class="sb-ndate">06-10</span></a><a href="streaming-architecture.html" class="sb-note-link"><span>流式架构设计实践</span><span class="sb-ndate">06-09</span></a><a href="task-planning-patterns.html" class="sb-note-link"><span>从 Andon 到 DAG：任务规划模式汇总</span><span class="sb-ndate">06-05</span></a><a href="mcp-protocol.html" class="sb-note-link"><span>MCP 协议解析：Agent 的 USB-C</span><span class="sb-ndate">05-28</span></a></div><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>⚡ Skill 开发</span><span class="sb-gcount">1</span></div><div class="sb-group-items collapsed"><a href="skill-design-guide.html" class="sb-note-link"><span>Skill 设计与开发指南</span><span class="sb-ndate">06-10</span></a></div><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>🖥️ 后端开发</span><span class="sb-gcount">1</span></div><div class="sb-group-items collapsed"><a href="backend-agent-integration.html" class="sb-note-link"><span>后端服务与 Agent 集成模式</span><span class="sb-ndate">06-10</span></a></div><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>🏗️ 全栈开发</span><span class="sb-gcount">1</span></div><div class="sb-group-items collapsed"><a href="vibe-coding-guide.html" class="sb-note-link"><span>Vibe Coding：AI辅助编程实战指南</span><span class="sb-ndate">06-11</span></a></div></div><div class="sb-toc"><div class="sb-toc-title">📑 本页目录</div><a href="#section-0" class="sb-toc-link">RAG 原型的五个致命缺陷</a><a href="#section-1" class="sb-toc-link">第一关：文档处理管线</a><a href="#subsection-0" class="sb-toc-link h3">1.1 语义切分（Semantic Chunking）</a><a href="#subsection-1" class="sb-toc-link h3">1.2 Chunk 重叠与上下文窗口</a><a href="#subsection-2" class="sb-toc-link h3">1.3 父子 Chunk 模式（Parent-Child Chunking）</a><a href="#subsection-3" class="sb-toc-link h3">1.4 元数据保留</a><a href="#section-2" class="sb-toc-link">第二关：检索策略优化</a><a href="#subsection-4" class="sb-toc-link h3">2.1 混合检索的工程实现</a><a href="#subsection-5" class="sb-toc-link h3">2.2 查询重写的四种策略</a><a href="#subsection-6" class="sb-toc-link h3">2.3 Cross-Encoder 重排序</a><a href="#section-3" class="sb-toc-link">第三关：索引管理与增量更新</a><a href="#subsection-7" class="sb-toc-link h3">3.1 增量索引</a><a href="#subsection-8" class="sb-toc-link h3">3.2 过期文档淘汰</a><a href="#section-4" class="sb-toc-link">第四关：延迟优化</a><a href="#subsection-9" class="sb-toc-link h3">缓存策略</a><a href="#section-5" class="sb-toc-link">第五关：评估与持续改进</a><a href="#subsection-10" class="sb-toc-link h3">5.1 RAG 评估指标体系</a><a href="#subsection-11" class="sb-toc-link h3">5.2 RAGAS 评估框架</a><a href="#subsection-12" class="sb-toc-link h3">5.3 用户反馈闭环</a><a href="#section-6" class="sb-toc-link">轻量级 RAG 替代方案</a></div></aside>
+<div class="article-content">
+<article>
+        <h1>RAG 生产化部署：从原型到高性能检索系统的完整路径</h1>
+        <div class="meta"><span class="date">2026-06-10</span><span class="tag-list"><span>RAG</span><span>生产部署</span><span>检索优化</span><span>向量数据库</span></span></div>
+
+        <h2 id="section-0">RAG 原型的五个致命缺陷</h2>
+        <p>大多数 RAG 原型在演示时效果很好，但一到生产环境就出问题。根本原因在于原型通常忽略了这五个维度：</p>
+        <table>
+            <tr><th>维度</th><th>原型做法</th><th>生产需求</th></tr>
+            <tr><td>检索质量</td><td>单一向量检索，top_k=3</td><td>混合检索 + 重排序，top_k 动态调整</td></tr>
+            <tr><td>文档处理</td><td>固定大小切分（500字/chunk）</td><td>语义切分 + 父子chunk + 元数据保留</td></tr>
+            <tr><td>延迟</td><td>无所谓，演示时 5s 也能接受</td><td>端到端 &lt; 2s（检索 &lt; 500ms）</td></tr>
+            <tr><td>新鲜度</td><td>一次性导入，从不更新</td><td>增量更新、过期淘汰、实时索引</td></tr>
+            <tr><td>可观测性</td><td>无</td><td>检索命中率、用户反馈、chunk 质量监控</td></tr>
+        </table>
+
+        <h2 id="section-1">第一关：文档处理管线</h2>
+        <h3 id="subsection-0">1.1 语义切分（Semantic Chunking）</h3>
+        <p>固定大小的切分是最常见的错误。文档的自然边界在段落、章节、表格之间，而非每 500 字一刀。</p>
+
+        <pre><code># 语义切分的核心思想：在自然断点处切分
+class SemanticChunker:
+    def chunk(self, document: str,
+              min_chunk_size=200, max_chunk_size=1500):
+        """基于文档结构的智能切分"""
+        # 1. 先按 Markdown 标题层级切分
+        sections = self.split_by_headers(document)
+
+        # 2. 对每个 section，按段落切分
+        chunks = []
+        for section in sections:
+            paragraphs = section.split('\n\n')
+            current_chunk = []
+
+            for para in paragraphs:
+                current_len = sum(len(p) for p in current_chunk)
+                if current_len + len(para) > max_chunk_size and current_chunk:
+                    # 达到最大长度，保存当前 chunk
+                    chunks.append('\n\n'.join(current_chunk))
+                    current_chunk = [para]
+                else:
+                    current_chunk.append(para)
+
+            if current_chunk:
+                chunks.append('\n\n'.join(current_chunk))
+
+        return chunks</code></pre>
+
+        <h3 id="subsection-1">1.2 Chunk 重叠与上下文窗口</h3>
+        <p>切分时保留 10-20% 的重叠（overlap），确保关键信息不会恰好落在 chunk 边界上。例如代码块跨 chunk 被切断时，overlap 能保证第二个 chunk 包含完整代码。</p>
+
+        <h3 id="subsection-2">1.3 父子 Chunk 模式（Parent-Child Chunking）</h3>
+        <p>这是生产 RAG 的标配模式：</p>
+        <ul>
+            <li><strong>子 Chunk</strong>（~300 token）：用于向量检索，提高召回精度</li>
+            <li><strong>父 Chunk</strong>（~1500 token）：子 Chunk 所属的更大上下文，用于注入 LLM</li>
+            <li>检索时用子 Chunk 找到相关文档，注入 LLM 时用父 Chunk 提供完整上下文</li>
+        </ul>
+
+        <h3 id="subsection-3">1.4 元数据保留</h3>
+        <p>每个 Chunk 应该保留丰富的元数据，用于过滤和排序：</p>
+        <pre><code>chunk_metadata = {
+    "source": "docs/api-reference.md",     # 来源文件
+    "section": "3.2 Authentication",       # 所属章节
+    "chunk_index": 5,                       # chunk 序号
+    "total_chunks": 12,                     # 总 chunk 数
+    "doc_type": "api_reference",            # 文档类型
+    "last_updated": "2026-06-01",           # 最后更新
+    "importance_score": 0.85,               # 重要性评分
+    "language": "zh",                       # 语言
+    "has_code": True,                       # 是否含代码
+}</code></pre>
+
+        <h2 id="section-2">第二关：检索策略优化</h2>
+        <h3 id="subsection-4">2.1 混合检索的工程实现</h3>
+        <p>混合检索 = 向量检索（语义相似度）+ BM25 关键词检索 + RRF 融合。推荐使用 Elasticsearch 8.x+ 或 Weaviate，它们原生支持混合检索。</p>
+
+        <pre><code># 混合检索完整流程
+async def hybrid_retrieve(query: str, top_k: int = 10):
+    # 1. 查询重写（Query Rewriting）
+    # 用 LLM 将用户查询改写为更适合检索的形式
+    rewritten = await llm_rewrite_query(query)
+
+    # 2. 生成假设答案（HyDE - Hypothetical Document Embeddings）
+    # 让 LLM 先生成一个假设的答案，用它做向量检索
+    hypothetical_doc = await llm_generate_hypothetical(rewritten)
+
+    # 3. 并行执行多种检索
+    vector_results = await vector_search(
+        embed(hypothetical_doc), top_k=top_k*2
+    )
+    bm25_results = await bm25_search(rewritten, top_k=top_k*2)
+
+    # 4. RRF 融合
+    merged = reciprocal_rank_fusion(
+        [vector_results, bm25_results], k=60
+    )
+
+    # 5. 重排序（Re-ranking）
+    reranked = await cross_encoder_rerank(query, merged[:20], top_k)
+
+    # 6. 去重 + 多样性优化（MMR）
+    diverse = maximal_marginal_relevance(reranked, top_k, lambda_param=0.7)
+
+    return diverse</code></pre>
+
+        <h3 id="subsection-5">2.2 查询重写的四种策略</h3>
+        <table>
+            <tr><th>策略</th><th>说明</th><th>效果</th></tr>
+            <tr><td>HyDE</td><td>先生成假设答案，用答案做向量检索</td><td>大幅提升语义检索效果</td></tr>
+            <tr><td>Multi-Query</td><td>从不同角度生成 3-5 个变体查询</td><td>提高召回覆盖率</td></tr>
+            <tr><td>Step-Back</td><td>生成更抽象的"退一步"问题</td><td>适用于需要高层理解的查询</td></tr>
+            <tr><td>Query Decomposition</td><td>将复杂问题分解为子问题分别检索</td><td>适用多跳推理</td></tr>
+        </table>
+
+        <h3 id="subsection-6">2.3 Cross-Encoder 重排序</h3>
+        <p>Bi-Encoder（向量检索）速度快但精度一般。Cross-Encoder 将 query 和 document 拼接后一起编码，精度高但速度慢。实战中先粗排（向量检索 top 50-100），再精排（Cross-Encoder 重排到 top 5-10）。</p>
+        <pre><code># 粗排 + 精排的两阶段架构
+Stage 1 (粗排): 向量检索 → top 50 chunks     (~50ms)
+Stage 2 (精排): Cross-Encoder → top 5 chunks  (~200ms)
+Stage 3 (生成): LLM + top 5 chunks            (~1s)
+总计: ~1.25s，满足 <2s 的延迟要求</code></pre>
+
+        <h2 id="section-3">第三关：索引管理与增量更新</h2>
+        <h3 id="subsection-7">3.1 增量索引</h3>
+        <p>生产环境中文档不断变化，全量重建索引不可行：</p>
+        <pre><code># 增量索引架构
+class IncrementalIndexer:
+    """基于 CDC（Change Data Capture）的增量索引"""
+
+    async def on_document_change(self, event: DocumentEvent):
+        if event.type == "created":
+            chunks = self.chunker.chunk(event.content)
+            embeddings = await self.embedder.embed_batch(
+                [c.text for c in chunks]
+            )
+            await self.vector_db.upsert(chunks, embeddings)
+
+        elif event.type == "updated":
+            # 先删除旧 chunk，再插入新 chunk
+            await self.vector_db.delete(
+                filter={"source": event.doc_path}
+            )
+            # 再走 created 逻辑
+            await self.on_document_change(
+                DocumentEvent(type="created", ...)
+            )
+
+        elif event.type == "deleted":
+            await self.vector_db.delete(
+                filter={"source": event.doc_path}
+            )</code></pre>
+
+        <h3 id="subsection-8">3.2 过期文档淘汰</h3>
+        <p>为每个 chunk 设置 TTL 或版本号，定期清理过期内容：</p>
+        <ul>
+            <li>知识库文档：按最后更新时间判断，超过 90 天未更新的标记为"可能过时"</li>
+            <li>新闻/公告类文档：设置明确的过期日期</li>
+            <li>API 文档：与代码仓库版本号关联，版本升级时淘汰旧版</li>
+        </ul>
+
+        <h2 id="section-4">第四关：延迟优化</h2>
+        <p>RAG 的端到端延迟 = 查询处理 + Embedding + 向量检索 + 重排序 + LLM 生成。每个环节都要优化：</p>
+
+        <table>
+            <tr><th>环节</th><th>典型延迟</th><th>优化手段</th></tr>
+            <tr><td>查询处理</td><td>50-200ms</td><td>查询重写用便宜的模型、规则改写</td></tr>
+            <tr><td>Embedding</td><td>30-100ms</td><td>批量 Embedding、使用本地模型（BGE-M3）</td></tr>
+            <tr><td>向量检索</td><td>10-50ms</td><td>索引优化（HNSW/IVF）、预过滤减少搜索空间</td></tr>
+            <tr><td>重排序</td><td>100-300ms</td><td>使用轻量 Cross-Encoder（bge-reranker-v2-minicpm）</td></tr>
+            <tr><td>LLM 生成</td><td>500-3000ms</td><td>流式输出、减小 Prompt 中的 chunk 数量</td></tr>
+        </table>
+
+        <h3 id="subsection-9">缓存策略</h3>
+        <pre><code># 多级缓存
+Level 1: 精确查询缓存（Redis）
+  - 相同 query → 直接返回缓存的答案
+  - TTL: 1h（通用问题）/ 24h（静态文档）
+
+Level 2: Embedding 缓存
+  - 相同文本的 Embedding 结果缓存
+  - TTL: 永久（文本不变 Embedding 就不变）
+
+Level 3: 检索结果缓存
+  - 相同 query 的 top-k chunks 缓存
+  - TTL: 与文档更新频率一致
+
+Level 4: LLM 响应缓存（Semantic Cache）
+  - 语义相似的 query → 返回缓存的答案
+  - 实现: 向量相似度 > 0.95 → 直接返回缓存</code></pre>
+
+        <h2 id="section-5">第五关：评估与持续改进</h2>
+        <h3 id="subsection-10">5.1 RAG 评估指标体系</h3>
+        <table>
+            <tr><th>指标</th><th>计算方式</th><th>目标值</th></tr>
+            <tr><td>召回率 (Recall@K)</td><td>top-K 结果中包含正确答案的比例</td><td>&gt; 90% @K=5</td></tr>
+            <tr><td>MRR</td><td>第一个正确答案排名的倒数平均</td><td>&gt; 0.8</td></tr>
+            <tr><td>NDCG</td><td>归一化折损累计增益，考虑排序位置</td><td>&gt; 0.85</td></tr>
+            <tr><td>Faithfulness</td><td>生成答案与检索文档的一致程度</td><td>&gt; 95%</td></tr>
+            <tr><td>Answer Relevance</td><td>答案与问题的相关程度</td><td>&gt; 90%</td></tr>
+            <tr><td>Context Precision</td><td>检索结果中相关 chunk 的比例</td><td>&gt; 80%</td></tr>
+        </table>
+
+        <h3 id="subsection-11">5.2 RAGAS 评估框架</h3>
+        <p>RAGAS（RAG Assessment）是评估 RAG 系统的主流框架：</p>
+        <pre><code>from ragas import evaluate
+from ragas.metrics import (
+    faithfulness, answer_relevancy,
+    context_precision, context_recall
+)
+
+# 构建测试数据集
+test_dataset = Dataset.from_dict({
+    "question": ["什么是 Agent？", "如何实现 RAG？", ...],
+    "answer": ["Agent 是一个...", "RAG 通过...", ...],
+    "contexts": [["chunk1", "chunk2"], ["chunk3"], ...],
+    "ground_truth": ["正确答案1", "正确答案2", ...]
+})
+
+result = evaluate(test_dataset, metrics=[
+    faithfulness, answer_relevancy,
+    context_precision, context_recall
+])
+print(result)  # {"faithfulness": 0.97, "answer_relevancy": 0.92, ...}</code></pre>
+
+        <h3 id="subsection-12">5.3 用户反馈闭环</h3>
+        <p>生产环境的真实用户反馈是最有价值的评估信号：</p>
+        <ul>
+            <li>👍/👎 按钮 → 直接判断答案质量</li>
+            <li>"这个答案对你有帮助吗？" → 收集二元反馈</li>
+            <li>用户追问/重新提问 → 暗示上次回答不满意</li>
+            <li>对话时长的异常值 → 过长可能意味着多次修正</li>
+            <li>定期 A/B 测试不同检索策略的实际效果</li>
+        </ul>
+
+        <h2 id="section-6">轻量级 RAG 替代方案</h2>
+        <p>并非所有场景都需要全套 RAG 栈。以下场景可以考虑轻量替代：</p>
+        <table>
+            <tr><th>场景</th><th>替代方案</th><th>优点</th></tr>
+            <tr><td>静态文档站点搜索</td><td>search-index.json + Fuse.js</td><td>零后端、零成本、部署即用</td></tr>
+            <tr><td>小规模 FAQ</td><td>全文匹配 + Embedding 相似度</td><td>无需向量数据库</td></tr>
+            <tr><td>代码库问答</td><td>AST 解析 + grep + LLM</td><td>比 RAG 更精准的结构化检索</td></tr>
+            <tr><td>结构化数据查询</td><td>Text-to-SQL + LLM</td><td>直接精确查询，无需语义检索</td></tr>
+        </table>
+
+        <p><em>实践要点：2026-06-10 博客全站搜索采用了 Fuse.js 方案。构建时生成 search-index.json（所有 HTML 文档的纯文本提取），前端加载 Fuse.js 实现模糊搜索。文档量 &lt; 500 篇时完全够用，且零运维成本。</em></p>
+
+        <p class="back-link"><a href="../index.html">← 返回首页</a></p>
+    </article>
+</div>
+</div>
+</div>
+<script>
+function toggleSbGroup(header) {
+    const items = header.nextElementSibling;
+    const icon = header.querySelector('.sb-collapse');
+    if (items.classList.contains('collapsed')) {
+        items.classList.remove('collapsed');
+        items.style.maxHeight = items.scrollHeight + 'px';
+        if (icon) icon.classList.remove('collapsed');
+    } else {
+        items.classList.add('collapsed');
+        items.style.maxHeight = '0';
+        if (icon) icon.classList.add('collapsed');
+    }
+}
+document.querySelectorAll('.sb-group-items:not(.collapsed)').forEach(function(el) {
+    el.style.maxHeight = el.scrollHeight + 'px';
+});
+</script>
+
+<div class="read-status-bar" id="readStatusBar">
+    <span id="readStatusText">未标记</span>
+    <button class="rs-btn" id="readStatusBtn" onclick="toggleRead()">标记为已读</button>
+</div>
+<script>window.__NOTE_ID__ = 'rag-production-deployment';</script>
+
+<script src="../js/progress.js"></script>
+<script src="../js/auth.js"></script>
+<script>
+(function() {
+    const NOTE_ID = 'rag-production-deployment';
+    // Auto-mark as read after 5 seconds on page
+    setTimeout(function() {
+        if (ProgressTracker.isLoggedIn()) {
+            if (!ProgressTracker.isRead(NOTE_ID)) {
+                ProgressTracker.markRead(NOTE_ID);
+            }
+        }
+    }, 5000);
+})();
+</script>
+
+<script>
+const NOTE_ID_CURRENT = window.__NOTE_ID__ || '';
+function toggleRead() {
+    if (!ProgressTracker.isLoggedIn()) {
+        alert('请先登录以同步学习进度');
+        return;
+    }
+    if (ProgressTracker.isRead(NOTE_ID_CURRENT)) {
+        ProgressTracker.markUnread(NOTE_ID_CURRENT);
+    } else {
+        ProgressTracker.markRead(NOTE_ID_CURRENT);
+    }
+    updateReadBar();
+}
+function updateReadBar() {
+    const btn = document.getElementById('readStatusBtn');
+    const text = document.getElementById('readStatusText');
+    if (!btn || !text) return;
+    const isRead = ProgressTracker.isRead(NOTE_ID_CURRENT);
+    btn.textContent = isRead ? '取消已读' : '标记为已读';
+    btn.className = 'rs-btn' + (isRead ? ' rs-read' : '');
+    text.textContent = isRead ? '已读' : '未标记';
+}
+updateReadBar();
+</script>
+</body>
+</html>
