@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 旅行规划师 — democt</title>
+    <link rel="stylesheet" href="../assets/common.css">
+
+<style>
+/* ===== 文章侧边栏（两层结构） ===== */
+.article-layout {
+    display: flex;
+    gap: 32px;
+    align-items: flex-start;
+}
+.article-sidebar {
+    width: 240px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 24px;
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+.article-sidebar::-webkit-scrollbar { width: 4px; }
+.article-sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+/* 返回首页 */
+.sb-back {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 16px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--accent);
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+}
+.sb-back:hover { background: var(--accent-soft); }
+
+/* 分组导航区 */
+.sb-groups { border-bottom: 1px solid var(--border); }
+
+.sb-group-header {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 8px 14px 4px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text);
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.15s;
+}
+.sb-group-header:hover { color: var(--accent); }
+.sb-group-header .sb-collapse {
+    font-size: 0.55rem;
+    color: var(--text-muted);
+    transition: transform 0.2s;
+    width: 12px;
+    flex-shrink: 0;
+}
+.sb-group-header .sb-collapse.collapsed { transform: rotate(-90deg); }
+.sb-group-header .sb-gcount {
+    margin-left: auto;
+    font-size: 0.72rem;
+    font-weight: 400;
+    color: var(--text-muted);
+    background: var(--tag-bg);
+    padding: 0 6px;
+    border-radius: 10px;
+}
+
+.sb-group-items { overflow: hidden; transition: max-height 0.25s ease; }
+.sb-group-items.collapsed { max-height: 0; }
+
+.sb-note-link {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    padding: 5px 14px 5px 24px;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+    transition: all 0.12s;
+    border-left: 3px solid transparent;
+}
+.sb-note-link:hover {
+    color: var(--text);
+    background: var(--accent-soft);
+}
+.sb-note-link.active {
+    color: var(--accent);
+    background: var(--accent-soft);
+    border-left-color: var(--accent);
+    font-weight: 600;
+}
+.sb-note-link .sb-ndate {
+    font-size: 0.68rem;
+    opacity: 0.6;
+    white-space: nowrap;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+/* 文章目录区 */
+.sb-toc {
+    padding: 8px 0 12px;
+}
+.sb-toc-title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--text);
+    padding: 4px 16px 8px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+.sb-toc-link {
+    display: block;
+    padding: 3px 16px 3px 24px;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    line-height: 1.45;
+    transition: all 0.12s;
+    border-left: 2px solid transparent;
+}
+.sb-toc-link:hover {
+    color: var(--accent);
+    background: var(--accent-soft);
+}
+.sb-toc-link.h3 {
+    padding-left: 36px;
+    font-size: 0.76rem;
+}
+
+.article-content {
+    flex: 1;
+    min-width: 0;
+}
+
+/* 响应式 */
+@media (max-width: 900px) {
+    .article-layout { flex-direction: column; }
+    .article-sidebar {
+        width: 100%;
+        position: static;
+        max-height: none;
+        order: 2;
+        margin-top: 32px;
+    }
+    .article-content { order: 1; }
+}
+
+.container { --max-width: 1100px; max-width: 1100px; }
+</style>
+</head>
+<body>
+<div class="container">
+    <nav class="breadcrumb"><a href="../index.html">首页</a> / 作品集</nav>
+    <div class="article-layout">
+<aside class="article-sidebar"><a href="../index.html#projects" class="sb-back">← 返回首页</a><div class="sb-groups"><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse">▼</span><span>🗂 作品集</span><span class="sb-gcount">3</span></div><div class="sb-group-items"><a href="patient-agent.html" class="sb-note-link"><span>患者智能辅助 Agent</span></a><a href="travel-planner.html" class="sb-note-link active"><span>AI 旅行规划师</span></a><a href="enterprise-agent-system.html" class="sb-note-link"><span>企业多专家 Agent 系统</span></a></div></div><div class="sb-toc"><div class="sb-toc-title">📑 本页目录</div><a href="#section-0" class="sb-toc-link">项目定位</a><a href="#section-1" class="sb-toc-link">完整能力矩阵</a><a href="#section-2" class="sb-toc-link">POI 解析 Pipeline（完整链路）</a><a href="#subsection-0" class="sb-toc-link h3">高德接口设计规范（8 个接口）</a><a href="#subsection-1" class="sb-toc-link h3">地点类型与角色分离</a><a href="#section-3" class="sb-toc-link">Cloudflare Worker 架构</a><a href="#section-4" class="sb-toc-link">会话管理</a><a href="#section-5" class="sb-toc-link">前端交互细节</a><a href="#section-6" class="sb-toc-link">技术栈</a><a href="#section-7" class="sb-toc-link">留存边与待优化点</a></div></aside>
+<div class="article-content">
+<article>
+        <h1>AI 旅行规划师</h1>
+        <div class="meta">
+            <span class="tag-list">
+                <span>Python</span><span>FastAPI</span><span>高德地图</span>
+                <span>Cloudflare Workers</span><span>POI Pipeline</span>
+            </span>
+        </div>
+
+        <h2 id="section-0">项目定位</h2>
+        <p>对话驱动的智能旅行规划系统。用户通过自然语言描述需求（时间、地点、兴趣偏好），系统自动生成结构化行程，并将每个行程点精准映射到高德地图上展示。核心理念：<strong>LLM 只负责语义理解与候选生成，不直接作为坐标来源</strong>——只有通过高德验证的地点才能进入路线规划。</p>
+
+        <h2 id="section-1">完整能力矩阵</h2>
+        <table>
+            <tr><th>能力</th><th>状态</th><th>说明</th></tr>
+            <tr><td>聊天 → 结构化行程</td><td>✅ 已跑通</td><td>用户说"深圳三日游" → LLM 生成 iternery</td></tr>
+            <tr><td>POI 自动落图</td><td>✅ 已跑通</td><td>地点自动解析坐标，按天展示地图标注</td></tr>
+            <tr><td>按天路径规划</td><td>✅ 已跑通</td><td>每天第 1 个地点为起点，2D/3D 切换</td></tr>
+            <tr><td>泛地点补点</td><td>✅ 已跑通</td><td>"咖啡馆/商圈"等模糊短语自动推荐候选 POI</td></tr>
+            <tr><td>行程编辑</td><td>✅ 已跑通</td><td>备选点直接加入指定日期，同日内拖拽排序</td></tr>
+            <tr><td>地点搜索共存</td><td>✅ 已跑通</td><td>手动搜索与当前行程并行显示</td></tr>
+            <tr><td>会话管理</td><td>✅ 已跑通</td><td>创建/恢复/删除，切换时同步最新行程</td></tr>
+            <tr><td>空状态定位</td><td>✅ 已解决</td><td>无数据时自动定位到城市中心</td></tr>
+            <tr><td>跨天重复检测</td><td>✅ 已解决</td><td>同一地址跨天显示时的清洗</td></tr>
+        </table>
+
+        <h2 id="section-2">POI 解析 Pipeline（完整链路）</h2>
+        <pre><code>用户: "想去南头古城、华侨城和海岸城逛逛"
+    │
+    ▼
+Step 1: LLM 地点需求解析
+    │  从自然语言中识别地点表达，区分精确地名 vs 泛地点
+    │  "南头古城"→ 精确, "逛逛"→ 泛地点
+    │
+    ▼
+Step 2: 候选地点生成
+    │  LLM 为每个需求生成多个候选：完整名称 + 变体 + 区域锚点
+    │  泛地点(如"美食街") → 短关键词变体（"美食街 深圳"）
+    │
+    ▼
+Step 3: 高德 POI 搜索验证
+    │  唯一真值来源！调用高德搜索/地理编码 API
+    │  精确匹配 → 直接落图
+    │  模糊匹配 → 锚点兜底（城市中心坐标）
+    │
+    ▼
+Step 4: 地点清洗
+    │  过滤误识别值（如品牌名被当作地点）
+    │  清洗语义尾缀（"深圳南头古城"→ "南头古城"）
+    │  泛地点自动短关键词变体回退
+    │
+    ▼
+Step 5: 验证通过 → 进入路线规划
+    │  失败 → 降级处理，不硬编坐标</code></pre>
+
+        <h3 id="subsection-0">高德接口设计规范（8 个接口）</h3>
+        <table>
+            <tr><th>接口名</th><th>输入</th><th>输出</th></tr>
+            <tr><td>需求解析</td><td>用户原始文本</td><td>结构化需求（地点+时间+偏好）</td></tr>
+            <tr><td>候选生成</td><td>结构化需求</td><td>地点候选列表（含变体）</td></tr>
+            <tr><td>POI 解析</td><td>地点名<br>类型 + 关键词</td><td>高德 POI 列表（含坐标）</td></tr>
+            <tr><td>搜索</td><td>关键词 + 城市</td><td>高德搜索结果</td></tr>
+            <tr><td>验证</td><td>POI 列表 + 原始需求</td><td>验证通过/降级/替换的建议</td></tr>
+            <tr><td>路线规划</td><td>已验证 POI 列表 + 出行方式</td><td>按天路线（含交通方式+时间）</td></tr>
+            <tr><td>行程生成</td><td>需求 + 验证 POI + 规划路线</td><td>最终结构化行程 JSON</td></tr>
+            <tr><td>地图配置</td><td>行程 JSON</td><td>高德地图渲染配置</td></tr>
+        </table>
+
+        <h4>分层的 POI 处理</h4>
+        <ul>
+            <li><strong>需求层</strong>：LLM 理解用户语义，从自然语言中提取地点需求</li>
+            <li><strong>候选层</strong>：LLM 针对每个需求生成多个候选地点（含完整名称 + 变体）</li>
+            <li><strong>搜索层</strong>：高德 POI 搜索 / 地理编码（唯一真值来源）</li>
+            <li><strong>验证层</strong>：精确匹配 → 直接落图；模糊匹配 → 兜底</li>
+            <li><strong>最终过滤</strong>：合并去重，跨天重复检测，地点类型/角色分离</li>
+        </ul>
+
+        <h3 id="subsection-1">地点类型与角色分离</h3>
+        <p>每个地点独立分配「地点类型」和「行程角色」，精确过滤标准：只有当候选的「类型 + 关键词」与用户需求一致时才进入排序，不在候选列表则从高德搜索排名最高的 POI。</p>
+
+        <h2 id="section-3">Cloudflare Worker 架构</h2>
+        <p>系统采用<strong>4 个独立 LLM 管道</strong>，基于 Cloudflare Workers + AI Gateway 部署：</p>
+        <ol>
+            <li><strong>需求解析管道</strong>：用户指令 → 结构化需求（时间/地点/偏好），含重试 + JSON Schema 验证</li>
+            <li><strong>行程生成管道</strong>：需求 + 已验证 POI + 路线 → 结构化 iternery JSON</li>
+            <li><strong>候选生成管道</strong>：需求 → 地点候选项（含变体）</li>
+            <li><strong>地点解析管道</strong>：地点名 → 精确坐标落图</li>
+        </ol>
+        <p>Workers 之间通过环境变量共享 AI Gateway 模型配置，统一使用 <code>@cf/meta/meta-lama-3.1-70b-instruct</code>（暂定）。管道的重试机制基于异常控制，JSON 解析失败自动重试（最多 3 次）。</p>
+
+        <h2 id="section-4">会话管理</h2>
+        <ul>
+            <li><strong>创建会话</strong>：用户输入 → LLM 生成 iternery → 构造会话对象 → 存入 SQLite → 返回 session_id</li>
+            <li><strong>恢复会话</strong>：加载行程 JSON → 初始化地图 → 恢复 map/poi/route 状态</li>
+            <li><strong>删除会话</strong>：硬删除（delete）+ 软删除（archive），支持批量清理</li>
+            <li><strong>多会话切换</strong>：切换时同步最新行程到地图视图</li>
+        </ul>
+
+        <h2 id="section-5">前端交互细节</h2>
+        <ul>
+            <li><strong>行程自动落图</strong>：生成/编辑行程后自动同步到高德地图</li>
+            <li><strong>起点定位</strong>：每天第 1 个行程点作为路线规划起点</li>
+            <li><strong>2D/3D 切换</strong>：地图模式一键切换</li>
+            <li><strong>泛地点补点</strong>：备选点直接加入指定日期（不经 LLM 重规划）</li>
+            <li><strong>搜索与路线共存</strong>：手动地点搜索与当前已有行程并行显示</li>
+            <li><strong>城市清洗兜底</strong>：坐标解析失败时自动定位城市中心</li>
+            <li><strong>关键词兜底</strong>：空结果时自动用短关键词变体重试</li>
+        </ul>
+
+        <h2 id="section-6">技术栈</h2>
+        <table>
+            <tr><th>组件</th><th>技术</th></tr>
+            <tr><td>后端框架</td><td>FastAPI（主后端）+ Cloudflare Workers（LLM 管道）</td></tr>
+            <tr><td>地图服务</td><td>高德地图 SDK（浏览器端 JS API + 服务端搜索 API）</td></tr>
+            <tr><td>地点解析</td><td>自研 POI 解析 Pipeline（分层架构，高德为唯一真值来源）</td></tr>
+            <tr><td>会话存储</td><td>SQLite</td></tr>
+            <tr><td>前端</td><td>HTML/CSS/JS 单页应用</td></tr>
+            <tr><td>LLM</td><td>DeepSeek-V3.2 via ModelScope API / Cloudflare AI (meta-llama-3.1-70b)</td></tr>
+            <tr><td>部署</td><td>Cloudflare Workers + AI Gateway</td></tr>
+        </table>
+
+        <h2 id="section-7">留存边与待优化点</h2>
+        <ul>
+            <li><strong>高德配额限制</strong>：地理编码/搜索 API 有每日调用上限</li>
+            <li><strong>定位权限</strong>：首次同步仍有多次请求（已用缓存减轻）</li>
+            <li><strong>行程文本不自动重写</strong>：编辑后需要额外触发 LLM 重描述</li>
+            <li><strong>泛地点补点使用高频候选</strong>：尚未整合用户历史偏好做个性化推荐</li>
+        </ul>
+
+        <p class="back-link"><a href="../index.html">← 返回首页</a></p>
+    </article>
+</div>
+</div>
+</div>
+<script>
+function toggleSbGroup(header) {
+    const items = header.nextElementSibling;
+    const icon = header.querySelector('.sb-collapse');
+    if (items.classList.contains('collapsed')) {
+        items.classList.remove('collapsed');
+        items.style.maxHeight = items.scrollHeight + 'px';
+        if (icon) icon.classList.remove('collapsed');
+    } else {
+        items.classList.add('collapsed');
+        items.style.maxHeight = '0';
+        if (icon) icon.classList.add('collapsed');
+    }
+}
+document.querySelectorAll('.sb-group-items:not(.collapsed)').forEach(function(el) {
+    el.style.maxHeight = el.scrollHeight + 'px';
+});
+</script>
+</body>
+</html>
