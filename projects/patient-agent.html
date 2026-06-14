@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>患者智能辅助 Agent — democt</title>
+    <link rel="stylesheet" href="../assets/common.css">
+
+<style>
+/* ===== 文章侧边栏（两层结构） ===== */
+.article-layout {
+    display: flex;
+    gap: 32px;
+    align-items: flex-start;
+}
+.article-sidebar {
+    width: 240px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 24px;
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+.article-sidebar::-webkit-scrollbar { width: 4px; }
+.article-sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+/* 返回首页 */
+.sb-back {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 16px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--accent);
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+}
+.sb-back:hover { background: var(--accent-soft); }
+
+/* 分组导航区 */
+.sb-groups { border-bottom: 1px solid var(--border); }
+
+.sb-group-header {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 8px 14px 4px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text);
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.15s;
+}
+.sb-group-header:hover { color: var(--accent); }
+.sb-group-header .sb-collapse {
+    font-size: 0.55rem;
+    color: var(--text-muted);
+    transition: transform 0.2s;
+    width: 12px;
+    flex-shrink: 0;
+}
+.sb-group-header .sb-collapse.collapsed { transform: rotate(-90deg); }
+.sb-group-header .sb-gcount {
+    margin-left: auto;
+    font-size: 0.72rem;
+    font-weight: 400;
+    color: var(--text-muted);
+    background: var(--tag-bg);
+    padding: 0 6px;
+    border-radius: 10px;
+}
+
+.sb-group-items { overflow: hidden; transition: max-height 0.25s ease; }
+.sb-group-items.collapsed { max-height: 0; }
+
+.sb-note-link {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    padding: 5px 14px 5px 24px;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+    transition: all 0.12s;
+    border-left: 3px solid transparent;
+}
+.sb-note-link:hover {
+    color: var(--text);
+    background: var(--accent-soft);
+}
+.sb-note-link.active {
+    color: var(--accent);
+    background: var(--accent-soft);
+    border-left-color: var(--accent);
+    font-weight: 600;
+}
+.sb-note-link .sb-ndate {
+    font-size: 0.68rem;
+    opacity: 0.6;
+    white-space: nowrap;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+/* 文章目录区 */
+.sb-toc {
+    padding: 8px 0 12px;
+}
+.sb-toc-title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--text);
+    padding: 4px 16px 8px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+.sb-toc-link {
+    display: block;
+    padding: 3px 16px 3px 24px;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    line-height: 1.45;
+    transition: all 0.12s;
+    border-left: 2px solid transparent;
+}
+.sb-toc-link:hover {
+    color: var(--accent);
+    background: var(--accent-soft);
+}
+.sb-toc-link.h3 {
+    padding-left: 36px;
+    font-size: 0.76rem;
+}
+
+.article-content {
+    flex: 1;
+    min-width: 0;
+}
+
+/* 响应式 */
+@media (max-width: 900px) {
+    .article-layout { flex-direction: column; }
+    .article-sidebar {
+        width: 100%;
+        position: static;
+        max-height: none;
+        order: 2;
+        margin-top: 32px;
+    }
+    .article-content { order: 1; }
+}
+
+.container { --max-width: 1100px; max-width: 1100px; }
+</style>
+</head>
+<body>
+<div class="container">
+    <nav class="breadcrumb"><a href="../index.html">首页</a> / 作品集</nav>
+    <div class="article-layout">
+<aside class="article-sidebar"><a href="../index.html#projects" class="sb-back">← 返回首页</a><div class="sb-groups"><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse">▼</span><span>🗂 作品集</span><span class="sb-gcount">3</span></div><div class="sb-group-items"><a href="patient-agent.html" class="sb-note-link active"><span>患者智能辅助 Agent</span></a><a href="travel-planner.html" class="sb-note-link"><span>AI 旅行规划师</span></a><a href="enterprise-agent-system.html" class="sb-note-link"><span>企业多专家 Agent 系统</span></a></div></div><div class="sb-toc"><div class="sb-toc-title">📑 本页目录</div><a href="#section-0" class="sb-toc-link">项目定位</a><a href="#section-1" class="sb-toc-link">一次问答的完整生命周期</a><a href="#section-2" class="sb-toc-link">四层记忆架构</a><a href="#subsection-0" class="sb-toc-link h3">两种对话模式</a><a href="#section-3" class="sb-toc-link">混合 RAG 检索策略（四维加权）</a><a href="#section-4" class="sb-toc-link">三层安全防线（患者过敏保护）</a><a href="#section-5" class="sb-toc-link">MCP 工具系统（自研）</a><a href="#subsection-1" class="sb-toc-link h3">双因子身份校验链</a><a href="#section-6" class="sb-toc-link">意图识别与规划</a><a href="#section-7" class="sb-toc-link">身份认证三种方式</a><a href="#section-8" class="sb-toc-link">多模态理解 + 语音输出</a><a href="#section-9" class="sb-toc-link">Prompt 组装策略</a><a href="#section-10" class="sb-toc-link">技术栈</a><a href="#section-11" class="sb-toc-link">设计模式总结</a><a href="#section-12" class="sb-toc-link">关键 API</a></div></aside>
+<div class="article-content">
+<article>
+        <h1>患者智能辅助 Agent</h1>
+        <div class="meta">
+            <span class="tag-list">
+                <span>Python</span><span>FastAPI</span><span>MCP</span>
+                <span>ChromaDB</span><span>RAG</span><span>Memory</span>
+                <span>DeepSeek</span><span>TTS</span>
+            </span>
+        </div>
+
+        <h2 id="section-0">项目定位</h2>
+        <p>患者侧智能辅助 Agent 原型系统，覆盖诊前、诊中、诊后全场景。不是单纯的对话机器人，而是一个集成了身份认证、多层记忆、结构化数据查询、知识检索、多模态理解和语音输出的智能体系统。当前版本是"可运行、可测试、可解释、可迭代"的原型，重点验证以下能力能否稳定协同：患者事实查询、会话连续记忆、长期摘要记忆、知识块检索、工具调用与问答编排。</p>
+
+        <h2 id="section-1">一次问答的完整生命周期</h2>
+        <pre><code>用户输入（文本 / 图片）
+    │
+    ▼
+Step 1: 身份解析层
+    │  Auth Token 校验 / 自然语言身份提取 / Session ID 分配
+    │  → 结果: patient_id + hospital_id
+    │  HMAC-SHA256 签名的 token，含载荷 + 过期时间
+    │  回退: 从对话文本提取姓名/出生年/手机号，与患者库模糊匹配
+    │
+    ▼
+Step 2: 图片分析层（可选）
+    │  调用视觉 LLM 提取图片摘要（报告文字/药品包装/检查结果/患处照片）
+    │  自动降级：首选 Vision 模型失败 → 次选 → 通用模型
+    │
+    ▼
+Step 3: 短期工作记忆更新
+    │  最近 5 轮消息 + 会话状态（意图/主题/目标）+ 活跃实体 + 风险信号
+    │
+    ▼
+Step 4: 长期记忆上下文构建
+    │  患者主档 + 业务画像 + 对话画像 + 关键事件 + 偏好 + 病历/就诊
+    │
+    ▼
+Step 5: 知识检索（RAG）
+    │  混合检索：向量 + 关键词 + 元数据 + 时效 → 四维加权排序
+    │
+    ▼
+Step 6: 意图识别 + 规划
+    │  模板优先（快、可解释）→ LLM 兜底（广、全面）
+    │  共识投票选最优执行路径
+    │
+    ▼
+Step 7: 工具执行（MCP Server）
+    │  签发身份 token / 校验身份 / 查病历 / 查就诊 / 查聚合画像
+    │
+    ▼
+Step 8: 答案生成（LLM）
+    │  组装 Prompt: 身份 + 短期记忆 + 长期记忆 + 知识 + 工具结果
+    │
+    ▼
+Step 9: 后处理 & 输出
+    │  Markdown 清理 → 语音合成 (TTS) → 记忆持久化</code></pre>
+
+        <h2 id="section-2">四层记忆架构</h2>
+        <pre><code>┌─────────────────────────────────────────────────────────┐
+│  工作记忆（内存中，最近5轮，高频/小容量）                    │
+│  recent_messages | intent | current_topic | goal          │
+│  working_summary | next_action | memory_focus              │
+│  active_entities（药物/症状/检查/指标）                     │
+│  risk_signals（红旗/用药/监测）                             │
+├─────────────────────────────────────────────────────────┤
+│  长期摘要记忆（DB，持续更新摘要）                           │
+│  MemoryUserProfile | MemoryBusinessProfile |              │
+│  MemoryConversationProfile | MemoryPreference |           │
+│  MemoryKeyEvent（关键事件，幂等合并，不重复）               │
+├─────────────────────────────────────────────────────────┤
+│  事实层（DB，最底层最可信的数据来源）                       │
+│  患者主档 + 病历（最近3条）+ 就诊记录（最近3条）             │
+│  属于"请求期临时拼装"，不是持久化事实向量层                  │
+├─────────────────────────────────────────────────────────┤
+│  知识记忆（ChromaDB + 混合 RAG）                          │
+│  知识块元数据 + 向量检索 + 关键词补召回 + 综合排序           │
+│  可设置 effective_from / expires_at 版本控制               │
+└─────────────────────────────────────────────────────────┘</code></pre>
+
+        <p>记忆系统设计了<strong>记忆金字塔缓存模式</strong>：越往上越热、越小、越临时；越往下越冷、越大、越持久。短期工作记忆采用结构化方式（而非简单文本窗口），包含 intent、current_topic、goal、working_summary、next_action 等字段。长期摘要记忆在每次对话结束后更新，支持幂等合并（相同 canonical_key 的事件合并而非重复）。</p>
+
+        <h3 id="subsection-0">两种对话模式</h3>
+        <table>
+            <tr><th>模式</th><th>适用场景</th><th>行为差异</th></tr>
+            <tr><td>general</td><td>普通问答</td><td>不写入短期消息到 DB，只维护内存工作记忆</td></tr>
+            <tr><td>memory</td><td>需要持久化上下文</td><td>每次消息写入 memory_conversation_messages 表，跨会话回溯</td></tr>
+        </table>
+
+        <h2 id="section-3">混合 RAG 检索策略（四维加权）</h2>
+        <pre><code>final_score = 0.58 × vector_score     # 语义相似度（余弦）
+            + 0.22 × keyword_score    # 字面匹配（Jaccard）
+            + 0.12 × metadata_score   # 医院/领域匹配
+            + 0.08 × recency_score    # 新鲜度（指数衰减）
+            + 0.04 × confidence       # 置信度</code></pre>
+        <p><strong>嵌入层降级链</strong>：OpenAI Embeddings → HuggingFace (BAAI/bge-small-zh-v1.5) → HashTextEmbedder（确定性哈希，不依赖外部模型）。向量模型 BAAI/bge-small-zh-v1.5，768 维。</p>
+
+        <h2 id="section-4">三层安全防线（患者过敏保护）</h2>
+        <p>系统设计了<strong>五层防护</strong>防止过敏药物推荐等风险，分两层场景应对：</p>
+
+        <h4>场景 A：已知过敏</h4>
+        <p>患者档案记录"阿司匹林过敏"，RAG 知识库推荐头痛标准治疗含阿司匹林</p>
+        <ol>
+            <li><strong>过敏药物提取</strong>：从 allergy_history 字段解析药物名（基于预定义药物词典 + 正则回退）</li>
+            <li><strong>RAG 知识过滤</strong>：检索后逐行扫描，剔除含过敏药物的行</li>
+            <li><strong>Prompt 硬指令注入</strong>："PATIENT ALLERGY WARNING: 患者对 阿司匹林 过敏。绝不要推荐"</li>
+            <li><strong>回答后安全扫描</strong>：LLM 生成后扫描回答文本，命中时追加醒目警告</li>
+        </ol>
+
+        <h4>场景 B：未知过敏</h4>
+        <p>患者档案 <code>allergy_history</code> 为空，系统不知道患者是否过敏</p>
+        <ol>
+            <li>检测到档案无过敏记录时设置 <code>allergy_history_unknown = True</code></li>
+            <li>Prompt 注入"全面回应"行为指令，在回答行文中自然包含用药提醒</li>
+            <li>互斥逻辑：已知过敏 → 硬警告；未知过敏 → 自然融入；无患者绑定 → 均不注入</li>
+        </ol>
+
+        <h2 id="section-5">MCP 工具系统（自研）</h2>
+        <table>
+            <tr><th>工具名</th><th>功能</th><th>身份保护</th></tr>
+            <tr><td>issue_identity_token</td><td>签发测试用身份 token</td><td>仅测试环境可用</td></tr>
+            <tr><td>verify_identity</td><td>校验 token 有效性</td><td>返回身份上下文</td></tr>
+            <tr><td>get_medical_records</td><td>查询患者病历</td><td>需 patient_id 或 auth_token</td></tr>
+            <tr><td>get_visit_records</td><td>查询就诊记录</td><td>需 patient_id 或 auth_token</td></tr>
+            <tr><td>get_patient_profile</td><td>聚合返回患者所有信息</td><td>需 patient_id 或 auth_token</td></tr>
+        </table>
+
+        <h3 id="subsection-1">双因子身份校验链</h3>
+        <p>验证 token 签名（HMAC-SHA256）→ 验证未过期 → 查询患者存在且 active → 验证 hospital_id 一致 → 通过。token 中的 patient_id 与传入的一致（否则 403），hospital_id 与患者记录一致（否则 403）。</p>
+
+        <h2 id="section-6">意图识别与规划</h2>
+        <p><strong>"模板优先 + LLM 兜底"分层策略</strong>：命中关键词模板（如"就诊"→ visit_records_query）直接返回（快、确定性高）；未命中则调用 LLM 分类（慢但覆盖广）。预定义意图包括：就诊记录查询、病历查询、症状咨询、患者画像总结、多模态摘要、通用医学问答。</p>
+        <p><strong>计划生成 + 共识投票</strong>：每个意图映射到 1-2 个工具调用步骤。对复杂情况，LLM 可生成多候选计划，系统通过共识投票选择执行路径。</p>
+
+        <h2 id="section-7">身份认证三种方式</h2>
+        <table>
+            <tr><th>方式</th><th>来源</th><th>优先级</th></tr>
+            <tr><td>Auth Token</td><td>显式传入</td><td>最高 — HMAC-SHA256 签名，含 patient_id + hospital_id + 过期时间</td></tr>
+            <tr><td>自然语言提取</td><td>对话文本</td><td>中 — 自动提取姓名、出生年、手机号，模糊匹配患者库</td></tr>
+            <tr><td>直接传参</td><td>API 参数</td><td>低 — 直接传 patient_id，适用于测试</td></tr>
+        </table>
+
+        <h2 id="section-8">多模态理解 + 语音输出</h2>
+        <ul>
+            <li><strong>图片理解</strong>：支持检查报告照片、药品包装、患处照片。Base64 编码后传给视觉 LLM，自动降级回退</li>
+            <li><strong>语音播报</strong>：双引擎支持 — OpenAI Compatible TTS（远程，音质高）和 Kokoro（本地，隐私好），网络失败自动降级</li>
+        </ul>
+
+        <h2 id="section-9">Prompt 组装策略</h2>
+        <p>最终 Prompt 按顺序拼接：系统角色指令（含安全约束、偏好风格）→ 短期记忆（最近 5 轮 + 会话状态）→ 长期记忆（患者画像 + 关键事件 + 偏好）→ 知识上下文（RAG 检索）→ 工具执行结果 → 用户问题。</p>
+
+        <h2 id="section-10">技术栈</h2>
+        <table>
+            <tr><th>组件</th><th>技术</th></tr>
+            <tr><td>后端框架</td><td>FastAPI + SQLAlchemy</td></tr>
+            <tr><td>数据库</td><td>SQLite</td></tr>
+            <tr><td>向量库</td><td>ChromaDB</td></tr>
+            <tr><td>向量模型</td><td>BAAI/bge-small-zh-v1.5（768 维）</td></tr>
+            <tr><td>文本生成</td><td>DeepSeek V4 Flash（API）</td></tr>
+            <tr><td>图片理解</td><td>Qwen3-VL-30B-A3B-Instruct（API）</td></tr>
+            <tr><td>语音输出</td><td>Kokoro TTS（本地） / OpenAI Compatible TTS（远程）</td></tr>
+            <tr><td>工具协议</td><td>自研 MCP Server（Model Context Protocol）</td></tr>
+            <tr><td>身份认证</td><td>HMAC-SHA256 签名 Token</td></tr>
+            <tr><td>前端</td><td>测试态静态页面（tester.html），含 Query/记忆聊天/Memory Debug</td></tr>
+        </table>
+
+        <h2 id="section-11">设计模式总结</h2>
+        <ul>
+            <li><strong>多层缓存/记忆金字塔</strong>：工作内存（热/小/临时）→ 短期消息（DB，有限时间）→ 关键事件（DB，长期）→ 画像/偏好（DB，几乎不变）</li>
+            <li><strong>规则优先 + LLM 兜底</strong>：在意图识别、实体提取、身份解析等多个环节先走确定性规则（快、零成本），失败时调用 LLM</li>
+            <li><strong>降级链</strong>：嵌入层、视觉层、语音层均有首选 → 次选 → 本地兜底方案</li>
+            <li><strong>匿名→实名过渡</strong>：匿名会话缓冲（不关联患者 ID）→ promote（身份确认后迁移）→ 正式消息</li>
+        </ul>
+
+        <h2 id="section-12">关键 API</h2>
+        <ul>
+            <li><strong>数据接口</strong>：POST/GET /api/v1/patients、病历、就诊记录 CRUD</li>
+            <li><strong>Memory 接口</strong>：GET /api/v1/memory/profile、conversations/messages、knowledge-chunks/retrieve</li>
+            <li><strong>Agent 接口</strong>：POST /api/v1/mcp/agent/query、query-with-image、speech</li>
+        </ul>
+
+        <p class="back-link"><a href="../index.html">← 返回首页</a></p>
+    </article>
+</div>
+</div>
+</div>
+<script>
+function toggleSbGroup(header) {
+    const items = header.nextElementSibling;
+    const icon = header.querySelector('.sb-collapse');
+    if (items.classList.contains('collapsed')) {
+        items.classList.remove('collapsed');
+        items.style.maxHeight = items.scrollHeight + 'px';
+        if (icon) icon.classList.remove('collapsed');
+    } else {
+        items.classList.add('collapsed');
+        items.style.maxHeight = '0';
+        if (icon) icon.classList.add('collapsed');
+    }
+}
+document.querySelectorAll('.sb-group-items:not(.collapsed)').forEach(function(el) {
+    el.style.maxHeight = el.scrollHeight + 'px';
+});
+</script>
+</body>
+</html>
