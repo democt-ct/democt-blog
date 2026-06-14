@@ -1,0 +1,391 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>客户端搜索 vs 服务端检索：静态站点搜索方案选型指南 — democt</title>
+    <link rel="stylesheet" href="../assets/common.css">
+
+<style>
+/* ===== 文章侧边栏（两层结构） ===== */
+.article-layout {
+    display: flex;
+    gap: 32px;
+    align-items: flex-start;
+}
+.article-sidebar {
+    width: 240px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 24px;
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+.article-sidebar::-webkit-scrollbar { width: 4px; }
+.article-sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+/* 返回首页 */
+.sb-back {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 16px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--accent);
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+}
+.sb-back:hover { background: var(--accent-soft); }
+
+/* 分组导航区 */
+.sb-groups { border-bottom: 1px solid var(--border); }
+
+.sb-group-header {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 8px 14px 4px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text);
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.15s;
+}
+.sb-group-header:hover { color: var(--accent); }
+.sb-group-header .sb-collapse {
+    font-size: 0.55rem;
+    color: var(--text-muted);
+    transition: transform 0.2s;
+    width: 12px;
+    flex-shrink: 0;
+}
+.sb-group-header .sb-collapse.collapsed { transform: rotate(-90deg); }
+.sb-group-header .sb-gcount {
+    margin-left: auto;
+    font-size: 0.72rem;
+    font-weight: 400;
+    color: var(--text-muted);
+    background: var(--tag-bg);
+    padding: 0 6px;
+    border-radius: 10px;
+}
+
+.sb-group-items { overflow: hidden; transition: max-height 0.25s ease; }
+.sb-group-items.collapsed { max-height: 0; }
+
+.sb-note-link {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    padding: 5px 14px 5px 24px;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+    transition: all 0.12s;
+    border-left: 3px solid transparent;
+}
+.sb-note-link:hover {
+    color: var(--text);
+    background: var(--accent-soft);
+}
+.sb-note-link.active {
+    color: var(--accent);
+    background: var(--accent-soft);
+    border-left-color: var(--accent);
+    font-weight: 600;
+}
+.sb-note-link .sb-ndate {
+    font-size: 0.68rem;
+    opacity: 0.6;
+    white-space: nowrap;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+/* 文章目录区 */
+.sb-toc {
+    padding: 8px 0 12px;
+}
+.sb-toc-title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--text);
+    padding: 4px 16px 8px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+.sb-toc-link {
+    display: block;
+    padding: 3px 16px 3px 24px;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    line-height: 1.45;
+    transition: all 0.12s;
+    border-left: 2px solid transparent;
+}
+.sb-toc-link:hover {
+    color: var(--accent);
+    background: var(--accent-soft);
+}
+.sb-toc-link.h3 {
+    padding-left: 36px;
+    font-size: 0.76rem;
+}
+
+.article-content {
+    flex: 1;
+    min-width: 0;
+}
+
+/* 响应式 */
+@media (max-width: 900px) {
+    .article-layout { flex-direction: column; }
+    .article-sidebar {
+        width: 100%;
+        position: static;
+        max-height: none;
+        order: 2;
+        margin-top: 32px;
+    }
+    .article-content { order: 1; }
+}
+
+.container { --max-width: 1100px; max-width: 1100px; }
+</style>
+
+<style>
+.read-status-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #fff;
+    border-top: 1px solid #e2e8f0;
+    padding: 10px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    z-index: 50;
+    font-size: 0.88rem;
+}
+.read-status-bar .rs-btn {
+    padding: 6px 18px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: all 0.15s;
+}
+.read-status-bar .rs-btn:hover { border-color: #5b6abf; color: #5b6abf; }
+.read-status-bar .rs-btn.rs-read { background: #5b6abf; color: #fff; border-color: #5b6abf; }
+</style>
+</head>
+<body>
+<div class="container">
+    <nav class="breadcrumb"><a href="../index.html">首页</a> / 知识笔记</nav>
+    <div class="article-layout">
+<aside class="article-sidebar"><a href="../index.html#knowledge" class="sb-back">← 返回首页</a><div class="sb-groups"><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>🤖 Agent 基础</span><span class="sb-gcount">9</span></div><div class="sb-group-items collapsed"><a href="multi-agent-collaboration.html" class="sb-note-link"><span>多Agent协作架构：从单Agent到智能体网络</span><span class="sb-ndate">06-11</span></a><a href="agent-guardrails.html" class="sb-note-link"><span>Agent Guardrails：运行时安全护…</span><span class="sb-ndate">06-11</span></a><a href="agent-fullstack-development.html" class="sb-note-link"><span>Agent 全栈开发实战</span><span class="sb-ndate">06-10</span></a><a href="agent-debugging-troubleshooting.html" class="sb-note-link"><span>Agent 流程调试与问题排查实战</span><span class="sb-ndate">06-10</span></a><a href="multimodal-agent.html" class="sb-note-link"><span>多模态 Agent 入门</span><span class="sb-ndate">06-09</span></a><a href="agent-evaluation.html" class="sb-note-link"><span>Agent 评估与测试方法论</span><span class="sb-ndate">06-08</span></a><a href="agent-memory-patterns.html" class="sb-note-link"><span>Agent 记忆系统设计模式</span><span class="sb-ndate">06-07</span></a><a href="agent-security.html" class="sb-note-link"><span>Agent 安全红宝书</span><span class="sb-ndate">06-03</span></a><a href="what-is-agent.html" class="sb-note-link"><span>什么是 Agent？核心概念与能力边界</span><span class="sb-ndate">05-15</span></a></div><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>💬 提示词与工具</span><span class="sb-gcount">4</span></div><div class="sb-group-items collapsed"><a href="tool-calling-advanced.html" class="sb-note-link"><span>Tool Calling 进阶：工具网关与多工…</span><span class="sb-ndate">06-10</span></a><a href="structured-output.html" class="sb-note-link"><span>结构化输出完全指南</span><span class="sb-ndate">06-06</span></a><a href="function-calling-deep-dive.html" class="sb-note-link"><span>Function Calling 原理与实践</span><span class="sb-ndate">05-26</span></a><a href="prompt-engineering.html" class="sb-note-link"><span>提示词工程进阶：从入门到系统化</span><span class="sb-ndate">05-18</span></a></div><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse">▼</span><span>🔍 RAG 与检索</span><span class="sb-gcount">5</span></div><div class="sb-group-items"><a href="rag-pitfalls-optimization.html" class="sb-note-link"><span>RAG 落地常见陷阱与优化策略</span><span class="sb-ndate">06-10</span></a><a href="rag-production-deployment.html" class="sb-note-link"><span>RAG 生产化部署：从原型到高性能系统</span><span class="sb-ndate">06-10</span></a><a href="vector-db-comparison.html" class="sb-note-link"><span>向量数据库对比：选型指南</span><span class="sb-ndate">05-24</span></a><a href="embedding-model-guide.html" class="sb-note-link"><span>Embedding 模型选型与对比</span><span class="sb-ndate">05-22</span></a><a href="rag-architecture.html" class="sb-note-link"><span>RAG 架构深度解析：从朴素到模块化</span><span class="sb-ndate">05-20</span></a></div><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>🧠 LLM 深入</span><span class="sb-gcount">4</span></div><div class="sb-group-items collapsed"><a href="cost-optimization.html" class="sb-note-link"><span>Agent 成本优化手册</span><span class="sb-ndate">06-10</span></a><a href="semantic-cache.html" class="sb-note-link"><span>LLM 语义缓存策略</span><span class="sb-ndate">06-07</span></a><a href="llm-observability.html" class="sb-note-link"><span>AI 应用的可观测性</span><span class="sb-ndate">06-01</span></a><a href="llm-hallucination.html" class="sb-note-link"><span>LLM 幻觉现象与缓解策略</span><span class="sb-ndate">05-30</span></a></div><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>🔌 架构与协议</span><span class="sb-gcount">7</span></div><div class="sb-group-items collapsed"><a href="agent-framework-selection.html" class="sb-note-link"><span>Agent框架选型指南：2026年全景对比</span><span class="sb-ndate">06-11</span></a><a href="a2a-protocol.html" class="sb-note-link"><span>A2A协议：Agent间通信的开放标准</span><span class="sb-ndate">06-11</span></a><a href="mcp-server-practice.html" class="sb-note-link"><span>MCP Server 开发实战</span><span class="sb-ndate">06-10</span></a><a href="mcp-skill-backend-advanced.html" class="sb-note-link"><span>MCP Server 开发实战 &amp; Skill…</span><span class="sb-ndate">06-10</span></a><a href="streaming-architecture.html" class="sb-note-link"><span>流式架构设计实践</span><span class="sb-ndate">06-09</span></a><a href="task-planning-patterns.html" class="sb-note-link"><span>从 Andon 到 DAG：任务规划模式汇总</span><span class="sb-ndate">06-05</span></a><a href="mcp-protocol.html" class="sb-note-link"><span>MCP 协议解析：Agent 的 USB-C</span><span class="sb-ndate">05-28</span></a></div><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>⚡ Skill 开发</span><span class="sb-gcount">1</span></div><div class="sb-group-items collapsed"><a href="skill-design-guide.html" class="sb-note-link"><span>Skill 设计与开发指南</span><span class="sb-ndate">06-10</span></a></div><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>🖥️ 后端开发</span><span class="sb-gcount">1</span></div><div class="sb-group-items collapsed"><a href="backend-agent-integration.html" class="sb-note-link"><span>后端服务与 Agent 集成模式</span><span class="sb-ndate">06-10</span></a></div><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>🏗️ 全栈开发</span><span class="sb-gcount">1</span></div><div class="sb-group-items collapsed"><a href="vibe-coding-guide.html" class="sb-note-link"><span>Vibe Coding：AI辅助编程实战指南</span><span class="sb-ndate">06-11</span></a></div></div><div class="sb-toc"><div class="sb-toc-title">📑 本页目录</div><a href="#section-0" class="sb-toc-link">核心决策：不是所有搜索都需要向量数据库</a><a href="#section-1" class="sb-toc-link">选型决策树</a><a href="#section-2" class="sb-toc-link">方案一：Fuse.js 客户端搜索（推荐 &amp;lt; 500 篇）</a><a href="#subsection-0" class="sb-toc-link h3">索引生成</a><a href="#subsection-1" class="sb-toc-link h3">Fuse.js 配置</a><a href="#subsection-2" class="sb-toc-link h3">降级方案</a><a href="#section-3" class="sb-toc-link">方案二：Meilisearch 服务端搜索</a><a href="#section-4" class="sb-toc-link">方案三：向量数据库 + 混合检索</a><a href="#section-5" class="sb-toc-link">决策 Checklist</a></div></aside>
+<div class="article-content">
+<article>
+        <h1>客户端搜索 vs 服务端检索：静态站点搜索方案选型指南</h1>
+        <div class="meta"><span class="date">2026-06-11</span><span class="tag-list"><span>搜索</span><span>静态站点</span><span>Fuse.js</span><span>架构选型</span></span></div>
+
+        <h2 id="section-0">核心决策：不是所有搜索都需要向量数据库</h2>
+        <p>看到一个常见误区：凡是说到"搜索"，就往 RAG + 向量数据库上靠。实际上，文档量级才是决定架构的核心变量——小规模用重武器是过度设计，大规模用轻方案则不可用。</p>
+
+        <h2 id="section-1">选型决策树</h2>
+        <pre><code>文档数量 &lt; 500 篇？
+  ├─ 是 → 客户端搜索（search-index.json + Fuse.js / Lunr.js）
+  │       优势：零后端、零成本、毫秒级响应
+  │       限制：首次加载索引（50-200KB），中文分词效果一般
+  │
+  └─ 否 → 文档数量 500 - 5000 篇？
+         ├─ 是 → 服务端全文检索（Meilisearch / Elasticsearch）
+         │       优势：精准、快速、支持中文分词
+         │       成本：需要服务器或托管服务
+         │
+         └─ 否（&gt; 5000 篇 + 语义需求）
+              → 向量数据库 + 混合检索
+                优势：语义理解、多模态
+                成本高、运维复杂</code></pre>
+
+        <h2 id="section-2">方案一：Fuse.js 客户端搜索（推荐 &lt; 500 篇）</h2>
+
+        <h3 id="subsection-0">索引生成</h3>
+        <p>核心思路：构建时扫描所有内容文件，提取纯文本，生成一个 JSON 索引文件，随站点一起部署。</p>
+
+        <pre><code>// generate-search-index.js
+const fs = require('fs');
+const path = require('path');
+
+function stripHtml(html) {
+    return html
+        .replace(/&lt;style[^&gt;]*&gt;[\s\S]*?&lt;\/style&gt;/gi, '')
+        .replace(/&lt;script[^&gt;]*&gt;[\s\S]*?&lt;\/script&gt;/gi, '')
+        .replace(/&lt;[^&gt;]+&gt;/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+const dirs = ['projects', 'posts', 'knowledge'];
+const index = [];
+
+for (const dir of dirs) {
+    const files = fs.readdirSync(dir).filter(f =&gt; f.endsWith('.html'));
+    for (const file of files) {
+        const raw = fs.readFileSync(path.join(dir, file), 'utf8');
+        const text = stripHtml(raw);
+        const title = (raw.match(/&lt;title&gt;([^&lt;]+)&lt;\/title&gt;/) || ['', file])[1];
+        index.push({
+            title, url: `${dir}/${file}`,
+            snippet: text.slice(0, 300),
+            body: text.slice(0, 4000)   // 全文索引
+        });
+    }
+}
+fs.writeFileSync('search-index.json', JSON.stringify(index));</code></pre>
+
+        <h3 id="subsection-1">Fuse.js 配置</h3>
+        <pre><code>const fuse = new Fuse(searchIndex, {
+    keys: [
+        { name: 'title', weight: 0.6 },
+        { name: 'tags', weight: 0.2 },
+        { name: 'body', weight: 0.2 }
+    ],
+    threshold: 0.4,           // 模糊匹配容错度（0=精确，1=全匹配）
+    distance: 100,            // 匹配距离
+    includeScore: true,       // 返回相关性分数
+    minMatchCharLength: 2,    // 最短匹配字符数
+    ignoreLocation: true      // 忽略匹配位置权重
+});</code></pre>
+        <p><strong>threshold 调优</strong>：0.3-0.4 是中文搜索的甜点区。太低（0.1）会漏掉很多相关结果，太高（0.6）会返回大量噪音。建议结合 includeScore 排序，把得分最高的放在前面。</p>
+
+        <h3 id="subsection-2">降级方案</h3>
+        <p>索引 JSON 加载或解析失败时，不应整个搜索功能不可用：</p>
+        <pre><code>async function loadSearchIndex() {
+    try {
+        const resp = await fetch('/search-index.json');
+        if (!resp.ok) throw new Error('Index load failed');
+        return await resp.json();
+    } catch {
+        // 降级：用页面中已有的 allPosts 数据
+        console.warn('搜索索引加载失败，使用降级方案');
+        return window.allPosts.map(p =&gt; ({
+            title: p.title,
+            url: p.url,
+            snippet: p.description || '',
+            body: p.tags?.join(' ') || ''
+        }));
+    }
+}</code></pre>
+
+        <h2 id="section-3">方案二：Meilisearch 服务端搜索</h2>
+        <p>当文档超过 500 篇时推荐。特点：Rust 编写、极快、内置中文分词（jieba）、RESTful API。</p>
+        <pre><code># Docker 一键部署
+docker run -p 7700:7700 getmeili/meilisearch
+
+# 索引文档
+curl -X POST 'http://localhost:7700/indexes/posts/documents' \
+  -H 'Content-Type: application/json' \
+  --data-binary @search-documents.json
+
+# 搜索
+curl 'http://localhost:7700/indexes/posts/search?q=RAG+混合检索&amp;limit=10'</code></pre>
+        <p>成本：Meilisearch Cloud 有免费额度（100K documents），对小中型站点足够。</p>
+
+        <h2 id="section-4">方案三：向量数据库 + 混合检索</h2>
+        <p>当用户查询是自然语言且需要语义理解时（如"怎么让 AI 不瞎编"→匹配"幻觉问题"相关文档），纯关键词搜索不够。此时引入 Embedding + 向量检索 + RRF 融合。</p>
+        <p>但记住：500 篇以下不需要这个方案。过度设计不仅增加运维负担，还引入延迟（Embedding 生成 + 向量检索比倒排索引慢一个数量级）。</p>
+
+        <h2 id="section-5">决策 Checklist</h2>
+        <ul>
+            <li>文档 &lt; 500 篇、不需要语义搜索 → Fuse.js 客户端搜索</li>
+            <li>文档 500-5000、需要精准中文搜索 → Meilisearch</li>
+            <li>需要语义理解和多模态检索 → 向量数据库 + RRF 混合检索</li>
+            <li>不想管运维 → Algolia DocSearch（开源项目免费）</li>
+            <li>搜索索引必须和内容同步更新（CI/CD 中自动重新生成）</li>
+        </ul>
+    </article>
+</div>
+</div>
+</div>
+<script>
+function toggleSbGroup(header) {
+    const items = header.nextElementSibling;
+    const icon = header.querySelector('.sb-collapse');
+    if (items.classList.contains('collapsed')) {
+        items.classList.remove('collapsed');
+        items.style.maxHeight = items.scrollHeight + 'px';
+        if (icon) icon.classList.remove('collapsed');
+    } else {
+        items.classList.add('collapsed');
+        items.style.maxHeight = '0';
+        if (icon) icon.classList.add('collapsed');
+    }
+}
+document.querySelectorAll('.sb-group-items:not(.collapsed)').forEach(function(el) {
+    el.style.maxHeight = el.scrollHeight + 'px';
+});
+</script>
+
+<div class="read-status-bar" id="readStatusBar">
+    <span id="readStatusText">未标记</span>
+    <button class="rs-btn" id="readStatusBtn" onclick="toggleRead()">标记为已读</button>
+</div>
+<script>window.__NOTE_ID__ = 'search-architecture-selection';</script>
+
+<script src="../js/progress.js"></script>
+<script src="../js/auth.js"></script>
+<script>
+(function() {
+    const NOTE_ID = 'search-architecture-selection';
+    // Auto-mark as read after 5 seconds on page
+    setTimeout(function() {
+        if (ProgressTracker.isLoggedIn()) {
+            if (!ProgressTracker.isRead(NOTE_ID)) {
+                ProgressTracker.markRead(NOTE_ID);
+            }
+        }
+    }, 5000);
+})();
+</script>
+
+<script>
+const NOTE_ID_CURRENT = window.__NOTE_ID__ || '';
+function toggleRead() {
+    if (!ProgressTracker.isLoggedIn()) {
+        alert('请先登录以同步学习进度');
+        return;
+    }
+    if (ProgressTracker.isRead(NOTE_ID_CURRENT)) {
+        ProgressTracker.markUnread(NOTE_ID_CURRENT);
+    } else {
+        ProgressTracker.markRead(NOTE_ID_CURRENT);
+    }
+    updateReadBar();
+}
+function updateReadBar() {
+    const btn = document.getElementById('readStatusBtn');
+    const text = document.getElementById('readStatusText');
+    if (!btn || !text) return;
+    const isRead = ProgressTracker.isRead(NOTE_ID_CURRENT);
+    btn.textContent = isRead ? '取消已读' : '标记为已读';
+    btn.className = 'rs-btn' + (isRead ? ' rs-read' : '');
+    text.textContent = isRead ? '已读' : '未标记';
+}
+updateReadBar();
+</script>
+</body>
+</html>
