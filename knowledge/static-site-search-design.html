@@ -1,0 +1,879 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>静态站点搜索方案设计：从零实现全站搜索 — democt</title>
+    <link rel="stylesheet" href="../assets/common.css">
+
+<style>
+/* ===== 文章侧边栏（两层结构） ===== */
+.article-layout {
+    display: flex;
+    gap: 32px;
+    align-items: flex-start;
+}
+.article-sidebar {
+    width: 240px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 24px;
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+.article-sidebar::-webkit-scrollbar { width: 4px; }
+.article-sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+/* 返回首页 */
+.sb-back {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 16px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--accent);
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+}
+.sb-back:hover { background: var(--accent-soft); }
+
+/* 分组导航区 */
+.sb-groups { border-bottom: 1px solid var(--border); }
+
+.sb-group-header {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 8px 14px 4px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text);
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.15s;
+}
+.sb-group-header:hover { color: var(--accent); }
+.sb-group-header .sb-collapse {
+    font-size: 0.55rem;
+    color: var(--text-muted);
+    transition: transform 0.2s;
+    width: 12px;
+    flex-shrink: 0;
+}
+.sb-group-header .sb-collapse.collapsed { transform: rotate(-90deg); }
+.sb-group-header .sb-gcount {
+    margin-left: auto;
+    font-size: 0.72rem;
+    font-weight: 400;
+    color: var(--text-muted);
+    background: var(--tag-bg);
+    padding: 0 6px;
+    border-radius: 10px;
+}
+
+.sb-group-items { overflow: hidden; transition: max-height 0.25s ease; }
+.sb-group-items.collapsed { max-height: 0; }
+
+.sb-note-link {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    padding: 5px 14px 5px 24px;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+    transition: all 0.12s;
+    border-left: 3px solid transparent;
+}
+.sb-note-link:hover {
+    color: var(--text);
+    background: var(--accent-soft);
+}
+.sb-note-link.active {
+    color: var(--accent);
+    background: var(--accent-soft);
+    border-left-color: var(--accent);
+    font-weight: 600;
+}
+.sb-note-link .sb-ndate {
+    font-size: 0.68rem;
+    opacity: 0.6;
+    white-space: nowrap;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+/* 文章目录区 */
+.sb-toc {
+    padding: 8px 0 12px;
+}
+.sb-toc-title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--text);
+    padding: 4px 16px 8px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+.sb-toc-link {
+    display: block;
+    padding: 3px 16px 3px 24px;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    line-height: 1.45;
+    transition: all 0.12s;
+    border-left: 2px solid transparent;
+}
+.sb-toc-link:hover {
+    color: var(--accent);
+    background: var(--accent-soft);
+}
+.sb-toc-link.h3 {
+    padding-left: 36px;
+    font-size: 0.76rem;
+}
+
+.article-content {
+    flex: 1;
+    min-width: 0;
+}
+
+/* 响应式 */
+@media (max-width: 900px) {
+    .article-layout { flex-direction: column; }
+    .article-sidebar {
+        width: 100%;
+        position: static;
+        max-height: none;
+        order: 2;
+        margin-top: 32px;
+    }
+    .article-content { order: 1; }
+}
+
+.container { --max-width: 1100px; max-width: 1100px; }
+</style>
+
+<style>
+.read-status-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #fff;
+    border-top: 1px solid #e2e8f0;
+    padding: 10px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    z-index: 50;
+    font-size: 0.88rem;
+}
+.read-status-bar .rs-btn {
+    padding: 6px 18px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: all 0.15s;
+}
+.read-status-bar .rs-btn:hover { border-color: #5b6abf; color: #5b6abf; }
+.read-status-bar .rs-btn.rs-read { background: #5b6abf; color: #fff; border-color: #5b6abf; }
+</style>
+</head>
+<body>
+<div class="container">
+    <nav class="breadcrumb"><a href="../index.html">首页</a> / 知识笔记</nav>
+    <div class="article-layout">
+<aside class="article-sidebar"><a href="../index.html#knowledge" class="sb-back">← 返回首页</a><div class="sb-groups"><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>🤖 Agent 基础</span><span class="sb-gcount">9</span></div><div class="sb-group-items collapsed"><a href="multi-agent-collaboration.html" class="sb-note-link"><span>多Agent协作架构：从单Agent到智能体网络</span><span class="sb-ndate">06-11</span></a><a href="agent-guardrails.html" class="sb-note-link"><span>Agent Guardrails：运行时安全护…</span><span class="sb-ndate">06-11</span></a><a href="agent-fullstack-development.html" class="sb-note-link"><span>Agent 全栈开发实战</span><span class="sb-ndate">06-10</span></a><a href="agent-debugging-troubleshooting.html" class="sb-note-link"><span>Agent 流程调试与问题排查实战</span><span class="sb-ndate">06-10</span></a><a href="multimodal-agent.html" class="sb-note-link"><span>多模态 Agent 入门</span><span class="sb-ndate">06-09</span></a><a href="agent-evaluation.html" class="sb-note-link"><span>Agent 评估与测试方法论</span><span class="sb-ndate">06-08</span></a><a href="agent-memory-patterns.html" class="sb-note-link"><span>Agent 记忆系统设计模式</span><span class="sb-ndate">06-07</span></a><a href="agent-security.html" class="sb-note-link"><span>Agent 安全红宝书</span><span class="sb-ndate">06-03</span></a><a href="what-is-agent.html" class="sb-note-link"><span>什么是 Agent？核心概念与能力边界</span><span class="sb-ndate">05-15</span></a></div><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>💬 提示词与工具</span><span class="sb-gcount">4</span></div><div class="sb-group-items collapsed"><a href="tool-calling-advanced.html" class="sb-note-link"><span>Tool Calling 进阶：工具网关与多工…</span><span class="sb-ndate">06-10</span></a><a href="structured-output.html" class="sb-note-link"><span>结构化输出完全指南</span><span class="sb-ndate">06-06</span></a><a href="function-calling-deep-dive.html" class="sb-note-link"><span>Function Calling 原理与实践</span><span class="sb-ndate">05-26</span></a><a href="prompt-engineering.html" class="sb-note-link"><span>提示词工程进阶：从入门到系统化</span><span class="sb-ndate">05-18</span></a></div><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>🔍 RAG 与检索</span><span class="sb-gcount">5</span></div><div class="sb-group-items collapsed"><a href="rag-pitfalls-optimization.html" class="sb-note-link"><span>RAG 落地常见陷阱与优化策略</span><span class="sb-ndate">06-10</span></a><a href="rag-production-deployment.html" class="sb-note-link"><span>RAG 生产化部署：从原型到高性能系统</span><span class="sb-ndate">06-10</span></a><a href="vector-db-comparison.html" class="sb-note-link"><span>向量数据库对比：选型指南</span><span class="sb-ndate">05-24</span></a><a href="embedding-model-guide.html" class="sb-note-link"><span>Embedding 模型选型与对比</span><span class="sb-ndate">05-22</span></a><a href="rag-architecture.html" class="sb-note-link"><span>RAG 架构深度解析：从朴素到模块化</span><span class="sb-ndate">05-20</span></a></div><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>🧠 LLM 深入</span><span class="sb-gcount">4</span></div><div class="sb-group-items collapsed"><a href="cost-optimization.html" class="sb-note-link"><span>Agent 成本优化手册</span><span class="sb-ndate">06-10</span></a><a href="semantic-cache.html" class="sb-note-link"><span>LLM 语义缓存策略</span><span class="sb-ndate">06-07</span></a><a href="llm-observability.html" class="sb-note-link"><span>AI 应用的可观测性</span><span class="sb-ndate">06-01</span></a><a href="llm-hallucination.html" class="sb-note-link"><span>LLM 幻觉现象与缓解策略</span><span class="sb-ndate">05-30</span></a></div><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>🔌 架构与协议</span><span class="sb-gcount">7</span></div><div class="sb-group-items collapsed"><a href="agent-framework-selection.html" class="sb-note-link"><span>Agent框架选型指南：2026年全景对比</span><span class="sb-ndate">06-11</span></a><a href="a2a-protocol.html" class="sb-note-link"><span>A2A协议：Agent间通信的开放标准</span><span class="sb-ndate">06-11</span></a><a href="mcp-server-practice.html" class="sb-note-link"><span>MCP Server 开发实战</span><span class="sb-ndate">06-10</span></a><a href="mcp-skill-backend-advanced.html" class="sb-note-link"><span>MCP Server 开发实战 &amp; Skill…</span><span class="sb-ndate">06-10</span></a><a href="streaming-architecture.html" class="sb-note-link"><span>流式架构设计实践</span><span class="sb-ndate">06-09</span></a><a href="task-planning-patterns.html" class="sb-note-link"><span>从 Andon 到 DAG：任务规划模式汇总</span><span class="sb-ndate">06-05</span></a><a href="mcp-protocol.html" class="sb-note-link"><span>MCP 协议解析：Agent 的 USB-C</span><span class="sb-ndate">05-28</span></a></div><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>⚡ Skill 开发</span><span class="sb-gcount">1</span></div><div class="sb-group-items collapsed"><a href="skill-design-guide.html" class="sb-note-link"><span>Skill 设计与开发指南</span><span class="sb-ndate">06-10</span></a></div><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>🖥️ 后端开发</span><span class="sb-gcount">1</span></div><div class="sb-group-items collapsed"><a href="backend-agent-integration.html" class="sb-note-link"><span>后端服务与 Agent 集成模式</span><span class="sb-ndate">06-10</span></a></div><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>🏗️ 全栈开发</span><span class="sb-gcount">1</span></div><div class="sb-group-items collapsed"><a href="vibe-coding-guide.html" class="sb-note-link"><span>Vibe Coding：AI辅助编程实战指南</span><span class="sb-ndate">06-11</span></a></div></div><div class="sb-toc"><div class="sb-toc-title">📑 本页目录</div><a href="#section-0" class="sb-toc-link">静态站点的搜索困境</a><a href="#section-1" class="sb-toc-link">完整实现方案</a><a href="#subsection-0" class="sb-toc-link h3">第一步：生成搜索索引</a><a href="#subsection-1" class="sb-toc-link h3">第二步：集成 Fuse.js</a><a href="#subsection-2" class="sb-toc-link h3">第三步：关键词高亮</a><a href="#section-2" class="sb-toc-link">静态站点的搜索困境</a><a href="#section-3" class="sb-toc-link">完整实现方案</a><a href="#subsection-3" class="sb-toc-link h3">第一步：生成搜索索引</a><a href="#subsection-4" class="sb-toc-link h3">第二步：集成 Fuse.js</a><a href="#subsection-5" class="sb-toc-link h3">第三步：关键词高亮</a><a href="#subsection-6" class="sb-toc-link h3">第四步：UI 实现</a><a href="#section-4" class="sb-toc-link">更新工作流</a><a href="#section-5" class="sb-toc-link">性能考虑</a></div></aside>
+<div class="article-content">
+<article>
+        <h1>静态站点搜索方案设计：从零实现全站搜索</h1>
+        <div class="meta"><span class="date">2026-06-11</span><span class="tag-list"><span>搜索</span><span>前端</span><span>Fuse.js</span><span>静态站点</span></span></div>
+
+        <h2 id="section-0">静态站点的搜索困境</h2>
+        <p>静态站点没有后端，传统搜索需要数据库 + 服务端索引。但我们的目标是不依赖任何后端服务就能实现可靠的全站搜索——对于个人博客、文档站、作品集这类只有几十到几百篇内容的站点，这完全可行。</p>
+
+        <h2 id="section-1">完整实现方案</h2>
+
+        <h3 id="subsection-0">第一步：生成搜索索引</h3>
+        <pre><code>// generate-search-index.js
+const fs = require('fs');
+const path = require('path');
+
+const dirs = ['projects', 'posts', 'knowledge'];
+const index = [];
+
+function stripHtml(html) {
+    return html
+        .replace(/&lt;style[^&gt;]*&gt;[\s\S]*?&lt;\/style&gt;/gi, '')
+        .replace(/&lt;script[^&gt;]*&gt;[\s\S]*?&lt;\/script&gt;/gi, '')
+        .replace(/&lt;[^&gt;]+&gt;/g, ' ')
+        .replace(/&amp;[a-z]+;/gi, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+for (const dir of dirs) {
+    const dirPath = path.join(__dirname, dir);
+    const files = fs.readdirSync(dirPath).filter(f =&gt; f.endsWith('.html'));
+
+    for (const file of files) {
+        const raw = fs.readFileSync(path.join(dirPath, file), 'utf8');
+        const text = stripHtml(raw);
+
+        // 提取标题
+        const titleMatch = raw.match(/&lt;title&gt;([^&lt;]+)&lt;\/title&gt;/)
+                        || raw.match(/&lt;h1[^&gt;]*&gt;([^&lt;]+)&lt;\/h1&gt;/);
+        const title = titleMatch ? titleMatch[1].trim() : file.replace('.html', '');
+
+        // 提取标签
+        const tags = [];
+        const tagMatch = raw.match(/tag-list["']&gt;\s*&lt;span&gt;([^&lt;]+)/g);
+        if (tagMatch) {
+            tagMatch.forEach(t =&gt; {
+                const m = t.match(/&gt;([^&lt;]+)&lt;/);
+                if (m) tags.push(m[1].trim());
+            });
+        }
+
+        index.push({
+            title,
+            url: `${dir}/${file}`,
+            tags,
+            snippet: text.slice(0, 300),
+            body: text.slice(0, 4000)  // 全文索引，限制大小
+        });
+    }
+}
+
+fs.writeFileSync('search-index.json', JSON.stringify(index, null, 2));
+console.log(`✅ 生成 search-index.json (${index.length} 条索引)`);</code></pre>
+
+        <h3 id="subsection-1">第二步：集成 Fuse.js</h3>
+        <pre><code>// 搜索核心逻辑
+let fuse = null;
+let searchIndex = null;
+
+async function initSearch() {
+    try {
+        const resp = await fetch('/search-index.json');
+        searchIndex = await resp.json();
+
+        fuse = new Fuse(searchIndex, {
+            keys: [
+                { name: 'title', weight: 0.6 },
+                { name: 'tags', weight: 0.2 },
+                { name: 'body', weight: 0.2 }
+            ],
+            threshold: 0.4,
+            distance: 100,
+            includeScore: true,
+            minMatchCharLength: 2,
+            ignoreLocation: true
+        });
+    } catch (err) {
+        console.warn('搜索索引加载失败，使用降级方案');
+        // 降级：用 allPosts 数据
+        searchIndex = window.allPosts || [];
+        fuse = new Fuse(searchIndex, {
+            keys: ['title', 'description'],
+            threshold: 0.3
+        });
+    }
+}
+
+function search(query) {
+    if (!fuse || !query.trim()) return [];
+    const results = fuse.search(query.trim());
+    return results.slice(0, 10);  // 最多返回 10 条
+}</code></pre>
+
+        <h3 id="subsection-2">第三步：关键词高亮</h3>
+        <pre><code>function highlightText(text, query) {
+    if (!query) return text;
+    const words = query.split(/\s+/).filter(w =&gt; w.length &gt; 0);
+    let result = text;
+    for (const word of words) {
+        const regex = new RegExp(`(${escapeRegex(word)})`, 'gi');
+        result = result.replace(regex, '&lt;mark&gt;$1&lt;/mark&gt;');
+    }
+    return result;
+}
+
+function escapeRegex(str) {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\<article>
+        <h1>静态站点搜索方案设计：从零实现全站搜索</h1>
+        <div class="meta"><span class="date">2026-06-11</span><span class="tag-list"><span>搜索</span><span>前端</span><span>Fuse.js</span><span>静态站点</span></span></div>
+
+        <h2 id="section-0">静态站点的搜索困境</h2>
+        <p>静态站点没有后端，传统搜索需要数据库 + 服务端索引。但我们的目标是不依赖任何后端服务就能实现可靠的全站搜索——对于个人博客、文档站、作品集这类只有几十到几百篇内容的站点，这完全可行。</p>
+
+        <h2 id="section-1">完整实现方案</h2>
+
+        <h3 id="subsection-0">第一步：生成搜索索引</h3>
+        <pre><code>// generate-search-index.js
+const fs = require('fs');
+const path = require('path');
+
+const dirs = ['projects', 'posts', 'knowledge'];
+const index = [];
+
+function stripHtml(html) {
+    return html
+        .replace(/&lt;style[^&gt;]*&gt;[\s\S]*?&lt;\/style&gt;/gi, '')
+        .replace(/&lt;script[^&gt;]*&gt;[\s\S]*?&lt;\/script&gt;/gi, '')
+        .replace(/&lt;[^&gt;]+&gt;/g, ' ')
+        .replace(/&amp;[a-z]+;/gi, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+for (const dir of dirs) {
+    const dirPath = path.join(__dirname, dir);
+    const files = fs.readdirSync(dirPath).filter(f =&gt; f.endsWith('.html'));
+
+    for (const file of files) {
+        const raw = fs.readFileSync(path.join(dirPath, file), 'utf8');
+        const text = stripHtml(raw);
+
+        // 提取标题
+        const titleMatch = raw.match(/&lt;title&gt;([^&lt;]+)&lt;\/title&gt;/)
+                        || raw.match(/&lt;h1[^&gt;]*&gt;([^&lt;]+)&lt;\/h1&gt;/);
+        const title = titleMatch ? titleMatch[1].trim() : file.replace('.html', '');
+
+        // 提取标签
+        const tags = [];
+        const tagMatch = raw.match(/tag-list["']&gt;\s*&lt;span&gt;([^&lt;]+)/g);
+        if (tagMatch) {
+            tagMatch.forEach(t =&gt; {
+                const m = t.match(/&gt;([^&lt;]+)&lt;/);
+                if (m) tags.push(m[1].trim());
+            });
+        }
+
+        index.push({
+            title,
+            url: `${dir}/${file}`,
+            tags,
+            snippet: text.slice(0, 300),
+            body: text.slice(0, 4000)  // 全文索引，限制大小
+        });
+    }
+}
+
+fs.writeFileSync('search-index.json', JSON.stringify(index, null, 2));
+console.log(`✅ 生成 search-index.json (${index.length} 条索引)`);</code></pre>
+
+        <h3 id="subsection-1">第二步：集成 Fuse.js</h3>
+        <pre><code>// 搜索核心逻辑
+let fuse = null;
+let searchIndex = null;
+
+async function initSearch() {
+    try {
+        const resp = await fetch('/search-index.json');
+        searchIndex = await resp.json();
+
+        fuse = new Fuse(searchIndex, {
+            keys: [
+                { name: 'title', weight: 0.6 },
+                { name: 'tags', weight: 0.2 },
+                { name: 'body', weight: 0.2 }
+            ],
+            threshold: 0.4,
+            distance: 100,
+            includeScore: true,
+            minMatchCharLength: 2,
+            ignoreLocation: true
+        });
+    } catch (err) {
+        console.warn('搜索索引加载失败，使用降级方案');
+        // 降级：用 allPosts 数据
+        searchIndex = window.allPosts || [];
+        fuse = new Fuse(searchIndex, {
+            keys: ['title', 'description'],
+            threshold: 0.3
+        });
+    }
+}
+
+function search(query) {
+    if (!fuse || !query.trim()) return [];
+    const results = fuse.search(query.trim());
+    return results.slice(0, 10);  // 最多返回 10 条
+}</code></pre>
+
+        <h3 id="subsection-2">第三步：关键词高亮</h3>
+        <pre><code>function highlightText(text, query) {
+    if (!query) return text;
+    const words = query.split(/\s+/).filter(w =&gt; w.length &gt; 0);
+    let result = text;
+    for (const word of words) {
+        const regex = new RegExp(`(${escapeRegex(word)})`, 'gi');
+        result = result.replace(regex, '&lt;mark&gt;$1&lt;/mark&gt;');
+    }
+    return result;
+}
+
+function escapeRegex(str) {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\<article>
+        <h1>静态站点搜索方案设计：从零实现全站搜索</h1>
+        <div class="meta"><span class="date">2026-06-11</span><span class="tag-list"><span>搜索</span><span>前端</span><span>Fuse.js</span><span>静态站点</span></span></div>
+
+        <h2 id="section-0">静态站点的搜索困境</h2>
+        <p>静态站点没有后端，传统搜索需要数据库 + 服务端索引。但我们的目标是不依赖任何后端服务就能实现可靠的全站搜索——对于个人博客、文档站、作品集这类只有几十到几百篇内容的站点，这完全可行。</p>
+
+        <h2 id="section-1">完整实现方案</h2>
+
+        <h3 id="subsection-0">第一步：生成搜索索引</h3>
+        <pre><code>// generate-search-index.js
+const fs = require('fs');
+const path = require('path');
+
+const dirs = ['projects', 'posts', 'knowledge'];
+const index = [];
+
+function stripHtml(html) {
+    return html
+        .replace(/&lt;style[^&gt;]*&gt;[\s\S]*?&lt;\/style&gt;/gi, '')
+        .replace(/&lt;script[^&gt;]*&gt;[\s\S]*?&lt;\/script&gt;/gi, '')
+        .replace(/&lt;[^&gt;]+&gt;/g, ' ')
+        .replace(/&amp;[a-z]+;/gi, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+for (const dir of dirs) {
+    const dirPath = path.join(__dirname, dir);
+    const files = fs.readdirSync(dirPath).filter(f =&gt; f.endsWith('.html'));
+
+    for (const file of files) {
+        const raw = fs.readFileSync(path.join(dirPath, file), 'utf8');
+        const text = stripHtml(raw);
+
+        // 提取标题
+        const titleMatch = raw.match(/&lt;title&gt;([^&lt;]+)&lt;\/title&gt;/)
+                        || raw.match(/&lt;h1[^&gt;]*&gt;([^&lt;]+)&lt;\/h1&gt;/);
+        const title = titleMatch ? titleMatch[1].trim() : file.replace('.html', '');
+
+        // 提取标签
+        const tags = [];
+        const tagMatch = raw.match(/tag-list["']&gt;\s*&lt;span&gt;([^&lt;]+)/g);
+        if (tagMatch) {
+            tagMatch.forEach(t =&gt; {
+                const m = t.match(/&gt;([^&lt;]+)&lt;/);
+                if (m) tags.push(m[1].trim());
+            });
+        }
+
+        index.push({
+            title,
+            url: `${dir}/${file}`,
+            tags,
+            snippet: text.slice(0, 300),
+            body: text.slice(0, 4000)  // 全文索引，限制大小
+        });
+    }
+}
+
+fs.writeFileSync('search-index.json', JSON.stringify(index, null, 2));
+console.log(`✅ 生成 search-index.json (${index.length} 条索引)`);</code></pre>
+
+        <h3 id="subsection-1">第二步：集成 Fuse.js</h3>
+        <pre><code>// 搜索核心逻辑
+let fuse = null;
+let searchIndex = null;
+
+async function initSearch() {
+    try {
+        const resp = await fetch('/search-index.json');
+        searchIndex = await resp.json();
+
+        fuse = new Fuse(searchIndex, {
+            keys: [
+                { name: 'title', weight: 0.6 },
+                { name: 'tags', weight: 0.2 },
+                { name: 'body', weight: 0.2 }
+            ],
+            threshold: 0.4,
+            distance: 100,
+            includeScore: true,
+            minMatchCharLength: 2,
+            ignoreLocation: true
+        });
+    } catch (err) {
+        console.warn('搜索索引加载失败，使用降级方案');
+        // 降级：用 allPosts 数据
+        searchIndex = window.allPosts || [];
+        fuse = new Fuse(searchIndex, {
+            keys: ['title', 'description'],
+            threshold: 0.3
+        });
+    }
+}
+
+function search(query) {
+    if (!fuse || !query.trim()) return [];
+    const results = fuse.search(query.trim());
+    return results.slice(0, 10);  // 最多返回 10 条
+}</code></pre>
+
+        <h3 id="subsection-2">第三步：关键词高亮</h3>
+        <pre><code>function highlightText(text, query) {
+    if (!query) return text;
+    const words = query.split(/\s+/).filter(w =&gt; w.length &gt; 0);
+    let result = text;
+    for (const word of words) {
+        const regex = new RegExp(`(${escapeRegex(word)})`, 'gi');
+        result = result.replace(regex, '&lt;mark&gt;$1&lt;/mark&gt;');
+    }
+    return result;
+}
+
+function escapeRegex(str) {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\<article>
+        <h1>静态站点搜索方案设计：从零实现全站搜索</h1>
+        <div class="meta"><span class="date">2026-06-11</span><span class="tag-list"><span>搜索</span><span>前端</span><span>Fuse.js</span><span>静态站点</span></span></div>
+
+        <h2 id="section-0">静态站点的搜索困境</h2>
+        <p>静态站点没有后端，传统搜索需要数据库 + 服务端索引。但我们的目标是不依赖任何后端服务就能实现可靠的全站搜索——对于个人博客、文档站、作品集这类只有几十到几百篇内容的站点，这完全可行。</p>
+
+        <h2 id="section-1">完整实现方案</h2>
+
+        <h3 id="subsection-0">第一步：生成搜索索引</h3>
+        <pre><code>// generate-search-index.js
+const fs = require('fs');
+const path = require('path');
+
+const dirs = ['projects', 'posts', 'knowledge'];
+const index = [];
+
+function stripHtml(html) {
+    return html
+        .replace(/&lt;style[^&gt;]*&gt;[\s\S]*?&lt;\/style&gt;/gi, '')
+        .replace(/&lt;script[^&gt;]*&gt;[\s\S]*?&lt;\/script&gt;/gi, '')
+        .replace(/&lt;[^&gt;]+&gt;/g, ' ')
+        .replace(/&amp;[a-z]+;/gi, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+for (const dir of dirs) {
+    const dirPath = path.join(__dirname, dir);
+    const files = fs.readdirSync(dirPath).filter(f =&gt; f.endsWith('.html'));
+
+    for (const file of files) {
+        const raw = fs.readFileSync(path.join(dirPath, file), 'utf8');
+        const text = stripHtml(raw);
+
+        // 提取标题
+        const titleMatch = raw.match(/&lt;title&gt;([^&lt;]+)&lt;\/title&gt;/)
+                        || raw.match(/&lt;h1[^&gt;]*&gt;([^&lt;]+)&lt;\/h1&gt;/);
+        const title = titleMatch ? titleMatch[1].trim() : file.replace('.html', '');
+
+        // 提取标签
+        const tags = [];
+        const tagMatch = raw.match(/tag-list["']&gt;\s*&lt;span&gt;([^&lt;]+)/g);
+        if (tagMatch) {
+            tagMatch.forEach(t =&gt; {
+                const m = t.match(/&gt;([^&lt;]+)&lt;/);
+                if (m) tags.push(m[1].trim());
+            });
+        }
+
+        index.push({
+            title,
+            url: `${dir}/${file}`,
+            tags,
+            snippet: text.slice(0, 300),
+            body: text.slice(0, 4000)  // 全文索引，限制大小
+        });
+    }
+}
+
+fs.writeFileSync('search-index.json', JSON.stringify(index, null, 2));
+console.log(`✅ 生成 search-index.json (${index.length} 条索引)`);</code></pre>
+
+        <h3 id="subsection-1">第二步：集成 Fuse.js</h3>
+        <pre><code>// 搜索核心逻辑
+let fuse = null;
+let searchIndex = null;
+
+async function initSearch() {
+    try {
+        const resp = await fetch('/search-index.json');
+        searchIndex = await resp.json();
+
+        fuse = new Fuse(searchIndex, {
+            keys: [
+                { name: 'title', weight: 0.6 },
+                { name: 'tags', weight: 0.2 },
+                { name: 'body', weight: 0.2 }
+            ],
+            threshold: 0.4,
+            distance: 100,
+            includeScore: true,
+            minMatchCharLength: 2,
+            ignoreLocation: true
+        });
+    } catch (err) {
+        console.warn('搜索索引加载失败，使用降级方案');
+        // 降级：用 allPosts 数据
+        searchIndex = window.allPosts || [];
+        fuse = new Fuse(searchIndex, {
+            keys: ['title', 'description'],
+            threshold: 0.3
+        });
+    }
+}
+
+function search(query) {
+    if (!fuse || !query.trim()) return [];
+    const results = fuse.search(query.trim());
+    return results.slice(0, 10);  // 最多返回 10 条
+}</code></pre>
+
+        <h3 id="subsection-2">第三步：关键词高亮</h3>
+        <pre><code>function highlightText(text, query) {
+    if (!query) return text;
+    const words = query.split(/\s+/).filter(w =&gt; w.length &gt; 0);
+    let result = text;
+    for (const word of words) {
+        const regex = new RegExp(`(${escapeRegex(word)})`, 'gi');
+        result = result.replace(regex, '&lt;mark&gt;$1&lt;/mark&gt;');
+    }
+    return result;
+}
+
+function escapeRegex(str) {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&amp;');
+}</code></pre>
+
+        <h3 id="subsection-6">第四步：UI 实现</h3>
+        <pre><code>&lt;!-- 搜索栏：圆形胶囊样式，聚焦光晕 --&gt;
+&lt;div class="search-container"&gt;
+    &lt;input type="text" id="searchInput"
+           placeholder="搜索笔记..."
+           autocomplete="off"&gt;
+    &lt;div id="searchResults" class="search-results"&gt;&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;style&gt;
+.search-container {
+    max-width: 480px;
+    margin: 0 auto;
+    position: relative;
+}
+.search-container input {
+    width: 100%;
+    padding: 12px 20px;
+    border-radius: 24px;
+    border: 2px solid #e0e0e0;
+    font-size: 16px;
+    transition: border-color 0.3s, box-shadow 0.3s;
+    outline: none;
+}
+.search-container input:focus {
+    border-color: #7c3aed;
+    box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.15);
+}
+&lt;/style&gt;</code></pre>
+
+        <h2 id="section-4">更新工作流</h2>
+        <p>每次修改或新增内容后，需要重新生成索引并部署：</p>
+        <pre><code># 日常更新流程
+1. 编辑 / 创建笔记 → knowledge/xxx.html
+2. node generate-search-index.js     # 重新生成索引
+3. npm run build                       # 构建验证
+4. git add -A &amp;&amp; git commit -m "..."
+5. git push                            # Vercel 自动部署</code></pre>
+
+        <h2 id="section-5">性能考虑</h2>
+        <ul>
+            <li>30 篇笔记的索引约 50-200KB，首次加载几乎无感知</li>
+            <li>100+ 篇时可考虑 gzip 压缩（Vercel 自动启用）</li>
+            <li>Fuse.js 的搜索是同步的，1000 条数据内 &lt; 10ms</li>
+            <li>搜索索引可以和站点一起 CDN 缓存</li>
+        </ul>
+    </article>amp;');
+}</code></pre>
+
+        <h3 id="subsection-6">第四步：UI 实现</h3>
+        <pre><code>&lt;!-- 搜索栏：圆形胶囊样式，聚焦光晕 --&gt;
+&lt;div class="search-container"&gt;
+    &lt;input type="text" id="searchInput"
+           placeholder="搜索笔记..."
+           autocomplete="off"&gt;
+    &lt;div id="searchResults" class="search-results"&gt;&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;style&gt;
+.search-container {
+    max-width: 480px;
+    margin: 0 auto;
+    position: relative;
+}
+.search-container input {
+    width: 100%;
+    padding: 12px 20px;
+    border-radius: 24px;
+    border: 2px solid #e0e0e0;
+    font-size: 16px;
+    transition: border-color 0.3s, box-shadow 0.3s;
+    outline: none;
+}
+.search-container input:focus {
+    border-color: #7c3aed;
+    box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.15);
+}
+&lt;/style&gt;</code></pre>
+
+        <h2 id="section-4">更新工作流</h2>
+        <p>每次修改或新增内容后，需要重新生成索引并部署：</p>
+        <pre><code># 日常更新流程
+1. 编辑 / 创建笔记 → knowledge/xxx.html
+2. node generate-search-index.js     # 重新生成索引
+3. npm run build                       # 构建验证
+4. git add -A &amp;&amp; git commit -m "..."
+5. git push                            # Vercel 自动部署</code></pre>
+
+        <h2 id="section-5">性能考虑</h2>
+        <ul>
+            <li>30 篇笔记的索引约 50-200KB，首次加载几乎无感知</li>
+            <li>100+ 篇时可考虑 gzip 压缩（Vercel 自动启用）</li>
+            <li>Fuse.js 的搜索是同步的，1000 条数据内 &lt; 10ms</li>
+            <li>搜索索引可以和站点一起 CDN 缓存</li>
+        </ul>
+    </article>
+</div>
+</div>amp;');
+}</code></pre>
+
+        <h3 id="subsection-6">第四步：UI 实现</h3>
+        <pre><code>&lt;!-- 搜索栏：圆形胶囊样式，聚焦光晕 --&gt;
+&lt;div class="search-container"&gt;
+    &lt;input type="text" id="searchInput"
+           placeholder="搜索笔记..."
+           autocomplete="off"&gt;
+    &lt;div id="searchResults" class="search-results"&gt;&lt;/div&gt;
+&lt;/div&gt;
+
+&lt;style&gt;
+.search-container {
+    max-width: 480px;
+    margin: 0 auto;
+    position: relative;
+}
+.search-container input {
+    width: 100%;
+    padding: 12px 20px;
+    border-radius: 24px;
+    border: 2px solid #e0e0e0;
+    font-size: 16px;
+    transition: border-color 0.3s, box-shadow 0.3s;
+    outline: none;
+}
+.search-container input:focus {
+    border-color: #7c3aed;
+    box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.15);
+}
+&lt;/style&gt;</code></pre>
+
+        <h2 id="section-4">更新工作流</h2>
+        <p>每次修改或新增内容后，需要重新生成索引并部署：</p>
+        <pre><code># 日常更新流程
+1. 编辑 / 创建笔记 → knowledge/xxx.html
+2. node generate-search-index.js     # 重新生成索引
+3. npm run build                       # 构建验证
+4. git add -A &amp;&amp; git commit -m "..."
+5. git push                            # Vercel 自动部署</code></pre>
+
+        <h2 id="section-5">性能考虑</h2>
+        <ul>
+            <li>30 篇笔记的索引约 50-200KB，首次加载几乎无感知</li>
+            <li>100+ 篇时可考虑 gzip 压缩（Vercel 自动启用）</li>
+            <li>Fuse.js 的搜索是同步的，1000 条数据内 &lt; 10ms</li>
+            <li>搜索索引可以和站点一起 CDN 缓存</li>
+        </ul>
+    </article>
+</div>
+<script>
+function toggleSbGroup(header) {
+    const items = header.nextElementSibling;
+    const icon = header.querySelector('.sb-collapse');
+    if (items.classList.contains('collapsed')) {
+        items.classList.remove('collapsed');
+        items.style.maxHeight = items.scrollHeight + 'px';
+        if (icon) icon.classList.remove('collapsed');
+    } else {
+        items.classList.add('collapsed');
+        items.style.maxHeight = '0';
+        if (icon) icon.classList.add('collapsed');
+    }
+}
+document.querySelectorAll('.sb-group-items:not(.collapsed)').forEach(function(el) {
+    el.style.maxHeight = el.scrollHeight + 'px';
+});
+</script>
+
+<div class="read-status-bar" id="readStatusBar">
+    <span id="readStatusText">未标记</span>
+    <button class="rs-btn" id="readStatusBtn" onclick="toggleRead()">标记为已读</button>
+</div>
+<script>window.__NOTE_ID__ = 'static-site-search-design';</script>
+
+<script src="../js/progress.js"></script>
+<script src="../js/auth.js"></script>
+<script>
+(function() {
+    const NOTE_ID = 'static-site-search-design';
+    // Auto-mark as read after 5 seconds on page
+    setTimeout(function() {
+        if (ProgressTracker.isLoggedIn()) {
+            if (!ProgressTracker.isRead(NOTE_ID)) {
+                ProgressTracker.markRead(NOTE_ID);
+            }
+        }
+    }, 5000);
+})();
+</script>
+
+<script>
+const NOTE_ID_CURRENT = window.__NOTE_ID__ || '';
+function toggleRead() {
+    if (!ProgressTracker.isLoggedIn()) {
+        alert('请先登录以同步学习进度');
+        return;
+    }
+    if (ProgressTracker.isRead(NOTE_ID_CURRENT)) {
+        ProgressTracker.markUnread(NOTE_ID_CURRENT);
+    } else {
+        ProgressTracker.markRead(NOTE_ID_CURRENT);
+    }
+    updateReadBar();
+}
+function updateReadBar() {
+    const btn = document.getElementById('readStatusBtn');
+    const text = document.getElementById('readStatusText');
+    if (!btn || !text) return;
+    const isRead = ProgressTracker.isRead(NOTE_ID_CURRENT);
+    btn.textContent = isRead ? '取消已读' : '标记为已读';
+    btn.className = 'rs-btn' + (isRead ? ' rs-read' : '');
+    text.textContent = isRead ? '已读' : '未标记';
+}
+updateReadBar();
+</script>
+</body>
+</html>
