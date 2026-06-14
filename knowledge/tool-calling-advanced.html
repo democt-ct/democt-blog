@@ -1,0 +1,525 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tool Calling 进阶：工具网关、多工具编排与生产级实践 — democt</title>
+    <link rel="stylesheet" href="../assets/common.css">
+
+<style>
+/* ===== 文章侧边栏（两层结构） ===== */
+.article-layout {
+    display: flex;
+    gap: 32px;
+    align-items: flex-start;
+}
+.article-sidebar {
+    width: 240px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 24px;
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+.article-sidebar::-webkit-scrollbar { width: 4px; }
+.article-sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+/* 返回首页 */
+.sb-back {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 16px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--accent);
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+}
+.sb-back:hover { background: var(--accent-soft); }
+
+/* 分组导航区 */
+.sb-groups { border-bottom: 1px solid var(--border); }
+
+.sb-group-header {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 8px 14px 4px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text);
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.15s;
+}
+.sb-group-header:hover { color: var(--accent); }
+.sb-group-header .sb-collapse {
+    font-size: 0.55rem;
+    color: var(--text-muted);
+    transition: transform 0.2s;
+    width: 12px;
+    flex-shrink: 0;
+}
+.sb-group-header .sb-collapse.collapsed { transform: rotate(-90deg); }
+.sb-group-header .sb-gcount {
+    margin-left: auto;
+    font-size: 0.72rem;
+    font-weight: 400;
+    color: var(--text-muted);
+    background: var(--tag-bg);
+    padding: 0 6px;
+    border-radius: 10px;
+}
+
+.sb-group-items { overflow: hidden; transition: max-height 0.25s ease; }
+.sb-group-items.collapsed { max-height: 0; }
+
+.sb-note-link {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    padding: 5px 14px 5px 24px;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+    transition: all 0.12s;
+    border-left: 3px solid transparent;
+}
+.sb-note-link:hover {
+    color: var(--text);
+    background: var(--accent-soft);
+}
+.sb-note-link.active {
+    color: var(--accent);
+    background: var(--accent-soft);
+    border-left-color: var(--accent);
+    font-weight: 600;
+}
+.sb-note-link .sb-ndate {
+    font-size: 0.68rem;
+    opacity: 0.6;
+    white-space: nowrap;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+/* 文章目录区 */
+.sb-toc {
+    padding: 8px 0 12px;
+}
+.sb-toc-title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--text);
+    padding: 4px 16px 8px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+.sb-toc-link {
+    display: block;
+    padding: 3px 16px 3px 24px;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    line-height: 1.45;
+    transition: all 0.12s;
+    border-left: 2px solid transparent;
+}
+.sb-toc-link:hover {
+    color: var(--accent);
+    background: var(--accent-soft);
+}
+.sb-toc-link.h3 {
+    padding-left: 36px;
+    font-size: 0.76rem;
+}
+
+.article-content {
+    flex: 1;
+    min-width: 0;
+}
+
+/* 响应式 */
+@media (max-width: 900px) {
+    .article-layout { flex-direction: column; }
+    .article-sidebar {
+        width: 100%;
+        position: static;
+        max-height: none;
+        order: 2;
+        margin-top: 32px;
+    }
+    .article-content { order: 1; }
+}
+
+.container { --max-width: 1100px; max-width: 1100px; }
+</style>
+
+<style>
+.read-status-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #fff;
+    border-top: 1px solid #e2e8f0;
+    padding: 10px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    z-index: 50;
+    font-size: 0.88rem;
+}
+.read-status-bar .rs-btn {
+    padding: 6px 18px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: all 0.15s;
+}
+.read-status-bar .rs-btn:hover { border-color: #5b6abf; color: #5b6abf; }
+.read-status-bar .rs-btn.rs-read { background: #5b6abf; color: #fff; border-color: #5b6abf; }
+</style>
+</head>
+<body>
+<div class="container">
+    <nav class="breadcrumb"><a href="../index.html">首页</a> / 知识笔记</nav>
+    <div class="article-layout">
+<aside class="article-sidebar"><a href="../index.html#knowledge" class="sb-back">← 返回首页</a><div class="sb-groups"><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>🤖 Agent 基础</span><span class="sb-gcount">9</span></div><div class="sb-group-items collapsed"><a href="multi-agent-collaboration.html" class="sb-note-link"><span>多Agent协作架构：从单Agent到智能体网络</span><span class="sb-ndate">06-11</span></a><a href="agent-guardrails.html" class="sb-note-link"><span>Agent Guardrails：运行时安全护…</span><span class="sb-ndate">06-11</span></a><a href="agent-fullstack-development.html" class="sb-note-link"><span>Agent 全栈开发实战</span><span class="sb-ndate">06-10</span></a><a href="agent-debugging-troubleshooting.html" class="sb-note-link"><span>Agent 流程调试与问题排查实战</span><span class="sb-ndate">06-10</span></a><a href="multimodal-agent.html" class="sb-note-link"><span>多模态 Agent 入门</span><span class="sb-ndate">06-09</span></a><a href="agent-evaluation.html" class="sb-note-link"><span>Agent 评估与测试方法论</span><span class="sb-ndate">06-08</span></a><a href="agent-memory-patterns.html" class="sb-note-link"><span>Agent 记忆系统设计模式</span><span class="sb-ndate">06-07</span></a><a href="agent-security.html" class="sb-note-link"><span>Agent 安全红宝书</span><span class="sb-ndate">06-03</span></a><a href="what-is-agent.html" class="sb-note-link"><span>什么是 Agent？核心概念与能力边界</span><span class="sb-ndate">05-15</span></a></div><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse">▼</span><span>💬 提示词与工具</span><span class="sb-gcount">4</span></div><div class="sb-group-items"><a href="tool-calling-advanced.html" class="sb-note-link active"><span>Tool Calling 进阶：工具网关与多工…</span><span class="sb-ndate">06-10</span></a><a href="structured-output.html" class="sb-note-link"><span>结构化输出完全指南</span><span class="sb-ndate">06-06</span></a><a href="function-calling-deep-dive.html" class="sb-note-link"><span>Function Calling 原理与实践</span><span class="sb-ndate">05-26</span></a><a href="prompt-engineering.html" class="sb-note-link"><span>提示词工程进阶：从入门到系统化</span><span class="sb-ndate">05-18</span></a></div><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>🔍 RAG 与检索</span><span class="sb-gcount">5</span></div><div class="sb-group-items collapsed"><a href="rag-pitfalls-optimization.html" class="sb-note-link"><span>RAG 落地常见陷阱与优化策略</span><span class="sb-ndate">06-10</span></a><a href="rag-production-deployment.html" class="sb-note-link"><span>RAG 生产化部署：从原型到高性能系统</span><span class="sb-ndate">06-10</span></a><a href="vector-db-comparison.html" class="sb-note-link"><span>向量数据库对比：选型指南</span><span class="sb-ndate">05-24</span></a><a href="embedding-model-guide.html" class="sb-note-link"><span>Embedding 模型选型与对比</span><span class="sb-ndate">05-22</span></a><a href="rag-architecture.html" class="sb-note-link"><span>RAG 架构深度解析：从朴素到模块化</span><span class="sb-ndate">05-20</span></a></div><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>🧠 LLM 深入</span><span class="sb-gcount">4</span></div><div class="sb-group-items collapsed"><a href="cost-optimization.html" class="sb-note-link"><span>Agent 成本优化手册</span><span class="sb-ndate">06-10</span></a><a href="semantic-cache.html" class="sb-note-link"><span>LLM 语义缓存策略</span><span class="sb-ndate">06-07</span></a><a href="llm-observability.html" class="sb-note-link"><span>AI 应用的可观测性</span><span class="sb-ndate">06-01</span></a><a href="llm-hallucination.html" class="sb-note-link"><span>LLM 幻觉现象与缓解策略</span><span class="sb-ndate">05-30</span></a></div><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>🔌 架构与协议</span><span class="sb-gcount">7</span></div><div class="sb-group-items collapsed"><a href="agent-framework-selection.html" class="sb-note-link"><span>Agent框架选型指南：2026年全景对比</span><span class="sb-ndate">06-11</span></a><a href="a2a-protocol.html" class="sb-note-link"><span>A2A协议：Agent间通信的开放标准</span><span class="sb-ndate">06-11</span></a><a href="mcp-server-practice.html" class="sb-note-link"><span>MCP Server 开发实战</span><span class="sb-ndate">06-10</span></a><a href="mcp-skill-backend-advanced.html" class="sb-note-link"><span>MCP Server 开发实战 &amp; Skill…</span><span class="sb-ndate">06-10</span></a><a href="streaming-architecture.html" class="sb-note-link"><span>流式架构设计实践</span><span class="sb-ndate">06-09</span></a><a href="task-planning-patterns.html" class="sb-note-link"><span>从 Andon 到 DAG：任务规划模式汇总</span><span class="sb-ndate">06-05</span></a><a href="mcp-protocol.html" class="sb-note-link"><span>MCP 协议解析：Agent 的 USB-C</span><span class="sb-ndate">05-28</span></a></div><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>⚡ Skill 开发</span><span class="sb-gcount">1</span></div><div class="sb-group-items collapsed"><a href="skill-design-guide.html" class="sb-note-link"><span>Skill 设计与开发指南</span><span class="sb-ndate">06-10</span></a></div><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>🖥️ 后端开发</span><span class="sb-gcount">1</span></div><div class="sb-group-items collapsed"><a href="backend-agent-integration.html" class="sb-note-link"><span>后端服务与 Agent 集成模式</span><span class="sb-ndate">06-10</span></a></div><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>🏗️ 全栈开发</span><span class="sb-gcount">1</span></div><div class="sb-group-items collapsed"><a href="vibe-coding-guide.html" class="sb-note-link"><span>Vibe Coding：AI辅助编程实战指南</span><span class="sb-ndate">06-11</span></a></div></div><div class="sb-toc"><div class="sb-toc-title">📑 本页目录</div><a href="#section-0" class="sb-toc-link">为什么工具调用需要进阶设计</a><a href="#section-1" class="sb-toc-link">模式一：工具网关（Tool Gateway）</a><a href="#subsection-0" class="sb-toc-link h3">意图分类的两种实现</a><a href="#section-2" class="sb-toc-link">模式二：工具组合链（Tool Chaining）</a><a href="#subsection-1" class="sb-toc-link h3">示例：用户问"帮我查一下最近 3 天关于 AI Agent 的热门 GitHub 仓库，然后发邮件给我"</a><a href="#subsection-2" class="sb-toc-link h3">自动编排 vs 手动编排</a><a href="#section-3" class="sb-toc-link">模式三：工具描述工程（Tool Description Engineering）</a><a href="#subsection-3" class="sb-toc-link h3">3.1 命名规范</a><a href="#subsection-4" class="sb-toc-link h3">3.2 Description 的黄金法则</a><a href="#subsection-5" class="sb-toc-link h3">3.3 参数描述的技巧</a><a href="#section-4" class="sb-toc-link">模式四：并行工具调用（Parallel Tool Calls）</a><a href="#subsection-6" class="sb-toc-link h3">适用场景</a><a href="#subsection-7" class="sb-toc-link h3">并行调用的陷阱</a><a href="#section-5" class="sb-toc-link">模式五：错误处理与重试策略</a><a href="#subsection-8" class="sb-toc-link h3">错误信息设计原则</a><a href="#section-6" class="sb-toc-link">模式六：工具执行的安全沙箱</a><a href="#section-7" class="sb-toc-link">工具调用的 Token 成本优化</a><a href="#section-8" class="sb-toc-link">何时用 MCP 替代原生 Function Calling</a></div></aside>
+<div class="article-content">
+<article>
+        <h1>Tool Calling 进阶：工具网关、多工具编排与生产级实践</h1>
+        <div class="meta"><span class="date">2026-06-10</span><span class="tag-list"><span>Tool Calling</span><span>Function Calling</span><span>工具设计</span><span>编排</span></span></div>
+
+        <h2 id="section-0">为什么工具调用需要进阶设计</h2>
+        <p>基础的 Function Calling（定义一个 JSON Schema → LLM 选择调用 → 执行返回结果）在 1-5 个工具的简单场景下工作良好。但当 Agent 拥有 20+ 工具时，问题开始暴露：</p>
+        <ul>
+            <li>所有工具定义注入 System Prompt → Token 消耗暴涨（每个工具 ~200-500 token）</li>
+            <li>LLM 在大量工具中选择的准确率下降（"选择困难症"）</li>
+            <li>工具之间有依赖关系时编排变得复杂</li>
+            <li>不同工具的执行环境、超时、重试策略各不相同</li>
+            <li>工具的权限控制、审计、限流需要统一管理</li>
+        </ul>
+        <p>本文深入讨论工具系统的进阶设计模式。</p>
+
+        <h2 id="section-1">模式一：工具网关（Tool Gateway）</h2>
+        <p>核心思想：<strong>不在 System Prompt 中列出所有工具，而是先做意图分类，只注入相关工具子集。</strong></p>
+
+        <pre><code>┌─────────────────────────────────────────────────┐
+│                  Agent 循环                       │
+│  用户输入 → 意图分类 → 获取相关工具 → LLM 推理     │
+│             ↓                      ↓             │
+│      Tool Gateway           工具执行 + 结果回传    │
+└─────────────────────────────────────────────────┘
+
+# 实现
+class ToolGateway:
+    """两层路由：分类 → 选工具"""
+
+    # 第一层：意图分类（轻量级，用便宜的模型）
+    INTENT_CLASSES = {
+        "search": ["web_search", "kb_search", "image_search", "code_search"],
+        "data_query": ["sql_query", "api_fetch", "file_read", "csv_analyze"],
+        "action": ["send_email", "create_ticket", "deploy", "send_message"],
+        "analysis": ["code_review", "data_viz", "text_summary", "sentiment"],
+        "knowledge": ["rag_query", "vector_search", "doc_qa"],
+    }
+
+    async def route(self, user_input: str, conversation_context: list):
+        # Step 1: 意图分类 → 获取工具类别
+        intent = await self.classify_intent(user_input, conversation_context)
+
+        # Step 2: 返回该类别下的工具定义（通常 3-8 个）
+        candidate_tools = self.INTENT_CLASSES.get(intent, [])
+
+        # Step 3: 按相关性排序，取 top-N
+        scored_tools = await self.score_relevance(
+            user_input, candidate_tools
+        )
+        return scored_tools[:8]  # 最多注入 8 个工具到 Prompt</code></pre>
+
+        <h3 id="subsection-0">意图分类的两种实现</h3>
+        <table>
+            <tr><th>方式</th><th>实现</th><th>延迟</th><th>准确率</th></tr>
+            <tr><td>LLM 分类</td><td>用便宜的模型（GPT-4o-mini）做分类，Prompt 中只列类别名</td><td>~200ms</td><td>95%+</td></tr>
+            <tr><td>规则分类</td><td>关键词匹配 + 正则 → 适合领域特化的 Agent</td><td>&lt;1ms</td><td>85-90%</td></tr>
+            <tr><td>Embedding 分类</td><td>用户 query 向量 → 和预定义的类别向量做相似度匹配</td><td>~50ms</td><td>90%+</td></tr>
+        </table>
+
+        <h2 id="section-2">模式二：工具组合链（Tool Chaining）</h2>
+        <p>当一个任务的完成需要多个工具按顺序执行，且后一个工具的输入依赖前一个工具的输出时，称为工具链。</p>
+
+        <h3 id="subsection-1">示例：用户问"帮我查一下最近 3 天关于 AI Agent 的热门 GitHub 仓库，然后发邮件给我"</h3>
+        <pre><code># 工具链自动编排
+Step 1: github_trending_search(query="AI Agent", days=3)
+    → [{"repo": "crewAI", "stars": 15000}, {"repo": "AutoGPT", ...}]
+
+Step 2: summarize_repos(repos=[...])  # 依赖 Step 1 的输出
+    → "3个热门仓库：crewAI（多Agent框架）、AutoGPT..."
+
+Step 3: send_email(to="user@example.com", body=summary)  # 依赖 Step 2
+    → {"status": "sent", "message_id": "abc123"}</code></pre>
+
+        <h3 id="subsection-2">自动编排 vs 手动编排</h3>
+        <ul>
+            <li><strong>LLM 自动编排</strong>：ReAct 循环中 LLM 自己决定调用顺序。灵活但可能出错。</li>
+            <li><strong>DAG 预定义</strong>：用有向无环图定义工具依赖关系，Agent 按图执行。精确但不够灵活。</li>
+            <li><strong>混合模式</strong>：常用链用 DAG 预定义，未知链交给 LLM 自由组合。实战推荐。</li>
+        </ul>
+
+        <pre><code># DAG 预定义示例
+tool_dag = {
+    "send_report": {
+        "steps": [
+            {"tool": "query_database", "args": {"sql": "..."}, "depends_on": []},
+            {"tool": "generate_chart", "args": {"data": "$query_database.result"},
+             "depends_on": ["query_database"]},
+            {"tool": "send_email", "args": {"attachment": "$generate_chart.url"},
+             "depends_on": ["generate_chart"]},
+        ],
+        "timeout": 120,
+        "on_error": "retry_once"
+    }
+}</code></pre>
+
+        <h2 id="section-3">模式三：工具描述工程（Tool Description Engineering）</h2>
+        <p>工具描述的质量直接决定 LLM 能否正确选择和使用工具。这里的"工程"远不止写一段 description 文字。</p>
+
+        <h3 id="subsection-3">3.1 命名规范</h3>
+        <table>
+            <tr><th>原则</th><th>好例子</th><th>差例子</th></tr>
+            <tr><td>动词+名词</td><td>search_documents</td><td>docSearch（驼峰不一致）</td></tr>
+            <tr><td>语义清晰</td><td>get_current_weather</td><td>weather（太模糊）</td></tr>
+            <tr><td>区分相近工具</td><td>search_knowledge_base / search_web</td><td>search1 / search2</td></tr>
+        </table>
+
+        <h3 id="subsection-4">3.2 Description 的黄金法则</h3>
+        <pre><code># ❌ 差：描述太泛
+"description": "搜索东西"
+
+# ✅ 好：清晰的边界 + 使用指导
+"description": (
+    "在内部知识库中全文搜索文档。"
+    "适用场景：查找技术文档、API 参考、历史决策记录。"
+    "不适用场景：实时网页搜索（用 search_web）、SQL 查询（用 query_db）。"
+    "返回格式：JSON 数组，每项含 title/snippet/score/url。"
+    "提示：短查询（2-5词）比长句子效果好；用英文关键词比中文效果好。"
+)</code></pre>
+
+        <h3 id="subsection-5">3.3 参数描述的技巧</h3>
+        <ul>
+            <li>给出<strong>具体示例值</strong>而非抽象描述："日期格式 YYYY-MM-DD，如 2026-06-10"</li>
+            <li>使用 <code>enum</code> 约束可选值，减少参数幻觉</li>
+            <li>用 <code>minimum</code>/<code>maximum</code> 限定数值范围</li>
+            <li>标记 <code>required</code> 字段，让 LLM 知道哪些参数是必需的</li>
+            <li>互斥参数用 description 说明："callback_url 和 polling 二选一，不要同时提供"</li>
+        </ul>
+
+        <h2 id="section-4">模式四：并行工具调用（Parallel Tool Calls）</h2>
+        <p>现代 LLM（GPT-4、Claude 3.5+）支持单次 Response 返回多个工具调用，应用层可以并行执行，大幅提升效率。</p>
+
+        <h3 id="subsection-6">适用场景</h3>
+        <pre><code># 用户问："比较北京、上海、广州、深圳今天的天气"
+# LLM 一次返回 4 个工具调用：
+tool_call_1: get_weather("北京")
+tool_call_2: get_weather("上海")
+tool_call_3: get_weather("广州")
+tool_call_4: get_weather("深圳")
+
+# 应用层并行执行 4 个 API 调用 → 汇总结果 → LLM 生成对比回答</code></pre>
+
+        <h3 id="subsection-7">并行调用的陷阱</h3>
+        <table>
+            <tr><th>陷阱</th><th>说明</th><th>解决</th></tr>
+            <tr><td>隐式依赖</td><td>工具 B 的输入需要工具 A 的输出，但 LLM 把它们放进同一个 Response</td><td>在工具描述中明确标注依赖关系</td></tr>
+            <tr><td>竞态条件</td><td>两个工具同时操作同一资源</td><td>加分布式锁或按序执行</td></tr>
+            <tr><td>资源耗尽</td><td>并行 10 个工具调用，每个都是重量级操作</td><td>设置最大并行数（如 5）和连接池</td></tr>
+            <tr><td>部分失败</td><td>4 个并行调用中 3 个成功 1 个失败</td><td>失败的工具返回明确错误信息，让 LLM 决定是否重试</td></tr>
+        </table>
+
+        <h2 id="section-5">模式五：错误处理与重试策略</h2>
+        <p>工具调用不可能 100% 成功。好的错误处理能让 Agent 在失败时优雅降级而非崩溃。</p>
+
+        <pre><code>class ToolExecutor:
+    async def execute(self, tool_name: str, args: dict,
+                       retry_config: RetryConfig) -> ToolResult:
+
+        for attempt in range(retry_config.max_retries + 1):
+            try:
+                result = await asyncio.wait_for(
+                    self.tools[tool_name].arun(**args),
+                    timeout=retry_config.timeout
+                )
+                return ToolResult(success=True, data=result)
+
+            except asyncio.TimeoutError:
+                if attempt < retry_config.max_retries:
+                    continue  # 重试
+                return ToolResult(
+                    success=False,
+                    error=f"操作超时（>{retry_config.timeout}s），已重试{retry_config.max_retries}次",
+                    error_type="timeout"
+                )
+
+            except ValidationError as e:
+                # 参数错误 → 不重试，直接返回明确的错误信息
+                return ToolResult(
+                    success=False,
+                    error=f"参数错误: {str(e)}\n"
+                          f"正确的参数格式: {json.dumps(tool.schema, indent=2)}",
+                    error_type="validation"
+                )
+
+            except PermissionError:
+                # 权限错误 → 不重试
+                return ToolResult(
+                    success=False,
+                    error="没有执行此操作的权限，请检查授权",
+                    error_type="permission"
+                )</code></pre>
+
+        <h3 id="subsection-8">错误信息设计原则</h3>
+        <p>工具返回的错误信息是给 LLM 看的，LLM 需要根据错误信息决定下一步行动。因此错误信息必须：</p>
+        <ul>
+            <li><strong>明确错误类型</strong>：超时 / 参数错误 / 权限不足 / 资源不存在 / 服务不可用</li>
+            <li><strong>给出可行建议</strong>："请检查日期格式，正确格式为 YYYY-MM-DD"</li>
+            <li><strong>告知是否可重试</strong>："此操作不可重试，请尝试其他方式"</li>
+            <li><strong>不要暴露内部细节</strong>：返回 "数据库查询失败" 而不是 "PostgreSQL connection pool exhausted at 10.0.1.5:5432"</li>
+        </ul>
+
+        <h2 id="section-6">模式六：工具执行的安全沙箱</h2>
+        <p>LLM 生成的工具调用本质上是"不可信的输入"。工具执行层必须有安全边界：</p>
+
+        <pre><code>class SecureToolExecutor:
+    """在执行前对工具调用做多层校验"""
+
+    async def execute(self, tool_call: ToolCall, context: SessionContext):
+        # 层1: 权限检查
+        if tool_call.name not in context.allowed_tools:
+            raise PermissionError(f"无权限使用 {tool_call.name}")
+
+        # 层2: 参数白名单校验
+        validated_args = self.validate_args(tool_call)
+
+        # 层3: 速率限制（按工具 + 用户维度）
+        await self.rate_limiter.check(tool_call.name, context.user_id)
+
+        # 层4: SQL 注入防护（如果涉及数据库查询）
+        if tool_call.name == "sql_query":
+            validated_args["sql"] = self.sanitize_sql(validated_args["sql"])
+
+        # 层5: 文件路径沙箱（限制访问范围）
+        if tool_call.name == "file_read":
+            validated_args["path"] = self.sandbox_path(validated_args["path"],
+                                                         context.workspace)
+
+        # 层6: 审计日志
+        self.audit_log.record(context.user_id, tool_call, validated_args)
+
+        # 执行
+        return await self.tools[tool_call.name].arun(**validated_args)</code></pre>
+
+        <h2 id="section-7">工具调用的 Token 成本优化</h2>
+        <p>工具调用是 Agent 系统的主要 Token 消耗来源之一，优化策略：</p>
+        <ol>
+            <li><strong>压缩工具定义</strong>：精简 description，去掉不必要的格式说明。每个工具定义从 500 token 压缩到 200 token，20 个工具就能节省 6000 token</li>
+            <li><strong>按需注入</strong>：用 Tool Gateway 只注入相关工具，RAG 场景同理</li>
+            <li><strong>缓存工具定义</strong>：如果模型提供商支持 Prompt Caching（如 Claude），工具定义部分可以被缓存复用</li>
+            <li><strong>截断工具结果</strong>：工具返回的结果可能很长（如搜索返回 10 篇长文档），截断到必要部分（如前 2000 字符）</li>
+            <li><strong>摘要化工具结果</strong>：对特别长的工具结果（如完整的 API 响应），先用小模型摘要再传回主模型</li>
+        </ol>
+
+        <h2 id="section-8">何时用 MCP 替代原生 Function Calling</h2>
+        <table>
+            <tr><th>场景</th><th>推荐方案</th></tr>
+            <tr><td>5 个以内简单工具、单一应用</td><td>原生 Function Calling</td></tr>
+            <tr><td>10+ 工具、工具需要复用</td><td>Tool Gateway + Function Calling</td></tr>
+            <tr><td>工具需要跨应用共享、多语言</td><td>MCP Server（stdio 或 SSE）</td></tr>
+            <tr><td>需要资源暴露、提示模板、工具+数据统一接入</td><td>MCP 全套</td></tr>
+            <tr><td>第三方工具集成、社区工具复用</td><td>MCP Marketplace + 官方 Server</td></tr>
+        </table>
+
+        <p class="back-link"><a href="../index.html">← 返回首页</a></p>
+    </article>
+</div>
+</div>
+</div>
+<script>
+function toggleSbGroup(header) {
+    const items = header.nextElementSibling;
+    const icon = header.querySelector('.sb-collapse');
+    if (items.classList.contains('collapsed')) {
+        items.classList.remove('collapsed');
+        items.style.maxHeight = items.scrollHeight + 'px';
+        if (icon) icon.classList.remove('collapsed');
+    } else {
+        items.classList.add('collapsed');
+        items.style.maxHeight = '0';
+        if (icon) icon.classList.add('collapsed');
+    }
+}
+document.querySelectorAll('.sb-group-items:not(.collapsed)').forEach(function(el) {
+    el.style.maxHeight = el.scrollHeight + 'px';
+});
+</script>
+
+<div class="read-status-bar" id="readStatusBar">
+    <span id="readStatusText">未标记</span>
+    <button class="rs-btn" id="readStatusBtn" onclick="toggleRead()">标记为已读</button>
+</div>
+<script>window.__NOTE_ID__ = 'tool-calling-advanced';</script>
+
+<script src="../js/progress.js"></script>
+<script src="../js/auth.js"></script>
+<script>
+(function() {
+    const NOTE_ID = 'tool-calling-advanced';
+    // Auto-mark as read after 5 seconds on page
+    setTimeout(function() {
+        if (ProgressTracker.isLoggedIn()) {
+            if (!ProgressTracker.isRead(NOTE_ID)) {
+                ProgressTracker.markRead(NOTE_ID);
+            }
+        }
+    }, 5000);
+})();
+</script>
+
+<script>
+const NOTE_ID_CURRENT = window.__NOTE_ID__ || '';
+function toggleRead() {
+    if (!ProgressTracker.isLoggedIn()) {
+        alert('请先登录以同步学习进度');
+        return;
+    }
+    if (ProgressTracker.isRead(NOTE_ID_CURRENT)) {
+        ProgressTracker.markUnread(NOTE_ID_CURRENT);
+    } else {
+        ProgressTracker.markRead(NOTE_ID_CURRENT);
+    }
+    updateReadBar();
+}
+function updateReadBar() {
+    const btn = document.getElementById('readStatusBtn');
+    const text = document.getElementById('readStatusText');
+    if (!btn || !text) return;
+    const isRead = ProgressTracker.isRead(NOTE_ID_CURRENT);
+    btn.textContent = isRead ? '取消已读' : '标记为已读';
+    btn.className = 'rs-btn' + (isRead ? ' rs-read' : '');
+    text.textContent = isRead ? '已读' : '未标记';
+}
+updateReadBar();
+</script>
+</body>
+</html>
