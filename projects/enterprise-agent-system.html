@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>企业多专家 Agent 系统 — democt</title>
+    <link rel="stylesheet" href="../assets/common.css">
+
+<style>
+/* ===== 文章侧边栏（两层结构） ===== */
+.article-layout {
+    display: flex;
+    gap: 32px;
+    align-items: flex-start;
+}
+.article-sidebar {
+    width: 240px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 24px;
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+.article-sidebar::-webkit-scrollbar { width: 4px; }
+.article-sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+/* 返回首页 */
+.sb-back {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 16px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--accent);
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+}
+.sb-back:hover { background: var(--accent-soft); }
+
+/* 分组导航区 */
+.sb-groups { border-bottom: 1px solid var(--border); }
+
+.sb-group-header {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 8px 14px 4px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text);
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.15s;
+}
+.sb-group-header:hover { color: var(--accent); }
+.sb-group-header .sb-collapse {
+    font-size: 0.55rem;
+    color: var(--text-muted);
+    transition: transform 0.2s;
+    width: 12px;
+    flex-shrink: 0;
+}
+.sb-group-header .sb-collapse.collapsed { transform: rotate(-90deg); }
+.sb-group-header .sb-gcount {
+    margin-left: auto;
+    font-size: 0.72rem;
+    font-weight: 400;
+    color: var(--text-muted);
+    background: var(--tag-bg);
+    padding: 0 6px;
+    border-radius: 10px;
+}
+
+.sb-group-items { overflow: hidden; transition: max-height 0.25s ease; }
+.sb-group-items.collapsed { max-height: 0; }
+
+.sb-note-link {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    padding: 5px 14px 5px 24px;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+    transition: all 0.12s;
+    border-left: 3px solid transparent;
+}
+.sb-note-link:hover {
+    color: var(--text);
+    background: var(--accent-soft);
+}
+.sb-note-link.active {
+    color: var(--accent);
+    background: var(--accent-soft);
+    border-left-color: var(--accent);
+    font-weight: 600;
+}
+.sb-note-link .sb-ndate {
+    font-size: 0.68rem;
+    opacity: 0.6;
+    white-space: nowrap;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+/* 文章目录区 */
+.sb-toc {
+    padding: 8px 0 12px;
+}
+.sb-toc-title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--text);
+    padding: 4px 16px 8px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+.sb-toc-link {
+    display: block;
+    padding: 3px 16px 3px 24px;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    line-height: 1.45;
+    transition: all 0.12s;
+    border-left: 2px solid transparent;
+}
+.sb-toc-link:hover {
+    color: var(--accent);
+    background: var(--accent-soft);
+}
+.sb-toc-link.h3 {
+    padding-left: 36px;
+    font-size: 0.76rem;
+}
+
+.article-content {
+    flex: 1;
+    min-width: 0;
+}
+
+/* 响应式 */
+@media (max-width: 900px) {
+    .article-layout { flex-direction: column; }
+    .article-sidebar {
+        width: 100%;
+        position: static;
+        max-height: none;
+        order: 2;
+        margin-top: 32px;
+    }
+    .article-content { order: 1; }
+}
+
+.container { --max-width: 1100px; max-width: 1100px; }
+</style>
+</head>
+<body>
+<div class="container">
+    <nav class="breadcrumb"><a href="../index.html">首页</a> / 作品集</nav>
+    <div class="article-layout">
+<aside class="article-sidebar"><a href="../index.html#projects" class="sb-back">← 返回首页</a><div class="sb-groups"><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse">▼</span><span>🗂 作品集</span><span class="sb-gcount">3</span></div><div class="sb-group-items"><a href="patient-agent.html" class="sb-note-link"><span>患者智能辅助 Agent</span></a><a href="travel-planner.html" class="sb-note-link"><span>AI 旅行规划师</span></a><a href="enterprise-agent-system.html" class="sb-note-link active"><span>企业多专家 Agent 系统</span></a></div></div><div class="sb-toc"><div class="sb-toc-title">📑 本页目录</div><a href="#section-0" class="sb-toc-link">项目定位</a><a href="#section-1" class="sb-toc-link">交互设计原则</a><a href="#section-2" class="sb-toc-link">完整架构层次</a><a href="#subsection-0" class="sb-toc-link h3">Agents 层 — 三级路由引擎</a><a href="#subsection-1" class="sb-toc-link h3">RAG 检索管线</a><a href="#subsection-2" class="sb-toc-link h3">Skills 层 — 复合业务能力（v2 新增）</a><a href="#subsection-3" class="sb-toc-link h3">安全网关（v2 新增）</a><a href="#section-3" class="sb-toc-link">完整执行流程（全链路）</a><a href="#section-4" class="sb-toc-link">跨域 Handoff 机制</a><a href="#section-5" class="sb-toc-link">可观测性体系</a><a href="#section-6" class="sb-toc-link">API 规范</a><a href="#section-7" class="sb-toc-link">技术栈</a><a href="#section-8" class="sb-toc-link">知识库矩阵</a><a href="#section-9" class="sb-toc-link">对话操作卡片模板</a><a href="#section-10" class="sb-toc-link">可配置参数</a><a href="#section-11" class="sb-toc-link">部署与测试</a><a href="#section-12" class="sb-toc-link">设计约束</a></div></aside>
+<div class="article-content">
+<article>
+        <h1>企业多专家 Agent 系统</h1>
+        <div class="meta">
+            <span class="tag-list">
+                <span>Python</span><span>ReAct</span><span>Chroma</span>
+                <span>BM25</span><span>DeepSeek</span><span>FastAPI</span>
+                <span>SSE</span><span>JWT</span><span>FSM</span><span>Docker</span>
+            </span>
+        </div>
+
+        <h2 id="section-0">项目定位</h2>
+        <p>一个<strong>对话驱动的企业智能工作台</strong>，核心理念是：说话即可完成所有日常工作事务，无需学习菜单和表单。系统覆盖 HR 人事（请假/考勤/薪酬）、IT 支持（工单/设备/软件）、财务报销（差旅/预算/薪资）、法务合规（合同/制度/合规检查）四大业务领域。</p>
+
+        <h2 id="section-1">交互设计原则</h2>
+        <p>系统支持两种交互模式：</p>
+        <ul>
+            <li><strong>纯对话</strong>：知识查询、制度咨询、状态查询（如"年假政策是什么""我的申请进度"）</li>
+            <li><strong>卡片交互</strong>：有固定字段的操作类意图，Agent 返回 <code>action_card</code> JSON，前端自动渲染表单（请假申请、报销申请、设备报修、打卡、审批等 7 种卡片类型）</li>
+        </ul>
+        <p>卡片提交后直接调用对应 REST API，结果以 Agent 消息形式展示在对话中。当用户说"我要请假"时，系统识别意图后渲染 <code>leave_form</code> 卡片，预填充类型（年假），用户填写后一键提交。</p>
+
+        <h2 id="section-2">完整架构层次</h2>
+        <pre><code>用户界面 (CLI / FastAPI SSE / Web)
+         │
+    ┌────▼──────────┐
+    │  Planner       │  ← 可选 (v2). 多步骤任务 DAG 拆解
+    └────┬──────────┘
+         │
+    ┌────▼──────────┐
+    │  Orchestrator  │  ← 三级路由引擎
+    └────┬──────────┘
+         │
+    ┌────▼──────────┐
+    │  Agent 层      │  ← ReAct 循环 (自研)
+    │  HR / IT / 法务 │    调用 Skills + Tools
+    └────┬──────────┘
+         │
+    ┌────▼────────────┐
+    │  Skills 层 (v2)  │  ← 复合业务能力
+    │  审批引擎 / 工单   │    状态机 + 通知 + 报表
+    │  状态机 / 通知中心 │
+    └────┬────────────┘
+         │
+    ┌────▼──────────┐
+    │  Tools 层      │  ← 原子工具 (21 个工具)
+    └────┬──────────┘
+         │
+    ┌────▼──────────┐
+    │  RAG 层        │  ← Chroma + BM25 + RRF + Reranker
+    └────┬──────────┘
+         │
+    ┌────▼──────────┐
+    │  数据层        │  ← SQLite / PostgreSQL / Chroma
+    └───────────────┘</code></pre>
+
+        <h3 id="subsection-0">Agents 层 — 三级路由引擎</h3>
+        <p><strong>确定性优先：规则 → 关键词 → LLM</strong></p>
+        <table>
+            <tr><th>层级</th><th>触发条件</th><th>confidence</th><th>延迟</th></tr>
+            <tr><td>寒暄检测</td><td>正则匹配"你好/谢谢/你是谁"</td><td>1.0（固定）</td><td>&lt;1ms</td></tr>
+            <tr><td>关键词匹配</td><td>87 关键词 × 3 领域，动态 confidence</td><td>0.76~0.95</td><td>&lt;1ms</td></tr>
+            <tr><td>LLM 路由</td><td>LLM Structured Output，temperature=0.0</td><td>LLM 返回</td><td>~500ms</td></tr>
+        </table>
+        <p><strong>动态 confidence 公式</strong>：单领域 = 0.75 + 0.20 × (命中数 / 领域总词数)，上限 0.95；多领域差距 ≥ 2x 时 = 0.70 + 0.10 × min(倍数-1, 1.5)，上限 0.85。</p>
+
+        <h3 id="subsection-1">RAG 检索管线</h3>
+        <ol>
+            <li><strong>查询改写</strong>：LLM 将口语转为书面语（如"年终奖什么时候发" → "年终奖发放规则 发放时间"），失败时静默回退</li>
+            <li><strong>向量检索</strong>：ChromaDB + BAAI/bge-large-zh-v1.5（1024 维），余弦相似度</li>
+            <li><strong>BM25 检索</strong>：rank-bm25 + jieba 分词，权重为向量结果的 1.5x</li>
+            <li><strong>RRF 融合</strong>：score = 1/(k + rank_vector) + 1.5/(k + rank_bm25)，k=60</li>
+            <li><strong>重排序</strong>（可选）：CrossEncoder (bge-reranker-base) 从 20 条候选中精选 3 条</li>
+            <li><strong>缓存</strong>：MD5 key + 60s TTL，相同查询直接命中</li>
+        </ol>
+        <p>Query 模式检索 top_k=3，Action 模式 top_k=10（需要更多上下文支持工具决策）。</p>
+
+        <h3 id="subsection-2">Skills 层 — 复合业务能力（v2 新增）</h3>
+        <p>在 Tools 原子操作之上抽象出的复合业务层，解决多步骤状态流转问题：</p>
+
+        <h4>工单生命周期（状态机）</h4>
+        <pre><code>待处理 ─→ 处理中 ─→ 已完成
+  │          │
+  └── 已关闭 ←┘
+       │
+       └── 待处理 (重开)</code></pre>
+        <p>严格 FSM 状态转换校验，非法转换返回 error。支持：创建工单（自动按类型路由到对应部门经理）、处理、完成、关闭、重开、升级（优先级变为"高"并通知部门经理）。Agent / CLI / 定时任务均可调用。</p>
+
+        <h4>通用审批引擎</h4>
+        <p>统一了请假、报销的审批流程，消除多个工具文件中重复的审批逻辑。核心思路：<strong>规则配置 + 汇报链 = 审批步骤</strong>。</p>
+        <ul>
+            <li>请假：≤3 天 → 直属上级；≤7 天 → 直属上级 + 部门负责人；&gt;7 天 → + HR 总监</li>
+            <li>报销：&lt;5000 元 → 直属上级；≥5000 元 → 直属上级 + 财务经理</li>
+            <li>驳回整条记录，自动推进下一级审批，完成时扣减假期余额</li>
+        </ul>
+
+        <h4>通知中心 + 聚合报表</h4>
+        <p>统一通知发送（5 分钟同内容去重），批量标记已读。聚合报表覆盖：工单日报/周报、月度请假聚合、预算使用率（超 90% 预警）、综合仪表盘。</p>
+
+        <h3 id="subsection-3">安全网关（v2 新增）</h3>
+        <ul>
+            <li><strong>JWT 双 Token</strong>：Access Token + Refresh Token，登出立即撤销</li>
+            <li><strong>密码安全</strong>：pbkdf2_hmac 哈希（60 万轮迭代）</li>
+            <li><strong>输入净化</strong>：NFKC 正规化 + 控制字符剔除</li>
+            <li><strong>速率限制</strong>：登录 5 次失败锁定 15 分钟</li>
+        </ul>
+
+        <h2 id="section-3">完整执行流程（全链路）</h2>
+        <pre><code>用户输入 "年假还剩几天"
+    │
+    ▼
+Step 0: Planner (可选) — 单意图透传 / 多意图拆 DAG
+    │
+    ▼
+Step 1: Orchestrator.route() — 三级路由 + 意图检测 (query/action)
+    │
+    ▼
+Step 2: BaseAgent.run() — ReAct 循环
+    │  ├─ RAG 检索 (改写→向量→BM25→RRF→Rerank)
+    │  ├─ System Prompt 组装 (含知识库 + 交割上下文 + 工具)
+    │  └─ ReAct 循环 (LLM调工具→结果回传→继续推理→最终回答)
+    │     max_tool_calls 自适应: 置信度≥0.9→2次, 0.7~0.9→3次, &lt;0.7→5次
+    │
+    ▼
+Step 3: 跨域 Handoff — 串行/并行交割
+    │
+    ▼
+Step 4: Review Agent (可选) — 事实准确性 + 工具引用 + 合规检查
+    │
+    ▼
+Step 5: Memory 持久化 — L2 对话存储 + L3 长期记忆 + 窗口压缩
+    │
+    ▼
+返回: {answer, routing, retrieved_chunks, tool_calls, action_card, review}</code></pre>
+
+        <h2 id="section-4">跨域 Handoff 机制</h2>
+        <p>两个触发条件：Orchestrator 识别多领域问题，或 Agent 主动返回 <code>handoff_suggestions</code>。交割上下文包含：来源 Agent、已处理完成项、待处理项、待执行操作、共享用户信息（user_id / department）。汇总时两个 Agent 的回答合并到一个 <code>final_answer</code> 中，标记来源。</p>
+
+        <h2 id="section-5">可观测性体系</h2>
+        <ul>
+            <li><strong>Trace 全链路追踪</strong>：routing → retrieval → tool_call → llm_call → answer，JSONL 落盘</li>
+            <li><strong>自动化评估</strong>：20 条测试集评估路由准确率（当前 95.0%），CLI 一键运行</li>
+            <li><strong>前端 Trace 查看器</strong>：在 Web UI 中查看每次对话的完整链路上报</li>
+        </ul>
+
+        <h2 id="section-6">API 规范</h2>
+        <table>
+            <tr><th>方法</th><th>路径</th><th>说明</th></tr>
+            <tr><td>POST</td><td>/api/chat</td><td>同步对话，返回完整 JSON（含 routing/retrieval/tool_calls）</td></tr>
+            <tr><td>GET</td><td>/api/chat/stream</td><td>SSE 流式推送：event: routing → retrieval → tool_call → reasoning → answer → done</td></tr>
+            <tr><td>POST</td><td>/api/auth/login</td><td>JWT 登录认证</td></tr>
+            <tr><td>GET</td><td>/api/health</td><td>组件级健康检查</td></tr>
+        </table>
+
+        <h2 id="section-7">技术栈</h2>
+        <table>
+            <tr><th>层</th><th>技术</th></tr>
+            <tr><td>语言</td><td>Python ≥3.11</td></tr>
+            <tr><td>Agent 框架</td><td>自研 ReAct + Orchestrator（不依赖 LangGraph / CrewAI）</td></tr>
+            <tr><td>LLM</td><td>DeepSeek / SenseNova (OpenAI 兼容，统一 openai SDK)</td></tr>
+            <tr><td>向量库</td><td>Chroma PersistentClient</td></tr>
+            <tr><td>关键词检索</td><td>rank-bm25 + jieba 分词</td></tr>
+            <tr><td>融合策略</td><td>RRF (k=60)</td></tr>
+            <tr><td>重排序</td><td>BAAI/bge-reranker-base CrossEncoder</td></tr>
+            <tr><td>分块策略</td><td>RecursiveCharacterTextSplitter (chunk=500, overlap=80)</td></tr>
+            <tr><td>API 框架</td><td>FastAPI + SSE + Pydantic v2</td></tr>
+            <tr><td>前端</td><td>纯 HTML/CSS/JS + SSE 流式渲染</td></tr>
+            <tr><td>安全</td><td>JWT (双 Token) + pbkdf2_hmac + 速率限制 + 输入净化</td></tr>
+            <tr><td>项目配置</td><td>Poetry + .env.example</td></tr>
+            <tr><td>部署</td><td>Docker 多阶段构建 + docker-compose</td></tr>
+        </table>
+
+        <h2 id="section-8">知识库矩阵</h2>
+        <table>
+            <tr><th>Agent</th><th>知识库目录</th><th>工具集</th></tr>
+            <tr><td>HR 专家</td><td>data/hr/</td><td>HR_TOOLS (8 工具) + GENERAL_TOOLS</td></tr>
+            <tr><td>IT 专家</td><td>data/it/</td><td>IT_TOOLS (8 工具) + GENERAL_TOOLS</td></tr>
+            <tr><td>法务专家</td><td>data/legal/</td><td>LEGAL_TOOLS (2 工具) + GENERAL_TOOLS</td></tr>
+            <tr><td>财务专家</td><td>data/finance/</td><td>FINANCE_TOOLS (5 工具) + GENERAL_TOOLS</td></tr>
+        </table>
+
+        <h2 id="section-9">对话操作卡片模板</h2>
+        <p>系统支持 7 种操作卡片，前端自动渲染：</p>
+        <table>
+            <tr><th>卡片类型</th><th>触发意图</th><th>提交接口</th></tr>
+            <tr><td>leave_form</td><td>请假申请</td><td>POST /api/leaves</td></tr>
+            <tr><td>expense_form</td><td>报销申请</td><td>POST /api/expenses</td></tr>
+            <tr><td>ticket_form</td><td>IT 维修工单</td><td>POST /api/tickets</td></tr>
+            <tr><td>attendance_punch</td><td>考勤打卡</td><td>POST /api/attendance/punch</td></tr>
+            <tr><td>overtime_form</td><td>加班申请</td><td>前端雏形</td></tr>
+            <tr><td>trip_form</td><td>出差申请</td><td>前端雏形</td></tr>
+            <tr><td>approval_action</td><td>审批操作</td><td>查看待审批列表</td></tr>
+        </table>
+        <p>Agent 回复中携带 <code>action_card</code> JSON 字段，前端识别后在消息下方渲染对应组件。新增模板只需改动 4 个位置：数据库/工具层 → 后端 API → 意图识别规则 → 前端卡片渲染。</p>
+
+        <h2 id="section-10">可配置参数</h2>
+        <pre><code>LLM_MODEL=deepseek-v4-flash
+LLM_BASE_URL=https://api.deepseek.com
+PLANNER_ENABLED=false          # 任务规划
+MEMORY_ENABLED=false           # 会话记忆，窗口大小 5
+RERANK_ENABLED=false           # 检索重排序
+TOP_K_RETRIEVAL=10             # RAG 检索返回条数
+RERANK_TOP_K=3                 # 重排序后精选条数
+CHUNK_SIZE=500 / CHUNK_OVERLAP=80
+RAG_CACHE_TTL_SECONDS=60       # 查询缓存 TTL</code></pre>
+
+        <h2 id="section-11">部署与测试</h2>
+        <ul>
+            <li><strong>启动</strong>：<code>python -m src.main serve</code> → 浏览器打开 http://localhost:8080</li>
+            <li><strong>CLI</strong>：<code>python -m src.main cli</code> 交互式终端模式</li>
+            <li><strong>内网穿透</strong>：cloudflared / ngrok / cpolar 隧道暴露给演示对象</li>
+            <li><strong>测试脚本</strong>：test_routing.py（路由准确性）、test_rag.py（检索质量）、run_eval.py（20 条评估集）</li>
+            <li><strong>Docker</strong>：<code>docker compose up -d</code> 一键部署</li>
+            <li><strong>工单 CLI</strong>：<code>ticket_ops.py</code> 创建/处理/完成/关闭/重开/升级/报表（11 个子命令）</li>
+            <li><strong>审批 CLI</strong>：<code>approval_ops.py</code> 待审批/审批通过/驳回/状态/提交（5 个子命令）</li>
+        </ul>
+
+        <h2 id="section-12">设计约束</h2>
+        <ul>
+            <li><strong>对话优先</strong>：所有操作都应能通过对话完成，表单/按钮是辅助加速</li>
+            <li><strong>最小权限</strong>：员工只能操作自己的数据，经理只能看下属，HR 全局可见</li>
+            <li><strong>审批不可绕过</strong>：所有涉及资源的申请必须经过审批流</li>
+            <li><strong>操作可追溯</strong>：所有工具调用写入 audit_log，支持事后审计</li>
+        </ul>
+
+        <p class="back-link"><a href="../index.html">← 返回首页</a></p>
+    </article>
+</div>
+</div>
+</div>
+<script>
+function toggleSbGroup(header) {
+    const items = header.nextElementSibling;
+    const icon = header.querySelector('.sb-collapse');
+    if (items.classList.contains('collapsed')) {
+        items.classList.remove('collapsed');
+        items.style.maxHeight = items.scrollHeight + 'px';
+        if (icon) icon.classList.remove('collapsed');
+    } else {
+        items.classList.add('collapsed');
+        items.style.maxHeight = '0';
+        if (icon) icon.classList.add('collapsed');
+    }
+}
+document.querySelectorAll('.sb-group-items:not(.collapsed)').forEach(function(el) {
+    el.style.maxHeight = el.scrollHeight + 'px';
+});
+</script>
+</body>
+</html>
