@@ -1,0 +1,320 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workflow与Agent对比 — democt</title>
+    <link rel="stylesheet" href="../assets/common.css">
+
+<style>
+/* ===== 文章侧边栏（两层结构） ===== */
+.article-layout {
+    display: flex;
+    gap: 32px;
+    align-items: flex-start;
+}
+.article-sidebar {
+    width: 240px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 24px;
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+.article-sidebar::-webkit-scrollbar { width: 4px; }
+.article-sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+.sb-back {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 16px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--accent);
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+}
+.sb-back:hover { background: var(--accent-soft); }
+
+.sb-groups { border-bottom: 1px solid var(--border); }
+.sb-group-header {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 8px 14px 4px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text);
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.15s;
+}
+.sb-group-header:hover { color: var(--accent); }
+.sb-group-header .sb-collapse {
+    font-size: 0.55rem;
+    color: var(--text-muted);
+    transition: transform 0.2s;
+    width: 12px;
+    flex-shrink: 0;
+}
+.sb-group-header .sb-collapse.collapsed { transform: rotate(-90deg); }
+.sb-group-header .sb-gcount {
+    margin-left: auto;
+    font-size: 0.72rem;
+    font-weight: 400;
+    color: var(--text-muted);
+    background: var(--tag-bg);
+    padding: 0 6px;
+    border-radius: 10px;
+}
+.sb-group-items { overflow: hidden; transition: max-height 0.25s ease; }
+.sb-group-items.collapsed { max-height: 0; }
+.sb-note-link {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    padding: 5px 14px 5px 24px;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+    transition: all 0.12s;
+    border-left: 3px solid transparent;
+}
+.sb-note-link:hover { color: var(--text); background: var(--accent-soft); }
+.sb-note-link.active { color: var(--accent); background: var(--accent-soft); border-left-color: var(--accent); font-weight: 600; }
+.sb-note-link .sb-ndate { font-size: 0.68rem; opacity: 0.6; white-space: nowrap; margin-left: auto; flex-shrink: 0; }
+
+.sb-toc { padding: 8px 0 12px; }
+.sb-toc-title { font-size: 0.78rem; font-weight: 700; color: var(--text); padding: 4px 16px 8px; display: flex; align-items: center; gap: 5px; }
+.sb-toc-link { display: block; padding: 3px 16px 3px 24px; font-size: 0.8rem; color: var(--text-muted); line-height: 1.45; transition: all 0.12s; border-left: 2px solid transparent; }
+.sb-toc-link:hover { color: var(--accent); background: var(--accent-soft); }
+.sb-toc-link.h3 { padding-left: 36px; font-size: 0.76rem; }
+
+.article-content { flex: 1; min-width: 0; }
+
+@media (max-width: 900px) {
+    .article-layout { flex-direction: column; }
+    .article-sidebar { width: 100%; position: static; max-height: none; order: 2; margin-top: 32px; }
+    .article-content { order: 1; }
+}
+
+.container { --max-width: 1100px; max-width: 1100px; }
+</style>
+
+<style>
+.read-status-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #fff;
+    border-top: 1px solid #e2e8f0;
+    padding: 10px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    z-index: 50;
+    font-size: 0.88rem;
+}
+.read-status-bar .rs-btn {
+    padding: 6px 18px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: all 0.15s;
+}
+.read-status-bar .rs-btn:hover { border-color: #5b6abf; color: #5b6abf; }
+.read-status-bar .rs-btn.rs-read { background: #5b6abf; color: #fff; border-color: #5b6abf; }
+</style>
+</head>
+<body>
+<div class="container">
+    <nav class="breadcrumb"><a href="../index.html">首页</a> / 知识笔记</nav>
+    <div class="article-layout">
+<aside class="article-sidebar"><a href="../index.html#knowledge" class="sb-back">← 返回首页</a><div class="sb-groups"><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>📚 01 核心基础</span><span class="sb-gcount">5</span></div><div class="sb-group-items collapsed"><a href="what-is-agent.html" class="sb-note-link"><span>什么是 Agent？核心概念与能力边界</span><span class="sb-ndate">05-15</span></a><a href="agent-memory-patterns.html" class="sb-note-link"><span>Agent 记忆系统设计模式</span><span class="sb-ndate">06-07</span></a><a href="agent-security.html" class="sb-note-link"><span>Agent 安全红宝书</span><span class="sb-ndate">06-03</span></a><a href="agent-evaluation.html" class="sb-note-link"><span>Agent 评估与测试方法论</span><span class="sb-ndate">06-08</span></a><a href="workflow-vs-agent.html" class="sb-note-link active"><span>Workflow与Agent对比</span><span class="sb-ndate">06-13</span></a></div><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>⚙️ 02 工程能力</span><span class="sb-gcount">12</span></div><div class="sb-group-items collapsed"><a href="prompt-engineering.html" class="sb-note-link"><span>提示词工程进阶</span><span class="sb-ndate">05-18</span></a><a href="function-calling-deep-dive.html" class="sb-note-link"><span>Function Calling 原理与实践</span><span class="sb-ndate">05-26</span></a><a href="structured-output.html" class="sb-note-link"><span>结构化输出完全指南</span><span class="sb-ndate">06-06</span></a><a href="tool-calling-advanced.html" class="sb-note-link"><span>Tool Calling 进阶</span><span class="sb-ndate">06-10</span></a><a href="rag-architecture.html" class="sb-note-link"><span>RAG 架构深度解析</span><span class="sb-ndate">05-20</span></a><a href="embedding-model-guide.html" class="sb-note-link"><span>Embedding 模型选型与对比</span><span class="sb-ndate">05-22</span></a><a href="vector-db-comparison.html" class="sb-note-link"><span>向量数据库对比：选型指南</span><span class="sb-ndate">05-24</span></a><a href="rag-pitfalls-optimization.html" class="sb-note-link"><span>RAG 落地常见陷阱与优化策略</span><span class="sb-ndate">06-10</span></a><a href="rag-production-deployment.html" class="sb-note-link"><span>RAG 生产化部署</span><span class="sb-ndate">06-10</span></a><a href="multi-agent-collaboration.html" class="sb-note-link"><span>多Agent协作架构</span><span class="sb-ndate">06-11</span></a><a href="agent-framework-selection.html" class="sb-note-link"><span>Agent框架选型指南</span><span class="sb-ndate">06-11</span></a><a href="a2a-protocol.html" class="sb-note-link"><span>A2A协议详解</span><span class="sb-ndate">06-11</span></a></div><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>🏗️ 03 系统架构</span><span class="sb-gcount">10</span></div><div class="sb-group-items collapsed"><a href="mcp-protocol.html" class="sb-note-link"><span>MCP 协议解析</span><span class="sb-ndate">05-28</span></a><a href="task-planning-patterns.html" class="sb-note-link"><span>从 Andon 到 DAG：任务规划模式汇总</span><span class="sb-ndate">06-05</span></a><a href="streaming-architecture.html" class="sb-note-link"><span>流式架构设计实践</span><span class="sb-ndate">06-09</span></a><a href="skill-design-guide.html" class="sb-note-link"><span>Skill 设计与开发指南</span><span class="sb-ndate">06-10</span></a><a href="mcp-server-practice.html" class="sb-note-link"><span>MCP Server 开发实战</span><span class="sb-ndate">06-10</span></a><a href="mcp-skill-backend-advanced.html" class="sb-note-link"><span>MCP Server &amp; Skill 后端进阶</span><span class="sb-ndate">06-10</span></a><a href="backend-agent-integration.html" class="sb-note-link"><span>后端服务与 Agent 集成模式</span><span class="sb-ndate">06-10</span></a><a href="agent-fullstack-development.html" class="sb-note-link"><span>Agent 全栈开发实战</span><span class="sb-ndate">06-10</span></a><a href="agent-debugging-troubleshooting.html" class="sb-note-link"><span>Agent 流程调试与问题排查实战</span><span class="sb-ndate">06-10</span></a><a href="agent-guardrails.html" class="sb-note-link"><span>Agent Guardrails：运行时安全护栏</span><span class="sb-ndate">06-11</span></a></div><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>🚀 04 生产实战</span><span class="sb-gcount">10</span></div><div class="sb-group-items collapsed"><a href="llm-hallucination.html" class="sb-note-link"><span>LLM 幻觉现象与缓解策略</span><span class="sb-ndate">05-30</span></a><a href="llm-observability.html" class="sb-note-link"><span>AI 应用的可观测性</span><span class="sb-ndate">06-01</span></a><a href="semantic-cache.html" class="sb-note-link"><span>LLM 语义缓存策略</span><span class="sb-ndate">06-07</span></a><a href="cost-optimization.html" class="sb-note-link"><span>Agent 成本优化手册</span><span class="sb-ndate">06-10</span></a><a href="multimodal-agent.html" class="sb-note-link"><span>多模态 Agent 入门</span><span class="sb-ndate">06-09</span></a><a href="vibe-coding-guide.html" class="sb-note-link"><span>Vibe Coding：AI辅助编程实战指南</span><span class="sb-ndate">06-11</span></a></div><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>🔧 05 工具链</span><span class="sb-gcount">10</span></div><div class="sb-group-items collapsed"><a href="streaming-sse.html" class="sb-note-link"><span>流式输出（SSE）实现</span><span class="sb-ndate">05-20</span></a></div></div><div class="sb-toc"><div class="sb-toc-title">📑 本页目录</div><a href="#section-0" class="sb-toc-link">核心定义</a><a href="#section-1" class="sb-toc-link">五维度深度对比</a><a href="#section-2" class="sb-toc-link">执行逻辑对比</a><a href="#subsection-0" class="sb-toc-link h3">Workflow：固定剧本</a><a href="#subsection-1" class="sb-toc-link h3">Agent：自主规划</a><a href="#section-3" class="sb-toc-link">真实场景对比：客服处理退货</a><a href="#section-4" class="sb-toc-link">适用场景选择</a><a href="#section-5" class="sb-toc-link">2026年的融合趋势：Agentic Workflow</a><a href="#section-6" class="sb-toc-link">选型决策树</a><a href="#section-7" class="sb-toc-link">行业现状与避坑</a></div></aside>
+<div class="article-content">
+<article>
+        <h1>Workflow 与 Agent 对比</h1>
+        <div class="meta"><span class="date">2026-06-13</span><span class="tag-list"><span>Workflow</span><span>Agent</span><span>对比</span><span>架构</span></span></div>
+
+        <h2 id="section-0">核心定义</h2>
+        <p><strong>Workflow（工作流）</strong>：人为定义执行步骤，LLM 只负责执行。你在驾驶，流程是预设的固定路线。</p>
+        <p><strong>Agent（智能体）</strong>：LLM 决定下一步做什么，你只定义它能用的工具。LLM 在驾驶，你只给了它方向盘和地图。</p>
+        <p>一句话区分：<strong>Workflow 是你写剧本让 AI 演，Agent 是你给目标让 AI 自己编剧本演。</strong></p>
+
+        <h2 id="section-1">五维度深度对比</h2>
+        <table>
+            <tr><th>维度</th><th>Workflow</th><th>Agent</th></tr>
+            <tr><td>控制权</td><td>开发者完全控制流程</td><td>LLM 控制流程，开发者只定义工具</td></tr>
+            <tr><td>可预测性</td><td>高——每次执行路径相同</td><td>低——LLM 决策有随机性，路径可能不同</td></tr>
+            <tr><td>容错能力</td><td>刚性执行，遇预设外情况就卡住</td><td>柔性应变，能自主调整策略</td></tr>
+            <tr><td>成本</td><td>可控 O(1)，固定次数 LLM 调用</td><td>不可控 O(n)，LLM 可能多轮循环</td></tr>
+            <tr><td>调试难度</td><td>低——流程固定，可单步测试</td><td>高——决策不确定，难以复现</td></tr>
+        </table>
+
+        <h2 id="section-2">执行逻辑对比</h2>
+
+        <h3 id="subsection-0">Workflow：固定剧本</h3>
+        <pre><code>用户输入 → 提取关键词 → 检索文档 → 生成回答 → 输出</code></pre>
+        <p>流程永远不变。步骤 1→2→3，输入相同则路径相同。</p>
+        <pre><code># Workflow：你定义每一步
+graph = StateGraph()
+graph.add_node("extract_keywords", step1)
+graph.add_node("retrieve_docs", step2)
+graph.add_node("generate_answer", step3)
+
+graph.add_edge("extract_keywords", "retrieve_docs")
+graph.add_edge("retrieve_docs", "generate_answer")
+graph.add_edge("generate_answer", END)</code></pre>
+
+        <h3 id="subsection-1">Agent：自主规划</h3>
+        <pre><code>用户输入 → LLM 决策：
+  - 简单问题 → 直接回答
+  - 需要查文档 → 调检索工具 → 再决策
+  - 需要计算 → 调计算器 → 再决策
+  - ...（动态决定）</code></pre>
+        <p>流程每次可能不同。LLM 决定"下一步调哪个工具、什么时候输出答案"。</p>
+        <pre><code># Agent：LLM 决定流程
+graph.add_conditional_edges(
+    "agent",
+    lambda state: should_retrieve(state),  # LLM 决策
+    {"yes": "retrieve", "no": "answer"}
+)
+graph.add_edge("retrieve", "agent")  # 检索完回到决策点</code></pre>
+
+        <h2 id="section-3">真实场景对比：客服处理退货</h2>
+        <p><strong>Workflow 方案</strong>：接收请求 → 检查订单状态 → 已发货？拒绝 / 未发货？同意</p>
+        <p><strong>问题</strong>：用户说"收到的商品有质量问题，但订单显示已发货"，Workflow 直接拒绝——它只检查订单状态，不理解"质量问题"这个例外。</p>
+        <p><strong>Agent 方案</strong>：接收请求 → LLM 分析：未发货→同意退货；已发货→进一步检查理由：质量问题→转人工，不想要→拒绝</p>
+        <p><strong>区别</strong>：Agent 能处理例外情况，Workflow 只能处理预设情况。</p>
+
+        <h2 id="section-4">适用场景选择</h2>
+        <p><strong>Workflow 适合</strong>：流程明确、步骤固定、路径可枚举、要求可预测（金融/医疗/合规）、成本需可控。</p>
+        <p>典型场景：文档摘要、数据 ETL、报表生成、批量内容审核</p>
+        <p><strong>Agent 适合</strong>：流程不明确、需动态决策、开放性问题、容错率较高。</p>
+        <p>典型场景：智能客服、代码助手、研究助手、个人助理</p>
+
+        <h2 id="section-5">2026年的融合趋势：Agentic Workflow</h2>
+        <p>纯 Workflow 和纯 Agent 都有局限。主流做法是 <strong>Agentic Workflow</strong>——确定性骨架 + Agent 决策节点。</p>
+        <pre><code>[Workflow 主流程] ← 确定性骨架
+    ↓
+[Agent 决策节点] ← 关键分支点交给 LLM
+    ↓
+[Workflow 子流程] ← 结果回到确定性流程</code></pre>
+        <p><strong>设计原则</strong>：</p>
+        <ul>
+            <li>确定性部分用 Workflow（数据获取、格式转换、结果输出）</li>
+            <li>不确定性部分用 Agent（意图识别、策略选择、异常处理）</li>
+            <li>Agent 节点必须设置最大步数和超时，防止失控</li>
+            <li>每个 Agent 节点的输入输出要有明确 Schema，保证主流程可接续</li>
+        </ul>
+        <p><strong>实例：RAG 管道中的 Agentic Workflow</strong></p>
+        <pre><code>[Workflow] 用户输入 → 预处理
+    ↓
+[Agent] 查询重写（LLM 决定用哪种策略）
+    ↓
+[Workflow] 向量检索 → 结果排序 → 截断
+    ↓
+[Agent] 判断检索结果是否充分（不够则重新检索）
+    ↓
+[Workflow] 生成回答 → 格式化输出</code></pre>
+
+        <h2 id="section-6">选型决策树</h2>
+        <pre><code>任务流程是否可预定义？
+├── 是 → 流程是否复杂（条件分支/循环）？
+│   ├── 简单 → 纯 Workflow
+│   └── 复杂 → LangGraph Workflow + 条件边
+└── 否 → 是否需要自主决策？
+    ├── 否 → Workflow + 规则引擎
+    └── 是 → Agent（设 max_steps + 超时）
+
+混合场景 → Agentic Workflow
+（确定性骨架 + Agent 决策节点）</code></pre>
+
+        <h2 id="section-7">行业现状与避坑</h2>
+        <p><strong>现状</strong>：市面上大多数"智能体"产品本质是 Workflow 封装，并非原生 Agent 架构。Dify、Coze 等快速搭建平台的底层仍是工作流。真正的通用型自主 Agent 仍处于早期阶段。</p>
+        <p><strong>避坑经验</strong>：</p>
+        <ul>
+            <li>不要一上来就选 Agent——先问"流程能不能写死"，能写死就用 Workflow</li>
+            <li>Agent 的不可预测性在生产环境是致命的——金融/医疗场景优先 Workflow</li>
+            <li>成本差异巨大：Workflow 每次 3 次 LLM 调用，Agent 可能 10+ 次</li>
+            <li>"Agentic"不等于"更好"——很多场景确定性 &gt; 灵活性</li>
+            <li>调试 Agent 必须有完整的决策日志（LangSmith / 自定义 trace）</li>
+            <li>混合架构中，Agent 节点要有 fallback：决策失败时降级为 Workflow 固定路径</li>
+        </ul>
+
+</article>
+</div>
+    </div>
+</div>
+<script>
+function toggleSbGroup(header) {
+    const items = header.nextElementSibling;
+    const icon = header.querySelector('.sb-collapse');
+    if (items) {
+        items.classList.toggle('collapsed');
+        if (icon) icon.classList.toggle('collapsed');
+    }
+}
+</script>
+
+<div class="read-status-bar" id="readStatusBar">
+    <span id="readStatusText">未标记</span>
+    <button class="rs-btn" id="readStatusBtn" onclick="toggleRead()">标记为已读</button>
+</div>
+<script>window.__NOTE_ID__ = 'workflow-vs-agent';</script>
+
+<script src="../js/progress.js"></script>
+<script src="../js/auth.js"></script>
+<script>
+(function() {
+    const NOTE_ID = 'workflow-vs-agent';
+    // Auto-mark as read after 5 seconds on page
+    setTimeout(function() {
+        if (ProgressTracker.isLoggedIn()) {
+            if (!ProgressTracker.isRead(NOTE_ID)) {
+                ProgressTracker.markRead(NOTE_ID);
+            }
+        }
+    }, 5000);
+})();
+</script>
+
+<script>
+const NOTE_ID_CURRENT = window.__NOTE_ID__ || '';
+function toggleRead() {
+    if (!ProgressTracker.isLoggedIn()) {
+        alert('请先登录以同步学习进度');
+        return;
+    }
+    if (ProgressTracker.isRead(NOTE_ID_CURRENT)) {
+        ProgressTracker.markUnread(NOTE_ID_CURRENT);
+    } else {
+        ProgressTracker.markRead(NOTE_ID_CURRENT);
+    }
+    updateReadBar();
+}
+function updateReadBar() {
+    const btn = document.getElementById('readStatusBtn');
+    const text = document.getElementById('readStatusText');
+    if (!btn || !text) return;
+    const isRead = ProgressTracker.isRead(NOTE_ID_CURRENT);
+    btn.textContent = isRead ? '取消已读' : '标记为已读';
+    btn.className = 'rs-btn' + (isRead ? ' rs-read' : '');
+    text.textContent = isRead ? '已读' : '未标记';
+}
+updateReadBar();
+</script>
+</body>
+</html>
