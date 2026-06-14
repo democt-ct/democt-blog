@@ -1,0 +1,381 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent 流程调试与问题排查实战 — democt</title>
+    <link rel="stylesheet" href="../assets/common.css">
+
+<style>
+/* ===== 文章侧边栏（两层结构） ===== */
+.article-layout {
+    display: flex;
+    gap: 32px;
+    align-items: flex-start;
+}
+.article-sidebar {
+    width: 240px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 24px;
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+.article-sidebar::-webkit-scrollbar { width: 4px; }
+.article-sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+/* 返回首页 */
+.sb-back {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 16px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--accent);
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+}
+.sb-back:hover { background: var(--accent-soft); }
+
+/* 分组导航区 */
+.sb-groups { border-bottom: 1px solid var(--border); }
+
+.sb-group-header {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 8px 14px 4px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text);
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.15s;
+}
+.sb-group-header:hover { color: var(--accent); }
+.sb-group-header .sb-collapse {
+    font-size: 0.55rem;
+    color: var(--text-muted);
+    transition: transform 0.2s;
+    width: 12px;
+    flex-shrink: 0;
+}
+.sb-group-header .sb-collapse.collapsed { transform: rotate(-90deg); }
+.sb-group-header .sb-gcount {
+    margin-left: auto;
+    font-size: 0.72rem;
+    font-weight: 400;
+    color: var(--text-muted);
+    background: var(--tag-bg);
+    padding: 0 6px;
+    border-radius: 10px;
+}
+
+.sb-group-items { overflow: hidden; transition: max-height 0.25s ease; }
+.sb-group-items.collapsed { max-height: 0; }
+
+.sb-note-link {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    padding: 5px 14px 5px 24px;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+    transition: all 0.12s;
+    border-left: 3px solid transparent;
+}
+.sb-note-link:hover {
+    color: var(--text);
+    background: var(--accent-soft);
+}
+.sb-note-link.active {
+    color: var(--accent);
+    background: var(--accent-soft);
+    border-left-color: var(--accent);
+    font-weight: 600;
+}
+.sb-note-link .sb-ndate {
+    font-size: 0.68rem;
+    opacity: 0.6;
+    white-space: nowrap;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+/* 文章目录区 */
+.sb-toc {
+    padding: 8px 0 12px;
+}
+.sb-toc-title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--text);
+    padding: 4px 16px 8px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+.sb-toc-link {
+    display: block;
+    padding: 3px 16px 3px 24px;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    line-height: 1.45;
+    transition: all 0.12s;
+    border-left: 2px solid transparent;
+}
+.sb-toc-link:hover {
+    color: var(--accent);
+    background: var(--accent-soft);
+}
+.sb-toc-link.h3 {
+    padding-left: 36px;
+    font-size: 0.76rem;
+}
+
+.article-content {
+    flex: 1;
+    min-width: 0;
+}
+
+/* 响应式 */
+@media (max-width: 900px) {
+    .article-layout { flex-direction: column; }
+    .article-sidebar {
+        width: 100%;
+        position: static;
+        max-height: none;
+        order: 2;
+        margin-top: 32px;
+    }
+    .article-content { order: 1; }
+}
+
+.container { --max-width: 1100px; max-width: 1100px; }
+</style>
+
+<style>
+.read-status-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #fff;
+    border-top: 1px solid #e2e8f0;
+    padding: 10px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    z-index: 50;
+    font-size: 0.88rem;
+}
+.read-status-bar .rs-btn {
+    padding: 6px 18px;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: all 0.15s;
+}
+.read-status-bar .rs-btn:hover { border-color: #5b6abf; color: #5b6abf; }
+.read-status-bar .rs-btn.rs-read { background: #5b6abf; color: #fff; border-color: #5b6abf; }
+</style>
+</head>
+<body>
+<div class="container">
+    <nav class="breadcrumb"><a href="../index.html">首页</a> / 知识笔记</nav>
+    <div class="article-layout">
+<aside class="article-sidebar"><a href="../index.html#knowledge" class="sb-back">← 返回首页</a><div class="sb-groups"><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse">▼</span><span>🤖 Agent 基础</span><span class="sb-gcount">9</span></div><div class="sb-group-items"><a href="multi-agent-collaboration.html" class="sb-note-link"><span>多Agent协作架构：从单Agent到智能体网络</span><span class="sb-ndate">06-11</span></a><a href="agent-guardrails.html" class="sb-note-link"><span>Agent Guardrails：运行时安全护…</span><span class="sb-ndate">06-11</span></a><a href="agent-fullstack-development.html" class="sb-note-link"><span>Agent 全栈开发实战</span><span class="sb-ndate">06-10</span></a><a href="agent-debugging-troubleshooting.html" class="sb-note-link active"><span>Agent 流程调试与问题排查实战</span><span class="sb-ndate">06-10</span></a><a href="multimodal-agent.html" class="sb-note-link"><span>多模态 Agent 入门</span><span class="sb-ndate">06-09</span></a><a href="agent-evaluation.html" class="sb-note-link"><span>Agent 评估与测试方法论</span><span class="sb-ndate">06-08</span></a><a href="agent-memory-patterns.html" class="sb-note-link"><span>Agent 记忆系统设计模式</span><span class="sb-ndate">06-07</span></a><a href="agent-security.html" class="sb-note-link"><span>Agent 安全红宝书</span><span class="sb-ndate">06-03</span></a><a href="what-is-agent.html" class="sb-note-link"><span>什么是 Agent？核心概念与能力边界</span><span class="sb-ndate">05-15</span></a></div><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>💬 提示词与工具</span><span class="sb-gcount">4</span></div><div class="sb-group-items collapsed"><a href="tool-calling-advanced.html" class="sb-note-link"><span>Tool Calling 进阶：工具网关与多工…</span><span class="sb-ndate">06-10</span></a><a href="structured-output.html" class="sb-note-link"><span>结构化输出完全指南</span><span class="sb-ndate">06-06</span></a><a href="function-calling-deep-dive.html" class="sb-note-link"><span>Function Calling 原理与实践</span><span class="sb-ndate">05-26</span></a><a href="prompt-engineering.html" class="sb-note-link"><span>提示词工程进阶：从入门到系统化</span><span class="sb-ndate">05-18</span></a></div><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>🔍 RAG 与检索</span><span class="sb-gcount">5</span></div><div class="sb-group-items collapsed"><a href="rag-pitfalls-optimization.html" class="sb-note-link"><span>RAG 落地常见陷阱与优化策略</span><span class="sb-ndate">06-10</span></a><a href="rag-production-deployment.html" class="sb-note-link"><span>RAG 生产化部署：从原型到高性能系统</span><span class="sb-ndate">06-10</span></a><a href="vector-db-comparison.html" class="sb-note-link"><span>向量数据库对比：选型指南</span><span class="sb-ndate">05-24</span></a><a href="embedding-model-guide.html" class="sb-note-link"><span>Embedding 模型选型与对比</span><span class="sb-ndate">05-22</span></a><a href="rag-architecture.html" class="sb-note-link"><span>RAG 架构深度解析：从朴素到模块化</span><span class="sb-ndate">05-20</span></a></div><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>🧠 LLM 深入</span><span class="sb-gcount">4</span></div><div class="sb-group-items collapsed"><a href="cost-optimization.html" class="sb-note-link"><span>Agent 成本优化手册</span><span class="sb-ndate">06-10</span></a><a href="semantic-cache.html" class="sb-note-link"><span>LLM 语义缓存策略</span><span class="sb-ndate">06-07</span></a><a href="llm-observability.html" class="sb-note-link"><span>AI 应用的可观测性</span><span class="sb-ndate">06-01</span></a><a href="llm-hallucination.html" class="sb-note-link"><span>LLM 幻觉现象与缓解策略</span><span class="sb-ndate">05-30</span></a></div><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>🔌 架构与协议</span><span class="sb-gcount">7</span></div><div class="sb-group-items collapsed"><a href="agent-framework-selection.html" class="sb-note-link"><span>Agent框架选型指南：2026年全景对比</span><span class="sb-ndate">06-11</span></a><a href="a2a-protocol.html" class="sb-note-link"><span>A2A协议：Agent间通信的开放标准</span><span class="sb-ndate">06-11</span></a><a href="mcp-server-practice.html" class="sb-note-link"><span>MCP Server 开发实战</span><span class="sb-ndate">06-10</span></a><a href="mcp-skill-backend-advanced.html" class="sb-note-link"><span>MCP Server 开发实战 &amp; Skill…</span><span class="sb-ndate">06-10</span></a><a href="streaming-architecture.html" class="sb-note-link"><span>流式架构设计实践</span><span class="sb-ndate">06-09</span></a><a href="task-planning-patterns.html" class="sb-note-link"><span>从 Andon 到 DAG：任务规划模式汇总</span><span class="sb-ndate">06-05</span></a><a href="mcp-protocol.html" class="sb-note-link"><span>MCP 协议解析：Agent 的 USB-C</span><span class="sb-ndate">05-28</span></a></div><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>⚡ Skill 开发</span><span class="sb-gcount">1</span></div><div class="sb-group-items collapsed"><a href="skill-design-guide.html" class="sb-note-link"><span>Skill 设计与开发指南</span><span class="sb-ndate">06-10</span></a></div><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>🖥️ 后端开发</span><span class="sb-gcount">1</span></div><div class="sb-group-items collapsed"><a href="backend-agent-integration.html" class="sb-note-link"><span>后端服务与 Agent 集成模式</span><span class="sb-ndate">06-10</span></a></div><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>🏗️ 全栈开发</span><span class="sb-gcount">1</span></div><div class="sb-group-items collapsed"><a href="vibe-coding-guide.html" class="sb-note-link"><span>Vibe Coding：AI辅助编程实战指南</span><span class="sb-ndate">06-11</span></a></div></div><div class="sb-toc"><div class="sb-toc-title">📑 本页目录</div><a href="#section-0" class="sb-toc-link">Agent 开发中的三大调试难题</a><a href="#section-1" class="sb-toc-link">问题一：ReAct 循环陷入死循环</a><a href="#subsection-0" class="sb-toc-link h3">症状</a><a href="#subsection-1" class="sb-toc-link h3">排查方法</a><a href="#subsection-2" class="sb-toc-link h3">解决方案</a><a href="#section-2" class="sb-toc-link">问题二：工具调用参数错误（参数幻觉）</a><a href="#subsection-3" class="sb-toc-link h3">症状</a><a href="#subsection-4" class="sb-toc-link h3">排查方法</a><a href="#subsection-5" class="sb-toc-link h3">解决方案</a><a href="#section-3" class="sb-toc-link">问题三：RAG 检索质量差</a><a href="#subsection-6" class="sb-toc-link h3">症状</a><a href="#subsection-7" class="sb-toc-link h3">排查方法</a><a href="#subsection-8" class="sb-toc-link h3">解决方案</a><a href="#section-4" class="sb-toc-link">问题四：上下文窗口溢出</a><a href="#subsection-9" class="sb-toc-link h3">症状</a><a href="#subsection-10" class="sb-toc-link h3">解决方案</a><a href="#section-5" class="sb-toc-link">问题五：Orchestrator 路由错误</a><a href="#subsection-11" class="sb-toc-link h3">症状</a><a href="#subsection-12" class="sb-toc-link h3">解决方案</a><a href="#section-6" class="sb-toc-link">调试工具箱</a><a href="#section-7" class="sb-toc-link">调试心智模型</a></div></aside>
+<div class="article-content">
+<article>
+        <h1>Agent 流程调试与问题排查实战</h1>
+        <div class="meta"><span class="date">2026-06-10</span><span class="tag-list"><span>调试</span><span>Agent</span><span>问题排查</span></span></div>
+
+        <h2 id="section-0">Agent 开发中的三大调试难题</h2>
+        <p>与传统软件不同，Agent 的调试面临三个核心挑战：(1) 非确定性——同样的输入可能产生不同输出，(2) 长链路——从输入到输出经过多层推理，难以定位问题，(3) 黑盒——LLM 的内部推理过程不可见。</p>
+
+        <h2 id="section-1">问题一：ReAct 循环陷入死循环</h2>
+        <h3 id="subsection-0">症状</h3>
+        <p>Agent 不断重复相同的 Thought-Action-Observation 循环，消耗大量 Token 但无法推进任务。</p>
+        <h3 id="subsection-1">排查方法</h3>
+        <ol>
+            <li>检查日志中重复的 Action 序列——如果最近 3 步完全相同，几乎可以确定是死循环</li>
+            <li>检查工具返回结果是否符合预期——工具返回空值或格式错误时，Agent 容易重试</li>
+            <li>检查是否有"应该结束但没有结束"的信号——Agent 拿到了最终答案但仍在思考</li>
+        </ol>
+        <h3 id="subsection-2">解决方案</h3>
+        <ul>
+            <li><strong>硬限制</strong>：设置 max_steps（建议 10-15），超过后强制中断并要求总结</li>
+            <li><strong>重复检测</strong>：缓存最近 N 步的 action+args 哈希，检测到重复时注入"你已经尝试过这个操作，请换一种方式"</li>
+            <li><strong>进度注入</strong>：每 3 步在 Observation 中追加进度提示："已完成 X/Y 步，请评估是否已拿到足够信息回复用户"</li>
+            <li><strong>超时熔断</strong>：总推理时间超过阈值（如 60s）时强制终止</li>
+        </ul>
+        <pre><code>MAX_STEPS = 12
+action_hashes = []
+
+for step in range(MAX_STEPS):
+    thought, action, args = agent.think()
+    h = hash((action, str(args)))
+    if action_hashes.count(h) >= 2:
+        observation += "\n[SYSTEM] 已重复执行此操作 2 次，请尝试不同方法或直接给出最佳答案。"
+    action_hashes.append(h)
+    observation = agent.act(action, args)
+    if agent.should_finish(observation):
+        break</code></pre>
+
+        <h2 id="section-2">问题二：工具调用参数错误（参数幻觉）</h2>
+        <h3 id="subsection-0">症状</h3>
+        <p>Agent 调用工具时传入不存在的参数名、错误类型、或编造参数值。</p>
+        <h3 id="subsection-1">排查方法</h3>
+        <ol>
+            <li>在工具执行前加参数校验层，记录所有校验失败</li>
+            <li>对比 Agent 生成的参数和工具的 JSON Schema 定义</li>
+            <li>统计高频错误参数，针对性优化工具描述</li>
+        </ol>
+        <h3 id="subsection-2">解决方案</h3>
+        <ul>
+            <li><strong>Schema 先行校验</strong>：用 JSON Schema 验证参数，失败时返回明确的错误信息（含正确格式示例）</li>
+            <li><strong>工具描述优化</strong>：在 function description 中给出参数示例，enum 值明确列出</li>
+            <li><strong>二次确认机制</strong>：对关键操作（如删除、发送），让 Agent 先输出确认意图，再执行</li>
+        </ul>
+        <pre><code>def safe_call(func, args):
+    try:
+        jsonschema.validate(args, func.schema)
+    except ValidationError as e:
+        return {"error": f"参数错误: {e.message}", "correct_format": func.schema_example}
+    return func(**args)</code></pre>
+
+        <h2 id="section-3">问题三：RAG 检索质量差</h2>
+        <h3 id="subsection-0">症状</h3>
+        <p>Agent 检索到的文档与用户问题无关，导致回答偏离主题或使用错误知识。</p>
+        <h3 id="subsection-1">排查方法</h3>
+        <ol>
+            <li>单独测试检索 Pipeline：用相同 query 直接调检索，看返回文档是否相关</li>
+            <li>检查 embedding 模型是否与文档类型匹配（中文文档用中文 embedding 模型）</li>
+            <li>打印检索得分，低于阈值的文档应该被过滤</li>
+        </ol>
+        <h3 id="subsection-2">解决方案</h3>
+        <ul>
+            <li><strong>混合检索</strong>：BM25（关键词）+ 向量（语义）双路召回，RRF 融合</li>
+            <li><strong>Re-rank</strong>：初检索后加一层重排序（BGE Reranker/Cohere），过滤低分文档</li>
+            <li><strong>查询重写</strong>：用户问句先经 LLM 扩展/改写，提高检索命中率</li>
+            <li><strong>分块策略优化</strong>：根据文档类型选择分块大小（代码 200 tokens，文档 500 tokens）</li>
+        </ul>
+
+        <h2 id="section-4">问题四：上下文窗口溢出</h2>
+        <h3 id="subsection-0">症状</h3>
+        <p>长对话或多轮工具调用后，上下文超过模型窗口限制，Agent 行为异常或直接报错。</p>
+        <h3 id="subsection-2">解决方案</h3>
+        <ul>
+            <li><strong>滑动窗口</strong>：只保留最近 N 轮对话，旧消息压缩为摘要</li>
+            <li><strong>工具结果截断</strong>：工具返回超过 2000 字符自动截断 + 摘要</li>
+            <li><strong>记忆外置</strong>：重要信息存入向量数据库/结构化记忆，用时检索</li>
+            <li><strong>Token 预算监控</strong>：每次推理前检查 token 余量，不足时触发压缩</li>
+        </ul>
+
+        <h2 id="section-5">问题五：Orchestrator 路由错误</h2>
+        <h3 id="subsection-0">症状</h3>
+        <p>多 Agent 系统中，用户请求被路由到错误的 Specialist Agent。</p>
+        <h3 id="subsection-2">解决方案</h3>
+        <ul>
+            <li><strong>意图分类前置</strong>：用专门的小模型做意图分类（比通用 LLM 更准确且更便宜）</li>
+            <li><strong>置信度阈值</strong>：分类置信度 &lt; 0.7 时追问用户澄清</li>
+            <li><strong>路由日志审计</strong>：记录所有路由决策，定期审查误路由 case</li>
+        </ul>
+
+        <h2 id="section-6">调试工具箱</h2>
+        <table>
+            <tr><th>工具</th><th>用途</th></tr>
+            <tr><td>LangSmith / LangFuse</td><td>全链路 Trace，每一步的 prompt/tool call/output 可视</td></tr>
+            <tr><td>结构化日志</td><td>JSON 格式日志，包含 step_id、action、input、output、duration、tokens</td></tr>
+            <tr><td>回放测试</td><td>记录真实用户输入，回归时重放验证</td></tr>
+            <tr><td>A/B 对比</td><td>同一输入发两份请求，对比不同 Prompt/模型的输出差异</td></tr>
+        </table>
+
+        <h2 id="section-7">调试心智模型</h2>
+        <p>Agent 调试的核心思路：<strong>缩小不确定性范围</strong>。从最外层（LLM 输出）向内层（Prompt → Tool 结果 → 检索质量）逐层排查，每一层都要有可验证的断言。</p>
+
+        <p class="back-link"><a href="../index.html">← 返回首页</a></p>
+    </article>
+</div>
+</div>
+</div>
+<script>
+function toggleSbGroup(header) {
+    const items = header.nextElementSibling;
+    const icon = header.querySelector('.sb-collapse');
+    if (items.classList.contains('collapsed')) {
+        items.classList.remove('collapsed');
+        items.style.maxHeight = items.scrollHeight + 'px';
+        if (icon) icon.classList.remove('collapsed');
+    } else {
+        items.classList.add('collapsed');
+        items.style.maxHeight = '0';
+        if (icon) icon.classList.add('collapsed');
+    }
+}
+document.querySelectorAll('.sb-group-items:not(.collapsed)').forEach(function(el) {
+    el.style.maxHeight = el.scrollHeight + 'px';
+});
+</script>
+
+<div class="read-status-bar" id="readStatusBar">
+    <span id="readStatusText">未标记</span>
+    <button class="rs-btn" id="readStatusBtn" onclick="toggleRead()">标记为已读</button>
+</div>
+<script>window.__NOTE_ID__ = 'agent-debugging-troubleshooting';</script>
+
+<script src="../js/progress.js"></script>
+<script src="../js/auth.js"></script>
+<script>
+(function() {
+    const NOTE_ID = 'agent-debugging-troubleshooting';
+    // Auto-mark as read after 5 seconds on page
+    setTimeout(function() {
+        if (ProgressTracker.isLoggedIn()) {
+            if (!ProgressTracker.isRead(NOTE_ID)) {
+                ProgressTracker.markRead(NOTE_ID);
+            }
+        }
+    }, 5000);
+})();
+</script>
+
+<script>
+const NOTE_ID_CURRENT = window.__NOTE_ID__ || '';
+function toggleRead() {
+    if (!ProgressTracker.isLoggedIn()) {
+        alert('请先登录以同步学习进度');
+        return;
+    }
+    if (ProgressTracker.isRead(NOTE_ID_CURRENT)) {
+        ProgressTracker.markUnread(NOTE_ID_CURRENT);
+    } else {
+        ProgressTracker.markRead(NOTE_ID_CURRENT);
+    }
+    updateReadBar();
+}
+function updateReadBar() {
+    const btn = document.getElementById('readStatusBtn');
+    const text = document.getElementById('readStatusText');
+    if (!btn || !text) return;
+    const isRead = ProgressTracker.isRead(NOTE_ID_CURRENT);
+    btn.textContent = isRead ? '取消已读' : '标记为已读';
+    btn.className = 'rs-btn' + (isRead ? ' rs-read' : '');
+    text.textContent = isRead ? '已读' : '未标记';
+}
+updateReadBar();
+</script>
+</body>
+</html>
