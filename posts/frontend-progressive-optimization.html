@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>前端界面优化的渐进方案 — democt</title>
+    <link rel="stylesheet" href="../assets/common.css">
+
+<style>
+/* ===== 文章侧边栏（两层结构） ===== */
+.article-layout {
+    display: flex;
+    gap: 32px;
+    align-items: flex-start;
+}
+.article-sidebar {
+    width: 240px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 24px;
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+.article-sidebar::-webkit-scrollbar { width: 4px; }
+.article-sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+/* 返回首页 */
+.sb-back {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 16px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--accent);
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+}
+.sb-back:hover { background: var(--accent-soft); }
+
+/* 分组导航区 */
+.sb-groups { border-bottom: 1px solid var(--border); }
+
+.sb-group-header {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 8px 14px 4px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text);
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.15s;
+}
+.sb-group-header:hover { color: var(--accent); }
+.sb-group-header .sb-collapse {
+    font-size: 0.55rem;
+    color: var(--text-muted);
+    transition: transform 0.2s;
+    width: 12px;
+    flex-shrink: 0;
+}
+.sb-group-header .sb-collapse.collapsed { transform: rotate(-90deg); }
+.sb-group-header .sb-gcount {
+    margin-left: auto;
+    font-size: 0.72rem;
+    font-weight: 400;
+    color: var(--text-muted);
+    background: var(--tag-bg);
+    padding: 0 6px;
+    border-radius: 10px;
+}
+
+.sb-group-items { overflow: hidden; transition: max-height 0.25s ease; }
+.sb-group-items.collapsed { max-height: 0; }
+
+.sb-note-link {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    padding: 5px 14px 5px 24px;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+    transition: all 0.12s;
+    border-left: 3px solid transparent;
+}
+.sb-note-link:hover {
+    color: var(--text);
+    background: var(--accent-soft);
+}
+.sb-note-link.active {
+    color: var(--accent);
+    background: var(--accent-soft);
+    border-left-color: var(--accent);
+    font-weight: 600;
+}
+.sb-note-link .sb-ndate {
+    font-size: 0.68rem;
+    opacity: 0.6;
+    white-space: nowrap;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+/* 文章目录区 */
+.sb-toc {
+    padding: 8px 0 12px;
+}
+.sb-toc-title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--text);
+    padding: 4px 16px 8px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+.sb-toc-link {
+    display: block;
+    padding: 3px 16px 3px 24px;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    line-height: 1.45;
+    transition: all 0.12s;
+    border-left: 2px solid transparent;
+}
+.sb-toc-link:hover {
+    color: var(--accent);
+    background: var(--accent-soft);
+}
+.sb-toc-link.h3 {
+    padding-left: 36px;
+    font-size: 0.76rem;
+}
+
+.article-content {
+    flex: 1;
+    min-width: 0;
+}
+
+/* 响应式 */
+@media (max-width: 900px) {
+    .article-layout { flex-direction: column; }
+    .article-sidebar {
+        width: 100%;
+        position: static;
+        max-height: none;
+        order: 2;
+        margin-top: 32px;
+    }
+    .article-content { order: 1; }
+}
+
+.container { --max-width: 1100px; max-width: 1100px; }
+</style>
+</head>
+<body>
+<div class="container">
+    <nav class="breadcrumb"><a href="../index.html">首页</a> / 笔记</nav>
+    <div class="article-layout">
+<aside class="article-sidebar"><a href="../index.html#garden" class="sb-back">← 返回首页</a><div class="sb-groups"><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse">▼</span><span>🏥 患者Agent</span><span class="sb-gcount">5</span></div><div class="sb-group-items"><a href="code-optimization-practices.html" class="sb-note-link"><span>代码优化实践：跨域合并与上下文隔离</span><span class="sb-ndate">06-05</span></a><a href="patient-allergy-safety.html" class="sb-note-link"><span>患者过敏安全机制的设计</span><span class="sb-ndate">06-01</span></a><a href="memory-system-engineering.html" class="sb-note-link"><span>记忆系统的工程实践：四层架构的坑与对策</span><span class="sb-ndate">05-25</span></a><a href="query-lifecycle.html" class="sb-note-link"><span>患者 Agent 问答的完整生命周期</span><span class="sb-ndate">05-20</span></a><a href="frontend-progressive-optimization.html" class="sb-note-link active"><span>前端界面优化的渐进方案</span><span class="sb-ndate">05-18</span></a></div><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>✈️ 旅行规划师</span><span class="sb-gcount">2</span></div><div class="sb-group-items collapsed"><a href="amap-poi-pipeline.html" class="sb-note-link"><span>从模糊地点到精确 POI</span><span class="sb-ndate">05-30</span></a><a href="cloudflare-worker-travel-arch.html" class="sb-note-link"><span>AI 旅行规划师的 Cloudflare Wo…</span><span class="sb-ndate">04-25</span></a></div><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>🏢 企业多Agent</span><span class="sb-gcount">6</span></div><div class="sb-group-items collapsed"><a href="action-card-templates.html" class="sb-note-link"><span>对话驱动的企业工作台：操作卡片模板</span><span class="sb-ndate">06-09</span></a><a href="planner-dag-task-decomposition.html" class="sb-note-link"><span>Planner 与 DAG 任务分解</span><span class="sb-ndate">06-08</span></a><a href="agent-communication-protocol.html" class="sb-note-link"><span>多 Agent 通信协议设计</span><span class="sb-ndate">06-07</span></a><a href="ticket-fsm-approval-engine.html" class="sb-note-link"><span>工单状态机与审批引擎设计</span><span class="sb-ndate">06-06</span></a><a href="skills-layer-design.html" class="sb-note-link"><span>Skills 层设计：Agent 中的业务抽象</span><span class="sb-ndate">06-04</span></a><a href="hybrid-rag-practice.html" class="sb-note-link"><span>企业 RAG 系统的混合检索实践</span><span class="sb-ndate">06-03</span></a></div><div class="sb-group-header" onclick="toggleSbGroup(this)"><span class="sb-collapse collapsed">▼</span><span>🛠️ 工程实践</span><span class="sb-gcount">5</span></div><div class="sb-group-items collapsed"><a href="self-react-vs-langgraph.html" class="sb-note-link"><span>自研 ReAct vs LangGraph</span><span class="sb-ndate">06-10</span></a><a href="agent-design-patterns.html" class="sb-note-link"><span>Agent 应用的几种设计模式</span><span class="sb-ndate">06-08</span></a><a href="agent-security-practice.html" class="sb-note-link"><span>Agent 应用安全实践</span><span class="sb-ndate">06-05</span></a><a href="langgraph-state-management.html" class="sb-note-link"><span>LangGraph 状态管理深入理解</span><span class="sb-ndate">06-05</span></a><a href="tool-calling-best-practices.html" class="sb-note-link"><span>Tool Calling 实践中的几个坑</span><span class="sb-ndate">05-28</span></a></div></div><div class="sb-toc"><div class="sb-toc-title">📑 本页目录</div><a href="#section-0" class="sb-toc-link">优化清单</a><a href="#subsection-0" class="sb-toc-link h3">视觉层次</a><a href="#subsection-1" class="sb-toc-link h3">间距体系统一</a><a href="#subsection-2" class="sb-toc-link h3">动效与交互</a><a href="#subsection-3" class="sb-toc-link h3">约束</a></div></aside>
+<div class="article-content">
+<article>
+        <h1>前端界面优化的渐进方案</h1>
+        <div class="meta"><span class="date">2026-05-18</span><span class="tag-list"><span>前端</span><span>CSS</span><span>UX</span></span></div>
+
+        <p>患者 Agent 的 tester.html 页面做了一次纯视觉层面的渐进优化，不改变任何业务功能、API 调用和数据结构。</p>
+
+        <h2 id="section-0">优化清单</h2>
+
+        <h3 id="subsection-0">视觉层次</h3>
+        <ul>
+            <li>主面板暖白背景（rgba 0.84），次要面板降为 0.6 透明度，建立视觉主次</li>
+            <li>用户气泡：纯色 → 品牌绿渐变</li>
+            <li>助手气泡：纯灰 → 微暖色</li>
+            <li>空状态提示美化：字号、字距、行高调整</li>
+        </ul>
+
+        <h3 id="subsection-1">间距体系统一</h3>
+        <p>统一为 8 的倍数体系：8 / 12 / 16 / 24 / 32。原来 gap 混用 10/12/14/16/18 → 统一 12 或 16。margin-top 混用 6/8/10/12/14/16/18 → 统一 8 或 16。</p>
+
+        <h3 id="subsection-2">动效与交互</h3>
+        <ul>
+            <li>发送按钮：disabled + 脉冲动画 + 文字"发送中…"，完成后恢复</li>
+            <li>面板展开/收起：CSS grid-template-rows 过渡动画</li>
+            <li>空状态到有内容：淡出过渡</li>
+            <li>所有动画在 prefers-reduced-motion 下禁用</li>
+        </ul>
+
+        <h3 id="subsection-3">约束</h3>
+        <p>不改变任何 HTML 语义 class 名，不改变 JS 状态结构、API 调用、事件绑定逻辑，不引入外部依赖或新文件，所有改动在 tester.html 一个文件内完成。</p>
+
+        <p class="back-link"><a href="../index.html">← 返回首页</a></p>
+    </article>
+</div>
+</div>
+</div>
+<script>
+function toggleSbGroup(header) {
+    const items = header.nextElementSibling;
+    const icon = header.querySelector('.sb-collapse');
+    if (items.classList.contains('collapsed')) {
+        items.classList.remove('collapsed');
+        items.style.maxHeight = items.scrollHeight + 'px';
+        if (icon) icon.classList.remove('collapsed');
+    } else {
+        items.classList.add('collapsed');
+        items.style.maxHeight = '0';
+        if (icon) icon.classList.add('collapsed');
+    }
+}
+document.querySelectorAll('.sb-group-items:not(.collapsed)').forEach(function(el) {
+    el.style.maxHeight = el.scrollHeight + 'px';
+});
+</script>
+</body>
+</html>
