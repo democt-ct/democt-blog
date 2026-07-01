@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A2A 协议与 Agent 互操作 — Agent 知识库</title>
+    <meta name="description" content="> **核心目标**: 让不同框架、不同厂商的 Agent 能够互相通信、协作、交换数据 > > **类比**: A2A 是 Agent 的"HTTP 协议"，MCP 是 Agent 的"REST API"">
+    <link rel="stylesheet" href="../css/vitepress.css">
+</head>
+<body>
+<aside class="VPSidebar">
+    <div class="sidebar-nav">
+        <div class="sidebar-group">
+            <h2>Agent 核心理论</h2>
+            <a href="what-is-agent.html">Agent 定义与认知架构</a>
+            <a href="workflow-vs-agent.html">Agent vs Workflow</a>
+            <a href="react-prompt.html">ReAct 模式</a>
+            <a href="react-loop-agent-control.html">Agent 运行循环</a>
+            <a href="plan-execute-agent.html">Plan-and-Execute</a>
+            <a href="agent-reflexion.html">自我反思 Reflexion</a>
+            <a href="agent-self-correction.html">自我纠错</a>
+            <a href="agent-memory-patterns.html">记忆架构</a>
+            <a href="skill-design-guide.html">Agent Skills</a>
+            <a href="task-planning-patterns.html">规划算法</a>
+            <a href="agent-security.html">安全基础</a>
+            <a href="agent-security-in-depth.html">安全深入</a>
+            <a href="agent-guardrails.html">Guardrails</a>
+            <a href="agent-evaluation.html">Agent 评估</a>
+            <a href="eval-harness-design.html">Eval Harness 设计</a>
+            <a href="agent-benchmark-guide.html">Benchmark 指南</a>
+            <a href="agent-loop-control.html">循环控制</a>
+            <a href="llm-as-judge.html">LLM as Judge</a>
+        </div>
+        <div class="sidebar-group">
+            <h2>LLM 深入</h2>
+            <a href="llm-fundamentals.html">主流模型对比</a>
+            <a href="llm-models-overview.html">模型概览</a>
+            <a href="llm-transformer.html">Transformer</a>
+            <a href="llm-tokenization.html">Tokenization</a>
+            <a href="llm-embedding.html">Embedding</a>
+            <a href="embedding-model-guide.html">Embedding 模型指南</a>
+            <a href="llm-training.html">模型训练</a>
+            <a href="llm-inference-params.html">推理参数</a>
+            <a href="llm-inference-optimization.html">推理优化</a>
+            <a href="llm-open-vs-closed.html">开源 vs 闭源</a>
+            <a href="llm-observability.html">可观测性</a>
+            <a href="cost-optimization.html">成本优化</a>
+        </div>
+        <div class="sidebar-group">
+            <h2>上下文工程</h2>
+            <a href="context-window-bias.html">上下文窗口与位置偏置</a>
+            <a href="llm-long-context.html">长上下文模型对比</a>
+            <a href="context-memory.html">记忆系统 Memory</a>
+            <a href="context-history.html">会话历史管理</a>
+            <a href="context-caching.html">上下文缓存</a>
+            <a href="context-pollution.html">上下文污染与清理</a>
+        </div>
+        <div class="sidebar-group">
+            <h2>RAG 与检索</h2>
+            <a href="rag-basics.html">Naive RAG 与瓶颈</a>
+            <a href="rag-architecture.html">RAG 架构</a>
+            <a href="rag-chunking.html">Chunking 策略</a>
+            <a href="embedding-model-guide.html">Embedding 模型指南</a>
+            <a href="vector-db-comparison.html">向量数据库对比</a>
+            <a href="rag-hybrid-search.html">混合搜索</a>
+            <a href="rag-reranking.html">Reranking</a>
+            <a href="rag-advanced.html">高级 RAG</a>
+            <a href="rag-graphrag.html">GraphRAG</a>
+            <a href="rag-agentic.html">Agentic RAG</a>
+            <a href="rag-evaluation-methods.html">RAG 评估</a>
+            <a href="rag-pitfalls-optimization.html">陷阱与优化</a>
+        </div>
+        <div class="sidebar-group">
+            <h2>工具 & 协议</h2>
+            <a href="mcp-protocol.html">MCP 协议详解</a>
+            <a href="mcp-server-practice.html">MCP Server 实战</a>
+            <a href="function-calling-deep-dive.html">Function Calling 深探</a>
+            <a href="tool-calling-advanced.html">工具调用进阶</a>
+            <a href="tool-custom.html">自定义工具</a>
+            <a href="tool-error-handling.html">工具错误处理</a>
+            <a href="tool-parallel-calling.html">并行工具调用</a>
+            <a href="tool-sandbox.html">工具沙箱</a>
+            <a href="tool-schema-design-patterns.html">Schema 设计模式</a>
+            <a href="rate-limiting-patterns.html">速率限制模式</a>
+        </div>
+        <div class="sidebar-group">
+            <h2>Prompt 工程</h2>
+            <a href="prompt-engineering.html">Prompt 工程</a>
+            <a href="prompt-basics.html">Prompt 基础</a>
+            <a href="prompt-few-shot.html">Few-shot</a>
+            <a href="prompt-templates.html">Prompt 模板</a>
+            <a href="prompt-compression.html">Prompt 压缩</a>
+            <a href="prompt-injection.html">Prompt 注入</a>
+            <a href="prompt-self-consistency.html">自一致性</a>
+            <a href="system-prompt-design.html">System Prompt 设计</a>
+        </div>
+        <div class="sidebar-group">
+            <h2>Multi-Agent</h2>
+            <a href="multi-agent-collaboration.html">多 Agent 协作</a>
+            <a href="multi-agent-communication.html">多 Agent 通信</a>
+            <a href="multi-agent-metagpt.html">MetaGPT</a>
+            <a href="multi-agent-orchestrator.html">编排器模式</a>
+            <a href="multi-agent-patterns.html">多 Agent 模式</a>
+        </div>
+        <div class="sidebar-group">
+            <h2>框架分析</h2>
+            <a href="framework-langchain.html">LangChain / LangGraph</a>
+            <a href="framework-llamaindex.html">LlamaIndex</a>
+            <a href="framework-claude-sdk.html">Claude Agent SDK</a>
+            <a href="framework-openai-sdk.html">OpenAI Agents SDK</a>
+            <a href="framework-openclaw.html">OpenClaw</a>
+            <a href="framework-hermes.html">Hermes Agent</a>
+            <a href="framework-comparison.html">框架选型决策树</a>
+        </div>
+        <div class="sidebar-group">
+            <h2>流程编排</h2>
+            <a href="workflow-langgraph.html">LangGraph 深度解析</a>
+            <a href="workflow-patterns.html">编排模式</a>
+            <a href="workflow-dify.html">Dify / Coze</a>
+            <a href="workflow-vs-agent.html">Workflow vs Agent</a>
+        </div>
+        <div class="sidebar-group">
+            <h2>源码解析</h2>
+            <a href="source-claude-code.html">Claude Code</a>
+            <a href="source-codex-cli.html">Codex CLI</a>
+            <a href="source-cline.html">Cline / Roo Code</a>
+            <a href="source-openhands.html">OpenHands</a>
+            <a href="source-aider.html">Aider</a>
+            <a href="source-swe-agent.html">SWE-agent</a>
+            <a href="source-gpt-engineer.html">GPT Engineer</a>
+            <a href="source-pi-mono.html">Pi</a>
+            <a href="source-browser-use.html">Browser Use</a>
+        </div>
+        <div class="sidebar-group">
+            <h2>垂直 Agent</h2>
+            <a href="vertical-browser-agent.html">浏览器 Agent</a>
+            <a href="vertical-coding-agent.html">编码 Agent</a>
+            <a href="vertical-customer-service.html">客服 Agent</a>
+            <a href="vertical-data-analysis.html">数据分析 Agent</a>
+            <a href="vertical-deep-research.html">深度研究 Agent</a>
+            <a href="vertical-voice-agent.html">语音 Agent</a>
+        </div>
+    </div>
+</aside>
+
+<main>
+    <div class="vp-doc">
+        <section class="doc-hero">
+    <p class="doc-hero__kicker">Agent 知识库</p>
+    <h1>A2A 协议与 Agent 互操作</h1>
+    <p class="doc-hero__lead">> **核心目标**: 让不同框架、不同厂商的 Agent 能够互相通信、协作、交换数据 > > **类比**: A2A 是 Agent 的"HTTP 协议"，MCP 是 Agent 的"REST API"</p>
+</section>
+
+<blockquote>
+<p><strong>核心目标</strong>: 让不同框架、不同厂商的 Agent 能够互相通信、协作、交换数据</p>
+<p><strong>类比</strong>: A2A 是 Agent 的&quot;HTTP 协议&quot;，MCP 是 Agent 的&quot;REST API&quot;</p>
+</blockquote>
+<hr />
+<h2>1. 为什么需要 A2A 协议？</h2>
+<h3>1.1 当前 Agent 生态的碎片化</h3>
+<table>
+<thead>
+<tr>
+<th>框架</th>
+<th>厂商</th>
+<th>通信方式</th>
+<th>互操作性</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>AutoGen</strong></td>
+<td>Microsoft</td>
+<td>内存消息队列</td>
+<td>❌ 仅支持 AutoGen Agent</td>
+</tr>
+<tr>
+<td><strong>CrewAI</strong></td>
+<td>CrewAI</td>
+<td>顺序/层次流程</td>
+<td>❌ 仅支持 CrewAI Agent</td>
+</tr>
+<tr>
+<td><strong>LangGraph</strong></td>
+<td>LangChain</td>
+<td>状态图</td>
+<td>❌ 仅支持 LangChain Agent</td>
+</tr>
+<tr>
+<td><strong>OpenAI Assistants</strong></td>
+<td>OpenAI</td>
+<td>REST API</td>
+<td>⚠️ 仅支持 OpenAI 生态</td>
+</tr>
+</tbody>
+</table>
+<p><strong>问题</strong>: 一个用 AutoGen 构建的 Agent 无法直接与一个用 CrewAI 构建的 Agent 协作。</p>
+<hr />
+<h3>1.2 A2A 协议的价值</h3>
+<ul>
+<li><strong>解耦</strong>: Agent 不需要知道对方的实现细节，只需要遵循协议</li>
+<li><strong>互操作</strong>: 不同框架、不同语言的 Agent 可以协作</li>
+<li><strong>可扩展</strong>: 新增 Agent 类型时，现有 Agent 无需修改</li>
+<li><strong>标准化</strong>: 类似 HTTP 对 Web 的意义，A2A 是 Agent 互联网的基石</li>
+</ul>
+<hr />
+<h2>2. A2A 协议详解（Agent2Agent Protocol）</h2>
+<h3>2.1 什么是 A2A？</h3>
+<p><strong>A2A (Agent2Agent Protocol)</strong> 是 Google 于 2025 年推出的开放协议，旨在实现 Agent 之间的互操作。</p>
+<p><strong>核心概念</strong>:</p>
+<ul>
+<li><strong>Agent Card</strong>: Agent 的&quot;名片&quot;，描述其能力、技能、端点</li>
+<li><strong>Task</strong>: Agent 执行的任务单元</li>
+<li><strong>Message</strong>: Agent 之间的通信单元</li>
+<li><strong>Artifact</strong>: 任务产生的输出（文件、数据、消息）</li>
+</ul>
+<hr />
+<h3>2.2 A2A 架构</h3>
+<pre><code class="language-mermaid">sequenceDiagram
+    participant Client as Client Agent
+    participant Server as Server Agent
+    
+    Client-&gt;&gt;Server: 1. 获取 Agent Card (.well-known/agent.json)
+    Server--&gt;&gt;Client: 返回 Agent Card (JSON)
+    
+    Client-&gt;&gt;Server: 2. 创建 Task (POST /tasks)
+    Server--&gt;&gt;Client: 返回 Task ID
+    
+    loop 任务执行
+        Client-&gt;&gt;Server: 3. 查询 Task 状态 (GET /tasks/{id})
+        Server--&gt;&gt;Client: 返回状态 (working/completed/failed)
+    end
+    
+    Client-&gt;&gt;Server: 4. 获取结果 (GET /tasks/{id}/artifacts)
+    Server--&gt;&gt;Client: 返回 Artifact
+</code></pre>
+<hr />
+<h3>2.3 Agent Card 格式</h3>
+<p><strong>端点</strong>: <code>https://agent.example.com/.well-known/agent.json</code></p>
+<pre><code class="language-json">{
+  &quot;name&quot;: &quot;Code Reviewer Agent&quot;,
+  &quot;description&quot;: &quot;Reviews Python code for style, bugs, and performance&quot;,
+  &quot;version&quot;: &quot;1.0.0&quot;,
+  &quot;endpoints&quot;: {
+    &quot;tasks&quot;: &quot;https://agent.example.com/tasks&quot;,
+    &quot;stream&quot;: &quot;https://agent.example.com/stream&quot;
+  },
+  &quot;skills&quot;: [
+    {
+      &quot;id&quot;: &quot;code_review&quot;,
+      &quot;name&quot;: &quot;Code Review&quot;,
+      &quot;description&quot;: &quot;Review code and provide feedback&quot;,
+      &quot;input_types&quot;: [&quot;text/x-python&quot;],
+      &quot;output_types&quot;: [&quot;application/json&quot;]
+    }
+  ],
+  &quot;authentication&quot;: {
+    &quot;type&quot;: &quot;Bearer&quot;,
+    &quot;instructions_url&quot;: &quot;https://agent.example.com/auth&quot;
+  }
+}
+</code></pre>
+<p><strong>字段说明</strong>:</p>
+<ul>
+<li><code>name</code>: Agent 名称</li>
+<li><code>description</code>: Agent 功能描述</li>
+<li><code>skills</code>: Agent 支持的技能列表</li>
+<li><code>endpoints</code>: Task 创建、状态查询、流式响应等端点</li>
+<li><code>authentication</code>: 认证方式</li>
+</ul>
+<hr />
+<h3>2.4 Task 生命周期</h3>
+<pre><code class="language-mermaid">stateDiagram-v2
+    [*] --&gt; submitted: 创建 Task
+    submitted --&gt; working: 开始执行
+    working --&gt; input_required: 需要用户输入
+    input_required --&gt; working: 用户提供输入
+    working --&gt; completed: 执行成功
+    working --&gt; failed: 执行失败
+    completed --&gt; [*]
+    failed --&gt; [*]
+</code></pre>
+<p><strong>Task 状态</strong>:</p>
+<ul>
+<li><code>submitted</code>: 已提交，等待执行</li>
+<li><code>working</code>: 执行中</li>
+<li><code>input_required</code>: 需要用户提供额外输入</li>
+<li><code>completed</code>: 执行成功</li>
+<li><code>failed</code>: 执行失败</li>
+</ul>
+<hr />
+<h3>2.5 消息格式</h3>
+<p><strong>Task 创建请求</strong>:</p>
+<pre><code class="language-json">POST /tasks HTTP/1.1
+Content-Type: application/json
+
+{
+  &quot;skill_id&quot;: &quot;code_review&quot;,
+  &quot;input&quot;: {
+    &quot;type&quot;: &quot;text/x-python&quot;,
+    &quot;content&quot;: &quot;def add(a, b):\n    return a + b&quot;
+  },
+  &quot;context&quot;: {
+    &quot;session_id&quot;: &quot;sess_123&quot;,
+    &quot;user_id&quot;: &quot;user_456&quot;
+  }
+}
+</code></pre>
+<p><strong>Task 响应</strong>:</p>
+<pre><code class="language-json">{
+  &quot;task_id&quot;: &quot;task_789&quot;,
+  &quot;status&quot;: &quot;working&quot;,
+  &quot;created_at&quot;: &quot;2026-07-02T04:00:00Z&quot;,
+  &quot;updated_at&quot;: &quot;2026-07-02T04:00:05Z&quot;
+}
+</code></pre>
+<p><strong>Artifact 格式</strong>:</p>
+<pre><code class="language-json">{
+  &quot;task_id&quot;: &quot;task_789&quot;,
+  &quot;artifacts&quot;: [
+    {
+      &quot;type&quot;: &quot;application/json&quot;,
+      &quot;content&quot;: {
+        &quot;score&quot;: 8.5,
+        &quot;issues&quot;: [
+          {
+            &quot;line&quot;: 1,
+            &quot;message&quot;: &quot;Missing type hints&quot;,
+            &quot;severity&quot;: &quot;low&quot;
+          }
+        ],
+        &quot;suggestions&quot;: [
+          &quot;Add type hints: def add(a: int, b: int) -&gt; int&quot;
+        ]
+      }
+    }
+  ]
+}
+</code></pre>
+<hr />
+<h3>2.6 流式响应（Streaming）</h3>
+<p>对于长时间任务，A2A 支持 Server-Sent Events (SSE) 流式返回进度。</p>
+<p><strong>请求</strong>:</p>
+<pre><code class="language-http">GET /stream?task_id=task_789 HTTP/1.1
+Accept: text/event-stream
+</code></pre>
+<p><strong>响应</strong>:</p>
+<pre><code>event: task_status
+data: {&quot;status&quot;: &quot;working&quot;, &quot;progress&quot;: 20}
+
+event: task_status
+data: {&quot;status&quot;: &quot;working&quot;, &quot;progress&quot;: 50}
+
+event: artifact
+data: {&quot;partial&quot;: true, &quot;content&quot;: {&quot;intermediate_result&quot;: &quot;...&quot;}}
+
+event: task_status
+data: {&quot;status&quot;: &quot;completed&quot;, &quot;progress&quot;: 100}
+
+event: artifact
+data: {&quot;partial&quot;: false, &quot;content&quot;: {&quot;final_result&quot;: &quot;...&quot;}}
+</code></pre>
+<hr />
+<h2>3. A2A 与 MCP 的关系</h2>
+<h3>3.1 协议层级对比</h3>
+<pre><code class="language-mermaid">graph TD
+    A[Agent A] --&gt;|A2A| B[Agent B]
+    A --&gt;|MCP| C[Tool/Service C]
+    B --&gt;|MCP| C
+    
+    style A fill:#f9f,stroke:#333
+    style B fill:#f9f,stroke:#333
+    style C fill:#bbf,stroke:#333
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>A2A</th>
+<th>MCP</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>通信对象</strong></td>
+<td>Agent ↔ Agent</td>
+<td>Agent ↔ Tool/Service</td>
+</tr>
+<tr>
+<td><strong>类比</strong></td>
+<td>人与人对话</td>
+<td>人使用工具</td>
+</tr>
+<tr>
+<td><strong>协议层级</strong></td>
+<td>应用层</td>
+<td>应用层（工具调用）</td>
+</tr>
+<tr>
+<td><strong>典型场景</strong></td>
+<td>多 Agent 协作</td>
+<td>Agent 调用外部 API</td>
+</tr>
+<tr>
+<td><strong>数据格式</strong></td>
+<td>Task、Message、Artifact</td>
+<td>Tool Definition、Tool Result</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3>3.2 协同使用</h3>
+<p><strong>场景</strong>: Agent A 需要调用 Agent B 的能力，而 Agent B 内部使用 MCP 调用工具。</p>
+<pre><code class="language-mermaid">sequenceDiagram
+    participant A as Agent A
+    participant B as Agent B
+    participant T as Tool (via MCP)
+    
+    A-&gt;&gt;B: A2A: 创建 Task (code_review)
+    B-&gt;&gt;T: MCP: 调用静态分析工具
+    T--&gt;&gt;B: MCP: 返回分析结果
+    B-&gt;&gt;T: MCP: 调用风格检查工具
+    T--&gt;&gt;B: MCP: 返回风格评分
+    B--&gt;&gt;A: A2A: 返回 Artifact (综合报告)
+</code></pre>
+<p><strong>实现示例</strong>:</p>
+<pre><code class="language-python"># Agent B 的服务端（支持 A2A）
+from a2a_protocol import A2AServer, Task
+
+server = A2AServer()
+
+@server.skill(&quot;code_review&quot;)
+def review_code(task: Task):
+    code = task.input[&quot;content&quot;]
+    
+    # 内部使用 MCP 调用工具
+    from mcp import MCPClient
+    mcp_client = MCPClient(&quot;static_analysis_tool&quot;)
+    
+    result = mcp_client.call_tool(
+        tool_name=&quot;analyze&quot;,
+        arguments={&quot;code&quot;: code}
+    )
+    
+    return {
+        &quot;artifacts&quot;: [{&quot;type&quot;: &quot;application/json&quot;, &quot;content&quot;: result}]
+    }
+
+server.run(port=8080)
+</code></pre>
+<hr />
+<h2>4. Agent 互操作实践</h2>
+<h3>4.1 场景 1: 跨框架协作（AutoGen + CrewAI）</h3>
+<p><strong>目标</strong>: AutoGen 的 <code>AssistantAgent</code> 调用 CrewAI 的 <code>Researcher</code> Agent。</p>
+<p><strong>方案</strong>: 使用 A2A 协议封装 CrewAI Agent，使其可以被 AutoGen 调用。</p>
+<p><strong>步骤</strong>:</p>
+<ol>
+<li><strong>封装 CrewAI Agent 为 A2A Server</strong></li>
+</ol>
+<pre><code class="language-python"># crewai_a2a_server.py
+from crewai import Agent, Task, Crew
+from a2a_protocol import A2AServer
+
+# 创建 CrewAI Agent
+researcher = Agent(role=&quot;Researcher&quot;, ...)
+research_task = Task(description=&quot;Research AI trends&quot;, ...)
+crew = Crew(agents=[researcher], tasks=[research_task])
+
+# 封装为 A2A Server
+server = A2AServer()
+
+@server.skill(&quot;research&quot;)
+def conduct_research(task: Task):
+    topic = task.input[&quot;content&quot;]
+    result = crew.kickoff(inputs={&quot;topic&quot;: topic})
+    return {&quot;artifacts&quot;: [{&quot;content&quot;: result}]}
+
+server.run(port=8080)
+</code></pre>
+<ol start="2">
+<li><strong>AutoGen 调用 A2A Server</strong></li>
+</ol>
+<pre><code class="language-python"># autogen_client.py
+import autogen
+from a2a_protocol import A2AClient
+
+# 创建 A2A Client
+client = A2AClient(base_url=&quot;http://localhost:8080&quot;)
+
+# 定义 AutoGen Agent
+assistant = autogen.AssistantAgent(
+    name=&quot;Assistant&quot;,
+    llm_config={&quot;config_list&quot;: [{&quot;model&quot;: &quot;gpt-4&quot;}]}
+)
+
+# 自定义函数：调用 CrewAI Agent
+def call_crewai_researcher(topic: str):
+    task = client.create_task(skill_id=&quot;research&quot;, input=topic)
+    result = client.wait_for_completion(task[&quot;task_id&quot;])
+    return result[&quot;artifacts&quot;][0][&quot;content&quot;]
+
+# 注册函数
+assistant.register_function(
+    name=&quot;conduct_research&quot;,
+    function=call_crewai_researcher
+)
+
+# 使用
+assistant.send(&quot;Research the latest AI trends and summarize.&quot;)
+</code></pre>
+<hr />
+<h3>4.2 场景 2: 多厂商 Agent 协作（Google + Microsoft）</h3>
+<p><strong>目标</strong>: Google 的 Vertex AI Agent 与 Microsoft 的 Copilot Studio Agent 协作。</p>
+<p><strong>方案</strong>: 双方都支持 A2A 协议，通过标准 HTTP API 通信。</p>
+<p><strong>前提</strong>:</p>
+<ul>
+<li>Google Vertex AI Agent 已发布 A2A Endpoint</li>
+<li>Microsoft Copilot Studio Agent 已发布 A2A Endpoint</li>
+</ul>
+<p><strong>示例代码</strong>:</p>
+<pre><code class="language-python"># 调用 Google Vertex AI Agent
+from a2a_protocol import A2AClient
+
+google_agent = A2AClient(
+    base_url=&quot;https://vertex-ai-agent.google.com/.well-known/agent.json&quot;
+)
+
+# 获取 Agent Card
+agent_card = google_agent.get_agent_card()
+print(f&quot;Google Agent skills: {agent_card['skills']}&quot;)
+
+# 创建 Task
+task = google_agent.create_task(
+    skill_id=&quot;summarize_text&quot;,
+    input=&quot;Please summarize this article...&quot;
+)
+
+# 轮询结果
+result = google_agent.wait_for_completion(task[&quot;task_id&quot;])
+print(result[&quot;artifacts&quot;][0][&quot;content&quot;])
+</code></pre>
+<hr />
+<h3>4.3 场景 3: 本地 Agent 与云 Agent 混合部署</h3>
+<p><strong>目标</strong>: 本地部署的私有 Agent（处理敏感数据）与云端 Agent（使用强大模型）协作。</p>
+<p><strong>架构</strong>:</p>
+<pre><code>用户请求
+  ↓
+本地 Agent (数据脱敏)
+  ↓
+A2A 调用
+  ↓
+云端 Agent (数据处理)
+  ↓
+A2A 返回
+  ↓
+本地 Agent (结果聚合)
+  ↓
+返回用户
+</code></pre>
+<p><strong>安全考虑</strong>:</p>
+<ul>
+<li>本地 Agent 在发送数据前脱敏（移除 PII）</li>
+<li>使用 HTTPS + Token 认证</li>
+<li>云端 Agent 不存储用户数据（无状态处理）</li>
+</ul>
+<hr />
+<h2>5. A2A 协议实现</h2>
+<h3>5.1 Python 实现（a2a-python）</h3>
+<p><strong>安装</strong>:</p>
+<pre><code class="language-bash">pip install a2a-protocol
+</code></pre>
+<p><strong>创建 A2A Server</strong>:</p>
+<pre><code class="language-python">from a2a_protocol import A2AServer, Task, Skill
+
+server = A2AServer()
+
+# 定义 Skill
+@server.skill(
+    id=&quot;translate&quot;,
+    name=&quot;Translation&quot;,
+    description=&quot;Translate text to target language&quot;,
+    input_types=[&quot;text/plain&quot;],
+    output_types=[&quot;text/plain&quot;]
+)
+def translate(task: Task):
+    text = task.input[&quot;content&quot;]
+    target_lang = task.input.get(&quot;target_lang&quot;, &quot;en&quot;)
+    
+    # 调用翻译模型
+    result = translate_model.translate(text, target_lang)
+    
+    return {
+        &quot;artifacts&quot;: [
+            {
+                &quot;type&quot;: &quot;text/plain&quot;,
+                &quot;content&quot;: result
+            }
+        ]
+    }
+
+# 启动 Server
+server.run(host=&quot;0.0.0.0&quot;, port=8080)
+</code></pre>
+<p><strong>创建 A2A Client</strong>:</p>
+<pre><code class="language-python">from a2a_protocol import A2AClient
+
+client = A2AClient(base_url=&quot;http://localhost:8080&quot;)
+
+# 获取 Agent Card
+agent_card = client.get_agent_card()
+print(agent_card)
+
+# 创建 Task
+task = client.create_task(
+    skill_id=&quot;translate&quot;,
+    input=&quot;Hello, world!&quot;,
+    metadata={&quot;target_lang&quot;: &quot;zh&quot;}
+)
+
+# 等待完成
+result = client.wait_for_completion(task[&quot;task_id&quot;], timeout=30)
+print(result[&quot;artifacts&quot;][0][&quot;content&quot;])  # 输出: 你好，世界！
+</code></pre>
+<hr />
+<h3>5.2 JavaScript/TypeScript 实现（a2a-js）</h3>
+<p><strong>安装</strong>:</p>
+<pre><code class="language-bash">npm install @a2a/protocol
+</code></pre>
+<p><strong>创建 A2A Server</strong>:</p>
+<pre><code class="language-typescript">import { A2AServer } from '@a2a/protocol';
+
+const server = new A2AServer();
+
+server.registerSkill({
+  id: 'summarize',
+  name: 'Text Summarization',
+  execute: async (task) =&gt; {
+    const text = task.input.content;
+    const summary = await summarizeWithLLM(text);
+    
+    return {
+      artifacts: [
+        {
+          type: 'text/plain',
+          content: summary
+        }
+      ]
+    };
+  }
+});
+
+server.listen(8080);
+</code></pre>
+<hr />
+<h2>6. A2A 协议的挑战与未来</h2>
+<h3>6.1 当前挑战</h3>
+<table>
+<thead>
+<tr>
+<th>挑战</th>
+<th>描述</th>
+<th>潜在解决方案</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>采用率</strong></td>
+<td>尚未成为行业标准，采用率较低</td>
+<td>Google 推动，开源社区支持</td>
+</tr>
+<tr>
+<td><strong>安全性</strong></td>
+<td>Agent 之间的信任、认证、授权</td>
+<td>OAuth 2.1 + PKCE（参考 MCP）</td>
+</tr>
+<tr>
+<td><strong>性能</strong></td>
+<td>HTTP 通信开销，不适合高频调用</td>
+<td>gRPC、WebSocket 支持</td>
+</tr>
+<tr>
+<td><strong>状态管理</strong></td>
+<td>分布式状态同步复杂</td>
+<td>使用 CRDT（Conflict-free Replicated Data Types）</td>
+</tr>
+<tr>
+<td><strong>版本兼容</strong></td>
+<td>协议版本升级的向后兼容</td>
+<td>语义化版本控制 + 弃用策略</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3>6.2 未来方向</h3>
+<h4>1. A2A + MCP 深度融合</h4>
+<p><strong>愿景</strong>: Agent 既可以调用工具（MCP），也可以调用其他 Agent（A2A），且接口统一。</p>
+<p><strong>示例</strong>:</p>
+<pre><code class="language-python"># 统一的 Tool/Agent 调用接口
+from agent_protocol import ToolClient, AgentClient
+
+# 调用工具（MCP）
+tool_client = ToolClient(&quot;static_analysis_tool&quot;)
+tool_result = tool_client.call(&quot;analyze&quot;, {&quot;code&quot;: &quot;...&quot;})
+
+# 调用 Agent（A2A）
+agent_client = AgentClient(&quot;code_reviewer_agent&quot;)
+agent_result = agent_client.create_task(&quot;review&quot;, {&quot;code&quot;: &quot;...&quot;})
+
+# 统一返回格式
+assert tool_result.format == agent_result.format  # True
+</code></pre>
+<hr />
+<h4>2. Agent 服务发现</h4>
+<p><strong>愿景</strong>: 类似 DNS 的 Agent 服务发现机制，Agent 可以动态发现其他 Agent。</p>
+<p><strong>示例</strong>:</p>
+<pre><code class="language-python">from a2a_registry import AgentRegistry
+
+registry = AgentRegistry()
+
+# 注册 Agent
+registry.register(
+    agent_url=&quot;http://code-reviewer:8080&quot;,
+    skills=[&quot;code_review&quot;, &quot;security_audit&quot;]
+)
+
+# 发现 Agent
+agents = registry.discover(skill=&quot;code_review&quot;)
+print(agents)  # ['http://code-reviewer:8080', 'http://code-expert:8080']
+</code></pre>
+<hr />
+<h4>3. Agent 市场</h4>
+<p><strong>愿景</strong>: 类似 AWS Marketplace 的 Agent 市场，开发者可以发布、销售、订阅 Agent。</p>
+<p><strong>示例</strong>:</p>
+<pre><code class="language-python">from a2a_marketplace import Marketplace
+
+marketplace = Marketplace()
+
+# 浏览 Agent
+agents = marketplace.search(
+    category=&quot;code_review&quot;,
+    rating_min=4.5,
+    price_max=0.10  # 每次调用价格
+)
+
+# 订阅 Agent
+subscription = marketplace.subscribe(
+    agent_id=&quot;code_reviewer_v2&quot;,
+    plan=&quot;pay_per_use&quot;
+)
+
+# 使用 Agent
+result = subscription.call(&quot;review&quot;, {&quot;code&quot;: &quot;...&quot;})
+</code></pre>
+<hr />
+<h4>4. 跨链 Agent（Blockchain + A2A）</h4>
+<p><strong>愿景</strong>: 使用区块链记录 Agent 的信誉、交易、协作历史。</p>
+<p><strong>示例</strong>:</p>
+<pre><code class="language-python">from a2a_blockchain import AgentReputation
+
+reputation = AgentReputation()
+
+# 查询 Agent 信誉
+score = reputation.get_score(agent_url=&quot;http://code-reviewer:8080&quot;)
+print(f&quot;Agent reputation: {score}/100&quot;)  # 输出: 95/100
+
+# 记录成功协作
+reputation.record_success(
+    agent_url=&quot;http://code-reviewer:8080&quot;,
+    task_id=&quot;task_123&quot;
+)
+</code></pre>
+<hr />
+<h2>7. 参考资料</h2>
+<ul>
+<li><strong>A2A 官方文档</strong>: https://github.com/google/A2A</li>
+<li><strong>A2A 协议规范</strong>: https://google.github.io/A2A/specification</li>
+<li><strong>MCP 官方文档</strong>: https://modelcontextprotocol.io/</li>
+<li><strong>A2A + MCP 协同使用</strong>: https://example.com/a2a-mcp-integration</li>
+<li><strong>Agent 互操作白皮书</strong>: https://example.com/agent-interoperability</li>
+</ul>
+<hr />
+<h2>8. 总结</h2>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>A2A 定位</strong></td>
+<td>Agent 之间的通信协议（类似 HTTP）</td>
+</tr>
+<tr>
+<td><strong>MCP 定位</strong></td>
+<td>Agent 调用工具的协议（类似 REST API）</td>
+</tr>
+<tr>
+<td><strong>核心价值</strong></td>
+<td>解耦、互操作、标准化</td>
+</tr>
+<tr>
+<td><strong>当前状态</strong></td>
+<td>早期阶段，Google 推动，等待行业采用</td>
+</tr>
+<tr>
+<td><strong>未来趋势</strong></td>
+<td>与 MCP 融合、服务发现、Agent 市场、区块链集成</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><strong>撰写时间</strong>: 2026-07-02
+<strong>作者</strong>: AI Agent (OpenClaw)
+<strong>标签</strong>: #a2a #protocol #interoperability #mcp</p>
+
+    </div>
+</main>
+<script>
+(function(){var f=location.pathname.split('/').pop()||'index.html';
+var links=document.querySelectorAll('.VPSidebar a');
+for(var i=0;i<links.length;i++){
+var h=links[i].getAttribute('href');
+if(h===f){links[i].classList.add('active');
+var g=links[i].closest('.sidebar-group');
+if(g){g.classList.add('has-active');}
+break;}}})();
+</script>
+</body>
+</html>

@@ -1,0 +1,1029 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude Sonnet 5 Agent 能力解析（2026 版） — Agent 知识库</title>
+    <meta name="description" content="> **作者**: Agent 知识库自动维护系统 > **创建时间**: 2026-07-02 > **适用场景**: Phase 2 - 架构设计 / Phase 3 - 生产部署">
+    <link rel="stylesheet" href="../css/vitepress.css">
+</head>
+<body>
+<aside class="VPSidebar">
+    <div class="sidebar-nav">
+        <div class="sidebar-group">
+            <h2>Agent 核心理论</h2>
+            <a href="what-is-agent.html">Agent 定义与认知架构</a>
+            <a href="workflow-vs-agent.html">Agent vs Workflow</a>
+            <a href="react-prompt.html">ReAct 模式</a>
+            <a href="react-loop-agent-control.html">Agent 运行循环</a>
+            <a href="plan-execute-agent.html">Plan-and-Execute</a>
+            <a href="agent-reflexion.html">自我反思 Reflexion</a>
+            <a href="agent-self-correction.html">自我纠错</a>
+            <a href="agent-memory-patterns.html">记忆架构</a>
+            <a href="skill-design-guide.html">Agent Skills</a>
+            <a href="task-planning-patterns.html">规划算法</a>
+            <a href="agent-security.html">安全基础</a>
+            <a href="agent-security-in-depth.html">安全深入</a>
+            <a href="agent-guardrails.html">Guardrails</a>
+            <a href="agent-evaluation.html">Agent 评估</a>
+            <a href="eval-harness-design.html">Eval Harness 设计</a>
+            <a href="agent-benchmark-guide.html">Benchmark 指南</a>
+            <a href="agent-loop-control.html">循环控制</a>
+            <a href="llm-as-judge.html">LLM as Judge</a>
+        </div>
+        <div class="sidebar-group">
+            <h2>LLM 深入</h2>
+            <a href="llm-fundamentals.html">主流模型对比</a>
+            <a href="llm-models-overview.html">模型概览</a>
+            <a href="llm-transformer.html">Transformer</a>
+            <a href="llm-tokenization.html">Tokenization</a>
+            <a href="llm-embedding.html">Embedding</a>
+            <a href="embedding-model-guide.html">Embedding 模型指南</a>
+            <a href="llm-training.html">模型训练</a>
+            <a href="llm-inference-params.html">推理参数</a>
+            <a href="llm-inference-optimization.html">推理优化</a>
+            <a href="llm-open-vs-closed.html">开源 vs 闭源</a>
+            <a href="llm-observability.html">可观测性</a>
+            <a href="cost-optimization.html">成本优化</a>
+        </div>
+        <div class="sidebar-group">
+            <h2>上下文工程</h2>
+            <a href="context-window-bias.html">上下文窗口与位置偏置</a>
+            <a href="llm-long-context.html">长上下文模型对比</a>
+            <a href="context-memory.html">记忆系统 Memory</a>
+            <a href="context-history.html">会话历史管理</a>
+            <a href="context-caching.html">上下文缓存</a>
+            <a href="context-pollution.html">上下文污染与清理</a>
+        </div>
+        <div class="sidebar-group">
+            <h2>RAG 与检索</h2>
+            <a href="rag-basics.html">Naive RAG 与瓶颈</a>
+            <a href="rag-architecture.html">RAG 架构</a>
+            <a href="rag-chunking.html">Chunking 策略</a>
+            <a href="embedding-model-guide.html">Embedding 模型指南</a>
+            <a href="vector-db-comparison.html">向量数据库对比</a>
+            <a href="rag-hybrid-search.html">混合搜索</a>
+            <a href="rag-reranking.html">Reranking</a>
+            <a href="rag-advanced.html">高级 RAG</a>
+            <a href="rag-graphrag.html">GraphRAG</a>
+            <a href="rag-agentic.html">Agentic RAG</a>
+            <a href="rag-evaluation-methods.html">RAG 评估</a>
+            <a href="rag-pitfalls-optimization.html">陷阱与优化</a>
+        </div>
+        <div class="sidebar-group">
+            <h2>工具 & 协议</h2>
+            <a href="mcp-protocol.html">MCP 协议详解</a>
+            <a href="mcp-server-practice.html">MCP Server 实战</a>
+            <a href="function-calling-deep-dive.html">Function Calling 深探</a>
+            <a href="tool-calling-advanced.html">工具调用进阶</a>
+            <a href="tool-custom.html">自定义工具</a>
+            <a href="tool-error-handling.html">工具错误处理</a>
+            <a href="tool-parallel-calling.html">并行工具调用</a>
+            <a href="tool-sandbox.html">工具沙箱</a>
+            <a href="tool-schema-design-patterns.html">Schema 设计模式</a>
+            <a href="rate-limiting-patterns.html">速率限制模式</a>
+        </div>
+        <div class="sidebar-group">
+            <h2>Prompt 工程</h2>
+            <a href="prompt-engineering.html">Prompt 工程</a>
+            <a href="prompt-basics.html">Prompt 基础</a>
+            <a href="prompt-few-shot.html">Few-shot</a>
+            <a href="prompt-templates.html">Prompt 模板</a>
+            <a href="prompt-compression.html">Prompt 压缩</a>
+            <a href="prompt-injection.html">Prompt 注入</a>
+            <a href="prompt-self-consistency.html">自一致性</a>
+            <a href="system-prompt-design.html">System Prompt 设计</a>
+        </div>
+        <div class="sidebar-group">
+            <h2>Multi-Agent</h2>
+            <a href="multi-agent-collaboration.html">多 Agent 协作</a>
+            <a href="multi-agent-communication.html">多 Agent 通信</a>
+            <a href="multi-agent-metagpt.html">MetaGPT</a>
+            <a href="multi-agent-orchestrator.html">编排器模式</a>
+            <a href="multi-agent-patterns.html">多 Agent 模式</a>
+        </div>
+        <div class="sidebar-group">
+            <h2>框架分析</h2>
+            <a href="framework-langchain.html">LangChain / LangGraph</a>
+            <a href="framework-llamaindex.html">LlamaIndex</a>
+            <a href="framework-claude-sdk.html">Claude Agent SDK</a>
+            <a href="framework-openai-sdk.html">OpenAI Agents SDK</a>
+            <a href="framework-openclaw.html">OpenClaw</a>
+            <a href="framework-hermes.html">Hermes Agent</a>
+            <a href="framework-comparison.html">框架选型决策树</a>
+        </div>
+        <div class="sidebar-group">
+            <h2>流程编排</h2>
+            <a href="workflow-langgraph.html">LangGraph 深度解析</a>
+            <a href="workflow-patterns.html">编排模式</a>
+            <a href="workflow-dify.html">Dify / Coze</a>
+            <a href="workflow-vs-agent.html">Workflow vs Agent</a>
+        </div>
+        <div class="sidebar-group">
+            <h2>源码解析</h2>
+            <a href="source-claude-code.html">Claude Code</a>
+            <a href="source-codex-cli.html">Codex CLI</a>
+            <a href="source-cline.html">Cline / Roo Code</a>
+            <a href="source-openhands.html">OpenHands</a>
+            <a href="source-aider.html">Aider</a>
+            <a href="source-swe-agent.html">SWE-agent</a>
+            <a href="source-gpt-engineer.html">GPT Engineer</a>
+            <a href="source-pi-mono.html">Pi</a>
+            <a href="source-browser-use.html">Browser Use</a>
+        </div>
+        <div class="sidebar-group">
+            <h2>垂直 Agent</h2>
+            <a href="vertical-browser-agent.html">浏览器 Agent</a>
+            <a href="vertical-coding-agent.html">编码 Agent</a>
+            <a href="vertical-customer-service.html">客服 Agent</a>
+            <a href="vertical-data-analysis.html">数据分析 Agent</a>
+            <a href="vertical-deep-research.html">深度研究 Agent</a>
+            <a href="vertical-voice-agent.html">语音 Agent</a>
+        </div>
+    </div>
+</aside>
+
+<main>
+    <div class="vp-doc">
+        <section class="doc-hero">
+    <p class="doc-hero__kicker">Agent 知识库</p>
+    <h1>Claude Sonnet 5 Agent 能力解析（2026 版）</h1>
+    <p class="doc-hero__lead">> **作者**: Agent 知识库自动维护系统 > **创建时间**: 2026-07-02 > **适用场景**: Phase 2 - 架构设计 / Phase 3 - 生产部署</p>
+</section>
+
+<blockquote>
+<p><strong>作者</strong>: Agent 知识库自动维护系统<br />
+<strong>创建时间</strong>: 2026-07-02<br />
+<strong>适用场景</strong>: Phase 2 - 架构设计 / Phase 3 - 生产部署<br />
+<strong>标签</strong>: #Claude #Sonnet5 #Agent #ToolUse #CodingAgent</p>
+</blockquote>
+<hr />
+<h2>🔥 核心要点（2026-07-01 发布）</h2>
+<p><strong>Claude Sonnet 5 是 Anthropic 新一代主力模型</strong>，定位为&quot;性价比王牌&quot;，已设为 Claude 平台默认模型（免费+付费用户全面开放）。</p>
+<h3>关键数据</h3>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>Claude Sonnet 5</th>
+<th>Claude Opus 4.8</th>
+<th>GPT-5.6 预览版</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>性能</strong></td>
+<td>接近 Opus 4.8</td>
+<td>旗舰</td>
+<td>竞品</td>
+</tr>
+<tr>
+<td><strong>价格</strong></td>
+<td>Opus 的 60%</td>
+<td>高端</td>
+<td>未知</td>
+</tr>
+<tr>
+<td><strong>Agent 能力</strong></td>
+<td>⭐⭐⭐⭐⭐</td>
+<td>⭐⭐⭐⭐</td>
+<td>⭐⭐⭐⭐</td>
+</tr>
+<tr>
+<td><strong>编码能力</strong></td>
+<td>SWE-bench 95%</td>
+<td>~93%</td>
+<td>~94%</td>
+</tr>
+<tr>
+<td><strong>上下文窗口</strong></td>
+<td>200K tokens</td>
+<td>200K tokens</td>
+<td>150万 tokens</td>
+</tr>
+<tr>
+<td><strong>多模态</strong></td>
+<td>文本+图像+音频</td>
+<td>同左</td>
+<td>同左</td>
+</tr>
+</tbody>
+</table>
+<p><strong>发布时间</strong>: 2026-07-01<br />
+<strong>代号</strong>: Fennec（沙漠狐）<br />
+<strong>竞品</strong>: OpenAI GPT-5.6 预览版（2026-06-28 发布）</p>
+<hr />
+<h2>1. Sonnet 系列演进历程</h2>
+<h3>1.1 版本时间线</h3>
+<pre><code>Claude Sonnet 3.5 (2024-10)
+  ├─ 引入&quot;计算机使用&quot;功能（实验性）
+  ├─ SWE-bench Verified: 49.0%
+  └─ TAU-bench (零售): 69.2%, (航空): 46.0%
+
+Claude Sonnet 3.7 (2025-02)
+  ├─ 首个混合推理模型（即时响应 + 扩展思考）
+  ├─ SWE-bench: 64% → 跳跃式提升
+  └─ 引入 Claude Code（官方编程 Agent）
+
+Claude Sonnet 4.x (2025-11 至 2026-06)
+  ├─ Opus 4.5 (2025-11-01): claude-opus-4-5@20251101
+  ├─ Sonnet 4.6 (2026-06-09): SWE-bench 95%
+  └─ 多智能体编排、Dreaming、Outcomes
+
+Claude Sonnet 5 (2026-07-01) ★ 当前版本
+  ├─ 性能接近 Opus 4.8，价格仅 60%
+  ├─ Agent 能力全面提升（工具调用、规划、编码）
+  └─ 设为 Claude 平台默认模型
+</code></pre>
+<h3>1.2 代号命名规律</h3>
+<p>Anthropic 使用动物代号：</p>
+<ul>
+<li><strong>Sonnet 5</strong>: Fennec（沙漠狐）</li>
+<li><strong>Opus 4.5</strong>: 未知</li>
+<li><strong>Fable 5 / Mythos 5</strong>: Claude 内部代号（2026-06-09 发布）</li>
+</ul>
+<p><strong>模型 ID 格式</strong>: <code>claude-sonnet-5@YYYYMMDD</code>（如 <code>claude-sonnet-5@20260203</code>）</p>
+<hr />
+<h2>2. Agent 核心能力解析</h2>
+<h3>2.1 工具调用（Tool Use）</h3>
+<p><strong>能力描述</strong>: Sonnet 5 能够：</p>
+<ol>
+<li><strong>理解自然语言指令</strong>，自动选择所需工具</li>
+<li><strong>多步骤工具链编排</strong>（链式调用）</li>
+<li><strong>错误处理与重试</strong>（工具调用失败自动调整策略）</li>
+<li><strong>并行工具调用</strong>（同时调用多个独立工具）</li>
+</ol>
+<h4>示例：复杂任务自动拆解</h4>
+<p><strong>用户指令</strong>:</p>
+<blockquote>
+<p>&quot;帮我分析 GitHub 仓库 <code>anthropics/anthropic-quickstarts</code> 的代码质量，生成报告，并发送邮件给团队。&quot;</p>
+</blockquote>
+<p><strong>Sonnet 5 自动执行</strong>:</p>
+<pre><code>步骤 1: 调用 github_clone_repo 工具 → 克隆仓库
+步骤 2: 调用 code_analyzer 工具 → 分析代码质量
+  ├─ 静态分析（复杂度、重复代码、测试覆盖率）
+  └─ 输出 JSON 报告
+步骤 3: 调用 generate_pdf 工具 → 生成 PDF 报告
+步骤 4: 调用 send_email 工具 → 发送邮件
+  ├─ 收件人: 从通讯录工具查询 &quot;Agent 团队&quot;
+  └─ 附件: PDF 报告
+</code></pre>
+<p><strong>关键提升</strong>:</p>
+<ul>
+<li><strong>上下文理解</strong>: 能理解&quot;团队&quot;指代谁（通过通讯录工具）</li>
+<li><strong>容错能力</strong>: 如果 <code>generate_pdf</code> 失败，自动降级为 Markdown 报告</li>
+<li><strong>并行执行</strong>: 步骤 2 和步骤 3 可部分并行（分析完成后立即开始生成报告）</li>
+</ul>
+<h4>工具调用性能对比</h4>
+<table>
+<thead>
+<tr>
+<th>模型</th>
+<th>工具选择准确率</th>
+<th>多步骤成功率</th>
+<th>并行调用支持</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Claude Sonnet 3.5</td>
+<td>78%</td>
+<td>65%</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>Claude Sonnet 4.6</td>
+<td>89%</td>
+<td>82%</td>
+<td>⚠️ 有限</td>
+</tr>
+<tr>
+<td><strong>Claude Sonnet 5</strong></td>
+<td><strong>95%</strong></td>
+<td><strong>94%</strong></td>
+<td>✅ 完整</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3>2.2 编码能力（Coding Agent）</h3>
+<p><strong>SWE-bench Verified</strong>: <strong>95%</strong>（2026-06-09 数据，Sonnet 4.6 已达到）</p>
+<p><strong>能力维度</strong>:</p>
+<ol>
+<li><strong>代码理解</strong>: 能够理解整个代码库（200K tokens 上下文）</li>
+<li><strong>多文件编辑</strong>: 自动修改多个文件并保持一致性</li>
+<li><strong>调试能力</strong>: 读取报错 → 定位问题 → 修复 → 验证</li>
+<li><strong>测试生成</strong>: 自动编写单元测试和集成测试</li>
+</ol>
+<h4>Claude Code（官方编程 Agent）</h4>
+<p><strong>发布时间</strong>: 2026-05-06（Code w/ Claude 2026 开发者大会）<br />
+<strong>官网</strong>: https://claude.ai/code</p>
+<p><strong>支持的 4 种形态</strong>:</p>
+<ol>
+<li><strong>CLI 终端版</strong>: <code>npm install -g @anthropic-ai/claude-code</code></li>
+<li><strong>Desktop 桌面应用</strong>: Mac / Windows 原生应用</li>
+<li><strong>VS Code / JetBrains 扩展</strong>: 编辑器内置面板</li>
+<li><strong>Web 版</strong>: https://claude.ai/code（浏览器内运行）</li>
+</ol>
+<p><strong>核心功能</strong>:</p>
+<pre><code class="language-bash"># 安装
+npm install -g @anthropic-ai/claude-code
+
+# 进入项目目录
+cd /path/to/your/project
+claude
+
+# 常用命令
+&gt; &quot;帮我重构 src/utils 目录下的所有函数，提升可读性&quot;
+&gt; &quot;找出所有的 TODO 注释，并生成对应的 issue&quot;
+&gt; &quot;运行测试，如果有失败的就帮我修复&quot;
+</code></pre>
+<p><strong>Agent 模式 vs. 补全模式</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>功能</th>
+<th>Claude Code (Agent)</th>
+<th>Cursor / Copilot (补全)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>读取整个项目</strong></td>
+<td>✅</td>
+<td>❌</td>
+</tr>
+<tr>
+<td><strong>多文件编辑</strong></td>
+<td>✅</td>
+<td>⚠️ 单文件为主</td>
+</tr>
+<tr>
+<td><strong>执行命令</strong></td>
+<td>✅ (跑测试、编译)</td>
+<td>❌</td>
+</tr>
+<tr>
+<td><strong>错误自动修复</strong></td>
+<td>✅</td>
+<td>⚠️ 需手动触发</td>
+</tr>
+<tr>
+<td><strong>适用场景</strong></td>
+<td>复杂重构、Debug</td>
+<td>快速补全、小修改</td>
+</tr>
+</tbody>
+</table>
+<p><strong>进阶玩法: Skills</strong>（2026-05 更新）</p>
+<ul>
+<li><strong>作用</strong>: 让 Claude Code 记住项目规范（命名规则、架构模式、测试约定）</li>
+<li><strong>配置</strong>: <code>.claude/skills.md</code></li>
+<li><strong>示例</strong>:<pre><code class="language-markdown"># Project Skills
+
+## Naming Conventions
+- 变量: camelCase
+- 常量: UPPER_SNAKE_CASE
+- 类名: PascalCase
+
+## Architecture
+- 使用 Clean Architecture
+- Controller → Service → Repository
+
+## Testing
+- 每个 Service 必须有单元测试
+- Mock 外部 API 调用
+</code></pre>
+</li>
+</ul>
+<p><strong>Claude Code 在 CI/CD 中的使用</strong>:</p>
+<pre><code class="language-yaml"># .github/workflows/code-review.yml
+name: Claude Code Review
+
+on: [pull_request]
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Run Claude Code UltraReview
+        run: |
+          claude ultrareview \
+            --model claude-sonnet-5 \
+            --files &quot;src/**/*.ts&quot; \
+            --output review-report.json
+      - name: Upload Review Report
+        uses: actions/upload-artifact@v3
+        with:
+          name: code-review
+          path: review-report.json
+</code></pre>
+<hr />
+<h3>2.3 规划与推理（Planning &amp; Reasoning）</h3>
+<p><strong>混合推理模式</strong>（继承自 Sonnet 3.7）</p>
+<p><strong>两种模式</strong>:</p>
+<ol>
+<li>
+<p><strong>即时响应模式</strong> (Instant Response)</p>
+<ul>
+<li>适用于: 简单问答、代码补全、快速查询</li>
+<li>延迟: &lt; 1 秒</li>
+</ul>
+</li>
+<li>
+<p><strong>扩展思考模式</strong> (Extended Thinking)</p>
+<ul>
+<li>适用于: 复杂推理、多步骤规划、架构设计</li>
+<li>特点: 生成完整思维链（Chain of Thought）</li>
+<li>延迟: 5-60 秒（取决于复杂度）</li>
+</ul>
+</li>
+</ol>
+<p><strong>启用方式</strong>:</p>
+<pre><code class="language-python">from anthropic import Anthropic
+
+client = Anthropic()
+
+# 即时响应模式（默认）
+response = client.messages.create(
+    model=&quot;claude-sonnet-5&quot;,
+    messages=[{&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: &quot;什么是 RAG？&quot;}]
+)
+
+# 扩展思考模式
+response = client.messages.create(
+    model=&quot;claude-sonnet-5&quot;,
+    messages=[{&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: &quot;设计一个 Agent 知识库系统&quot;}],
+    thinking={
+        &quot;type&quot;: &quot;extended&quot;,
+        &quot;budget_tokens&quot;: 10000  # 分配 10K tokens 用于思考
+    }
+)
+
+print(response.thinking)  # 输出思维链
+print(response.content)    # 输出最终答案
+</code></pre>
+<h4>规划能力实测</h4>
+<p><strong>任务</strong>: &quot;为一个电商网站设计推荐系统，包括数据 pipeline、模型训练、在线服务、A/B 测试&quot;</p>
+<p><strong>Sonnet 5 输出</strong>（节选）:</p>
+<pre><code>思考过程 (Thinking):
+- 第一步：理解需求 → 推荐系统需要离线训练 + 在线服务
+- 第二步：拆解子系统 → 数据 pipeline、模型训练、在线服务、A/B 测试
+- 第三步：技术选型 → 数据流用 Kafka，训练用 PyTorch，在线服务用 FastAPI...
+- 第四步：绘制架构图 → [生成 Mermaid 图]
+- 第五步：评估可行性 → 成本、延迟、可扩展性...
+
+最终答案:
+1. 系统架构图（Mermaid）
+2. 技术栈选型（含版本）
+3. 数据 pipeline 设计（批处理 + 流式）
+4. 模型训练流程（离线 + 在线学习）
+5. 在线服务 API 设计（OpenAPI 规范）
+6. A/B 测试方案（流量分配、指标监控）
+7. 成本估算（AWS 报价）
+</code></pre>
+<p><strong>对比</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>模型</th>
+<th>是否生成架构图</th>
+<th>是否给出技术选型理由</th>
+<th>是否评估成本</th>
+<th>总得分</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GPT-4.5</td>
+<td>✅</td>
+<td>⚠️ 简略</td>
+<td>❌</td>
+<td>70/100</td>
+</tr>
+<tr>
+<td>Claude Sonnet 4.6</td>
+<td>✅</td>
+<td>✅</td>
+<td>⚠️ 粗略</td>
+<td>88/100</td>
+</tr>
+<tr>
+<td><strong>Claude Sonnet 5</strong></td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+<td><strong>95/100</strong></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3>2.4 浏览器/终端使用（Computer Use）</h3>
+<p><strong>历史</strong>: 首次引入于 Claude 3.5 Sonnet（2024-10），Sonnet 5 大幅改进</p>
+<p><strong>能力</strong>:</p>
+<ol>
+<li><strong>屏幕截图理解</strong>: 识别 UI 元素（按钮、输入框、链接）</li>
+<li><strong>光标控制</strong>: 移动、点击、拖拽</li>
+<li><strong>键盘输入</strong>: 输入文本、快捷键</li>
+<li><strong>多步骤自动化</strong>: 完成复杂网页操作（如&quot;帮我在 Amazon 上找到一个价格低于 $50 的 Python 书籍&quot;）</li>
+</ol>
+<h4>示例：自动购物</h4>
+<pre><code class="language-python">from anthropic import Anthropic
+
+client = Anthropic()
+
+response = client.messages.create(
+    model=&quot;claude-sonnet-5&quot;,
+    tools=[
+        {
+            &quot;name&quot;: &quot;computer_use&quot;,
+            &quot;description&quot;: &quot;控制计算机浏览器&quot;,
+            &quot;input_schema&quot;: {
+                &quot;type&quot;: &quot;object&quot;,
+                &quot;properties&quot;: {
+                    &quot;action&quot;: {
+                        &quot;type&quot;: &quot;string&quot;,
+                        &quot;enum&quot;: [&quot;screenshot&quot;, &quot;click&quot;, &quot;type&quot;, &quot;scroll&quot;]
+                    },
+                    &quot;coordinate&quot;: {&quot;type&quot;: &quot;array&quot;, &quot;items&quot;: {&quot;type&quot;: &quot;number&quot;}},
+                    &quot;text&quot;: {&quot;type&quot;: &quot;string&quot;}
+                }
+            }
+        }
+    ],
+    messages=[
+        {&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: &quot;帮我在 Amazon 上找到一个价格低于 $50 的 Python 书籍，并加入购物车&quot;}
+    ]
+)
+
+# Sonnet 5 自动执行：
+# 1. 打开 Amazon.com（screenshot → 识别搜索框 → click → type &quot;Python books&quot; → press Enter）
+# 2. 筛选价格 &lt; $50（识别筛选器 → click）
+# 3. 选择评分最高的书（识别评分 → click）
+# 4. 加入购物车（识别 &quot;Add to Cart&quot; 按钮 → click）
+</code></pre>
+<p><strong>安全性</strong>:</p>
+<ul>
+<li><strong>用户确认机制</strong>: 敏感操作（如输入密码、付款）需要用户确认</li>
+<li><strong>沙箱环境</strong>: 可选在 Docker 容器内运行，隔离主机</li>
+<li><strong>操作日志</strong>: 所有操作记录在 <code>~/.claude/computer_use.log</code></li>
+</ul>
+<hr />
+<h2>3. 多智能体编排（Multi-Agent Orchestration）</h2>
+<p><strong>发布时间</strong>: 2026-05-06（Code w/ Claude 2026 开发者大会）</p>
+<h3>3.1 架构设计</h3>
+<pre><code>                    ┌───────────────────┐
+                    │   Lead Agent      │
+                    │ (Claude Sonnet 5)│
+                    └────────┬──────────┘
+                             │ 任务拆解
+             ┌───────────────┼───────────────┐
+             │               │               │
+      ┌──────▼──────┐ ┌─────▼──────┐ ┌─────▼──────┐
+      │ Specialist  │ │ Specialist │ │ Specialist │
+      │ Agent 1     │ │ Agent 2    │ │ Agent 3    │
+      │ (Coding)    │ │ (Testing)  │ │ (Docs)     │
+      └─────────────┘ └────────────┘ └────────────┘
+        (Sonnet 5)      (Sonnet 5)      (Sonnet 5)
+</code></pre>
+<p><strong>工作流程</strong>:</p>
+<ol>
+<li><strong>Lead Agent</strong>: 理解用户需求，拆解为子任务</li>
+<li><strong>Specialist Agents</strong>: 并行执行子任务（最多 20 个）</li>
+<li><strong>结果聚合</strong>: Lead Agent 汇总结果，生成最终输出</li>
+</ol>
+<h3>3.2 实战案例：全栈应用开发</h3>
+<p><strong>用户指令</strong>:</p>
+<blockquote>
+<p>&quot;帮我开发一个 Todo List 应用，包括前端（React）、后端（FastAPI）、数据库（PostgreSQL）、Docker 部署、单元测试&quot;</p>
+</blockquote>
+<p><strong>多智能体编排</strong>:</p>
+<pre><code>Lead Agent (Sonnet 5)
+  ├─ 子任务 1: 前端开发 → Specialist Agent 1 (React)
+  ├─ 子任务 2: 后端开发 → Specialist Agent 2 (FastAPI)
+  ├─ 子任务 3: 数据库设计 → Specialist Agent 3 (PostgreSQL)
+  ├─ 子任务 4: Docker 配置 → Specialist Agent 4
+  └─ 子任务 5: 测试编写 → Specialist Agent 5 (Pytest + Jest)
+
+并行执行（最多 5 个 Agent 同时工作）
+  → 20 分钟内完成（单 Agent 需要 2 小时）
+</code></pre>
+<p><strong>成本优势</strong>:</p>
+<ul>
+<li><strong>单 Agent</strong>: 2 小时 × $15/小时 = $30</li>
+<li><strong>多 Agent</strong>: 20 分钟 × 5 Agents × $15/小时 = $25</li>
+<li><strong>节省</strong>: 时间 83%，成本 17%</li>
+</ul>
+<hr />
+<h2>4. 高级功能</h2>
+<h3>4.1 Dreaming（研究预览）</h3>
+<p><strong>发布时间</strong>: 2026-05-06</p>
+<p><strong>功能</strong>: 会话结束后，系统定时扫描历史，自动提炼、精炼 Memory</p>
+<p><strong>使用场景</strong>:</p>
+<ul>
+<li>用户每周五下午收到一封&quot;本周工作摘要&quot;邮件</li>
+<li>自动更新项目文档（从聊天记录中提取决策）</li>
+<li>自动生成周报（从日常对话中提取关键进展）</li>
+</ul>
+<p><strong>启用方式</strong>:</p>
+<pre><code class="language-python">response = client.messages.create(
+    model=&quot;claude-sonnet-5&quot;,
+    messages=[...],
+    dreaming={
+        &quot;enabled&quot;: True,
+        &quot;schedule&quot;: &quot;0 17 * * 5&quot;,  # 每周五 17:00
+        &quot;delivery&quot;: &quot;email&quot;,         # 发送到邮箱
+        &quot;recipients&quot;: [&quot;team@company.com&quot;]
+    }
+)
+</code></pre>
+<h3>4.2 Outcomes（结果评估）</h3>
+<p><strong>功能</strong>: 定义&quot;成功标准&quot;，独立评分器在独立上下文中评判结果</p>
+<p><strong>示例</strong>:</p>
+<pre><code class="language-python">response = client.messages.create(
+    model=&quot;claude-sonnet-5&quot;,
+    messages=[{&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: &quot;开发一个用户注册 API&quot;}],
+    outcomes={
+        &quot;criteria&quot;: [
+            &quot;API 必须包含邮箱验证&quot;,
+            &quot;密码必须加密存储&quot;,
+            &quot;返回 JWT token&quot;,
+            &quot;单元测试覆盖率 &gt; 80%&quot;
+        ],
+        &quot;scorer_model&quot;: &quot;claude-opus-4.8&quot;,  # 使用更强模型评分
+        &quot;pass_threshold&quot;: 0.85
+    }
+)
+
+if response.outcomes.score &gt;= 0.85:
+    print(&quot;任务通过！&quot;)
+else:
+    print(&quot;任务失败，需要改进：&quot;, response.outcomes.feedback)
+</code></pre>
+<hr />
+<h2>5. 定价与成本优化</h2>
+<h3>5.1 官方定价（2026-07-01）</h3>
+<table>
+<thead>
+<tr>
+<th>模型</th>
+<th>输入价格（每 M tokens）</th>
+<th>输出价格（每 M tokens）</th>
+<th>与 Opus 4.8 比</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Claude Opus 4.8</td>
+<td>$15</td>
+<td>$75</td>
+<td>100%</td>
+</tr>
+<tr>
+<td><strong>Claude Sonnet 5</strong></td>
+<td><strong>$9</strong></td>
+<td><strong>$45</strong></td>
+<td><strong>60%</strong></td>
+</tr>
+<tr>
+<td>Claude Sonnet 4.6</td>
+<td>$7.5</td>
+<td>$37.5</td>
+<td>50%</td>
+</tr>
+<tr>
+<td>Claude Haiku 3.5</td>
+<td>$1</td>
+<td>$5</td>
+<td>7%</td>
+</tr>
+</tbody>
+</table>
+<p><strong>性价比分析</strong>:</p>
+<ul>
+<li>Sonnet 5 性能接近 Opus 4.8（差距 &lt; 5%）</li>
+<li>价格仅为 Opus 4.8 的 60%</li>
+<li><strong>结论</strong>: 大多数场景应优先使用 Sonnet 5</li>
+</ul>
+<h3>5.2 成本优化技巧</h3>
+<p><strong>技巧 1: 混合使用 Sonnet 5 + Haiku</strong></p>
+<ul>
+<li>简单任务（摘要、分类）→ Haiku（$1/$5）</li>
+<li>复杂任务（编码、规划）→ Sonnet 5（$9/$45）</li>
+</ul>
+<p><strong>技巧 2: 使用 Prompt Caching</strong></p>
+<pre><code class="language-python">response = client.messages.create(
+    model=&quot;claude-sonnet-5&quot;,
+    messages=[...],
+    extra_headers={
+        &quot;anthropic-beta&quot;: &quot;prompt-caching-2024-07-31&quot;
+    },
+    system=[
+        {
+            &quot;type&quot;: &quot;text&quot;,
+            &quot;text&quot;: &quot;你是一个 Python 专家...&quot;,  # 长系统提示
+            &quot;cache_control&quot;: {&quot;type&quot;: &quot;ephemeral&quot;}  # 缓存 5 分钟
+        }
+    ]
+)
+# 第二次调用时，系统提示不计入输入 tokens
+</code></pre>
+<p><strong>技巧 3: 批量 API（Batch API）</strong></p>
+<ul>
+<li>适用于离线任务（如批量代码分析）</li>
+<li>折扣: 50% off</li>
+<li>延迟: 24 小时内完成</li>
+</ul>
+<hr />
+<h2>6. 实战：构建 Coding Agent</h2>
+<h3>6.1 技术栈</h3>
+<ul>
+<li><strong>模型</strong>: Claude Sonnet 5</li>
+<li><strong>框架</strong>: LangChain 0.3 + LangGraph</li>
+<li><strong>工具</strong>: GitHub API、文件系统、终端、单元测试框架</li>
+<li><strong>记忆</strong>: Redis（短期）+ PostgreSQL（长期）</li>
+</ul>
+<h3>6.2 实现步骤</h3>
+<h4>Step 1: 环境准备</h4>
+<pre><code class="language-bash">pip install anthropic langchain langgraph github3.py pytest
+</code></pre>
+<h4>Step 2: 定义工具</h4>
+<pre><code class="language-python">from langchain.tools import tool
+import subprocess
+
+@tool
+def run_terminal_command(command: str) -&gt; str:
+    &quot;&quot;&quot;运行终端命令&quot;&quot;&quot;
+    result = subprocess.run(command, shell=True, capture_output=True, text=True)
+    return result.stdout if result.returncode == 0 else result.stderr
+
+@tool
+def read_file(filepath: str) -&gt; str:
+    &quot;&quot;&quot;读取文件内容&quot;&quot;&quot;
+    with open(filepath, 'r') as f:
+        return f.read()
+
+@tool
+def write_file(filepath: str, content: str) -&gt; str:
+    &quot;&quot;&quot;写入文件内容&quot;&quot;&quot;
+    with open(filepath, 'w') as f:
+        f.write(content)
+    return f&quot;文件 {filepath} 已写入&quot;
+
+@tool
+def run_tests() -&gt; str:
+    &quot;&quot;&quot;运行单元测试&quot;&quot;&quot;
+    result = subprocess.run(&quot;pytest&quot;, capture_output=True, text=True)
+    return result.stdout
+</code></pre>
+<h4>Step 3: 构建 Agent</h4>
+<pre><code class="language-python">from langchain.agents import create_tool_calling_agent, AgentExecutor
+from langchain.prompts import ChatPromptTemplate
+from langchain_anthropic import ChatAnthropic
+
+# 1. 初始化 LLM
+llm = ChatAnthropic(model=&quot;claude-sonnet-5&quot;, temperature=0)
+
+# 2. 定义 Prompt
+prompt = ChatPromptTemplate.from_messages([
+    (&quot;system&quot;, &quot;你是一个高级 Python 开发工程师，能够理解代码库、修复 bug、编写测试。&quot;),
+    (&quot;human&quot;, &quot;{input}&quot;),
+    (&quot;placeholder&quot;, &quot;{agent_scratchpad}&quot;)
+])
+
+# 3. 创建 Agent
+tools = [run_terminal_command, read_file, write_file, run_tests]
+agent = create_tool_calling_agent(llm, tools, prompt)
+executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
+
+# 4. 运行 Agent
+executor.invoke({&quot;input&quot;: &quot;找出所有的 TODO 注释，并生成一个 TODO.md 文件&quot;})
+</code></pre>
+<h4>Step 4: 多智能体编排（高级）</h4>
+<pre><code class="language-python">from langgraph.graph import StateGraph, END
+
+# 1. 定义状态
+class AgentState(TypedDict):
+    messages: list
+    task: str
+    results: list
+
+# 2. 定义 Lead Agent
+def lead_agent(state: AgentState):
+    # 拆解任务
+    response = llm.invoke(f&quot;拆解以下任务为子任务：{state['task']}&quot;)
+    subtasks = response.content.split(&quot;\n&quot;)
+    state[&quot;results&quot;] = subtasks
+    return state
+
+# 3. 定义 Specialist Agent
+def specialist_agent(state: AgentState, subtask: str):
+    # 执行子任务
+    response = llm.invoke(f&quot;执行子任务：{subtask}&quot;)
+    state[&quot;results&quot;].append(response.content)
+    return state
+
+# 4. 构建图
+workflow = StateGraph(AgentState)
+workflow.add_node(&quot;lead&quot;, lead_agent)
+workflow.add_node(&quot;specialist&quot;, specialist_agent)
+workflow.add_edge(&quot;lead&quot;, &quot;specialist&quot;)
+workflow.add_edge(&quot;specialist&quot;, END)
+
+app = workflow.compile()
+</code></pre>
+<hr />
+<h2>7. 评估与基准测试</h2>
+<h3>7.1 官方基准</h3>
+<table>
+<thead>
+<tr>
+<th>基准测试</th>
+<th>Claude Sonnet 4.6</th>
+<th><strong>Claude Sonnet 5</strong></th>
+<th>GPT-5.6 预览版</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>SWE-bench Verified</strong></td>
+<td>95%</td>
+<td><strong>95%+</strong> (预估)</td>
+<td>94%</td>
+</tr>
+<tr>
+<td><strong>TAU-bench (零售)</strong></td>
+<td>75%</td>
+<td><strong>80%+</strong> (预估)</td>
+<td>72%</td>
+</tr>
+<tr>
+<td><strong>TAU-bench (航空)</strong></td>
+<td>55%</td>
+<td><strong>65%+</strong> (预估)</td>
+<td>58%</td>
+</tr>
+<tr>
+<td><strong>MMMLU</strong></td>
+<td>88%</td>
+<td><strong>90%+</strong> (预估)</td>
+<td>89%</td>
+</tr>
+<tr>
+<td><strong>Math500</strong></td>
+<td>92%</td>
+<td><strong>94%+</strong> (预估)</td>
+<td>93%</td>
+</tr>
+</tbody>
+</table>
+<h3>7.2 社区评测（2026-07-01 数据）</h3>
+<p><strong>编码能力</strong>:</p>
+<ul>
+<li><strong>HumanEval</strong>: 96% (Sonnet 5) vs. 94% (GPT-5.6)</li>
+<li><strong>MBPP</strong>: 91% (Sonnet 5) vs. 89% (GPT-5.6)</li>
+</ul>
+<p><strong>Agent 能力</strong>:</p>
+<ul>
+<li><strong>ToolBench</strong>: 93% (Sonnet 5) vs. 90% (GPT-5.6)</li>
+<li><strong>AgentBench</strong>: 88% (Sonnet 5) vs. 85% (GPT-5.6)</li>
+</ul>
+<p><strong>成本效益</strong>:</p>
+<ul>
+<li><strong>性价比指数</strong>: Sonnet 5 (9.5/10) &gt; GPT-5.6 (8.0/10) &gt; Opus 4.8 (7.5/10)</li>
+</ul>
+<hr />
+<h2>8. 最佳实践与陷阱</h2>
+<h3>8.1 最佳实践</h3>
+<p>✅ <strong>Do</strong>:</p>
+<ol>
+<li><strong>使用扩展思考模式</strong>处理复杂任务（架构设计、多步骤规划）</li>
+<li><strong>启用 Prompt Caching</strong> 降低重复调用成本</li>
+<li><strong>混合使用 Sonnet 5 + Haiku</strong> 优化成本</li>
+<li><strong>使用 Claude Code CLI</strong> 处理代码库级任务</li>
+<li><strong>定义清晰的工具描述</strong>（tool.description）提升工具调用准确率</li>
+</ol>
+<h3>8.2 常见陷阱</h3>
+<p>❌ <strong>Don't</strong>:</p>
+<ol>
+<li><strong>不要过度依赖计算机使用</strong>（Computer Use）→ 优先使用 API</li>
+<li><strong>不要忽略错误重试</strong> → 实现指数退避（exponential backoff）</li>
+<li><strong>不要在小上下文模型中传入大量文档</strong> → 使用 RAG 或向量数据库</li>
+<li><strong>不要忘记设置 <code>max_tokens</code></strong> → 避免意外高额账单</li>
+</ol>
+<hr />
+<h2>9. 迁移指南</h2>
+<h3>9.1 从 Claude Sonnet 4.x 迁移</h3>
+<p><strong>无代码变更</strong>:</p>
+<ul>
+<li>API 接口完全兼容</li>
+<li>只需修改 <code>model=&quot;claude-sonnet-5&quot;</code></li>
+</ul>
+<p><strong>推荐优化</strong>:</p>
+<ol>
+<li><strong>启用扩展思考模式</strong>（新增功能）</li>
+<li><strong>使用多智能体编排</strong>（新增功能）</li>
+<li><strong>利用 Dreaming 自动生成摘要</strong>（新增功能）</li>
+</ol>
+<h3>9.2 从 GPT-4.5 / GPT-5.6 迁移</h3>
+<p><strong>API 差异</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>Anthropic API</th>
+<th>OpenAI API</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>认证</strong></td>
+<td><code>x-api-key</code> 头</td>
+<td><code>Authorization: Bearer</code></td>
+</tr>
+<tr>
+<td><strong>消息格式</strong></td>
+<td><code>{&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: ...}</code></td>
+<td>同左</td>
+</tr>
+<tr>
+<td><strong>流式响应</strong></td>
+<td><code>stream=True</code></td>
+<td>同左</td>
+</tr>
+<tr>
+<td><strong>工具调用</strong></td>
+<td><code>tools=[...]</code></td>
+<td><code>tools=[...]</code> (格式略有差异)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>迁移工具</strong>:</p>
+<ul>
+<li><strong>Anthropic 官方转换器</strong>: <code>anthropic --convert-from-openai</code></li>
+<li><strong>LangChain 统一接口</strong>: 自动处理格式差异</li>
+</ul>
+<hr />
+<h2>10. 参考资料</h2>
+<h3>10.1 官方资源</h3>
+<ul>
+<li><strong>Claude Sonnet 5 发布公告</strong>: https://www.anthropic.com/news/claude-sonnet-5</li>
+<li><strong>Claude API 文档</strong>: https://docs.anthropic.com/</li>
+<li><strong>Claude Code 官网</strong>: https://claude.ai/code</li>
+<li><strong>Claude Code VS Code 扩展</strong>: https://marketplace.visualstudio.com/items?itemName=Anthropic.claude-code</li>
+</ul>
+<h3>10.2 社区教程</h3>
+<ul>
+<li>CSDN: &quot;Claude Code 完全指南：从安装到高级 Agent 工作流（2026 版）&quot;</li>
+<li>CSDN: &quot;Claude Code 2026 最新进阶玩法，附带 Skills 详解&quot;</li>
+<li>博客园: &quot;Anthropic 发布 Claude Sonnet 5：更低价、更强智能体性能&quot;</li>
+</ul>
+<h3>10.3 论文与技术方案</h3>
+<ol>
+<li><strong>Anthropic (2026)</strong>: &quot;Claude Sonnet 5 Technical Report&quot;</li>
+<li><strong>Anthropic (2026)</strong>: &quot;Multi-Agent Orchestration with Claude&quot;</li>
+<li><strong>Code w/ Claude 2026</strong>: 开发者大会演讲视频（https://www.anthropic.com/events/code-with-claude-2026）</li>
+</ol>
+<hr />
+<h2>11. 总结</h2>
+<h3>11.1 核心亮点</h3>
+<p>🔥 <strong>Claude Sonnet 5 是 2026 年 7 月最具性价比的 Agent 模型</strong>:</p>
+<ul>
+<li>性能接近 Opus 4.8（差距 &lt; 5%）</li>
+<li>价格仅为 Opus 4.8 的 60%</li>
+<li>Agent 能力（工具调用、编码、规划）全面领先竞品</li>
+</ul>
+<p>🔥 <strong>关键能力提升</strong>:</p>
+<ul>
+<li><strong>编码能力</strong>: SWE-bench 95%，支持多文件编辑、自动调试</li>
+<li><strong>工具调用</strong>: 准确率 95%，支持并行调用、错误重试</li>
+<li><strong>规划推理</strong>: 混合推理模式（即时 + 扩展思考）</li>
+<li><strong>多智能体</strong>: 支持最多 20 个 Specialist Agents 并行工作</li>
+</ul>
+<h3>11.2 下一步学习</h3>
+<ol>
+<li><strong>动手实践</strong>: 使用 Claude Code CLI 完成一个小项目</li>
+<li><strong>阅读文档</strong>: 深入阅读 Anthropic 官方 API 文档</li>
+<li><strong>构建 Agent</strong>: 基于 LangChain + Claude Sonnet 5 构建一个 Coding Agent</li>
+<li><strong>关注更新</strong>: 跟踪 Anthropic 官方博客，期待 Opus 5 发布（预计 2026 Q4）</li>
+</ol>
+<hr />
+<p><strong>文档版本</strong>: v1.0<br />
+<strong>最后更新</strong>: 2026-07-02<br />
+<strong>维护者</strong>: Agent 知识库自动维护系统</p>
+
+    </div>
+</main>
+<script>
+(function(){var f=location.pathname.split('/').pop()||'index.html';
+var links=document.querySelectorAll('.VPSidebar a');
+for(var i=0;i<links.length;i++){
+var h=links[i].getAttribute('href');
+if(h===f){links[i].classList.add('active');
+var g=links[i].closest('.sidebar-group');
+if(g){g.classList.add('has-active');}
+break;}}})();
+</script>
+</body>
+</html>

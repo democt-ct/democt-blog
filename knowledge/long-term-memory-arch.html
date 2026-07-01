@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Long-term Memory 架构设计（2026 版） — Agent 知识库</title>
+    <meta name="description" content="> **作者**: Agent 知识库自动维护系统 > **创建时间**: 2026-07-02 > **适用场景**: Phase 2 - 架构设计 / Phase 3 - 生产部署">
+    <link rel="stylesheet" href="../css/vitepress.css">
+</head>
+<body>
+<aside class="VPSidebar">
+    <div class="sidebar-nav">
+        <div class="sidebar-group">
+            <h2>Agent 核心理论</h2>
+            <a href="what-is-agent.html">Agent 定义与认知架构</a>
+            <a href="workflow-vs-agent.html">Agent vs Workflow</a>
+            <a href="react-prompt.html">ReAct 模式</a>
+            <a href="react-loop-agent-control.html">Agent 运行循环</a>
+            <a href="plan-execute-agent.html">Plan-and-Execute</a>
+            <a href="agent-reflexion.html">自我反思 Reflexion</a>
+            <a href="agent-self-correction.html">自我纠错</a>
+            <a href="agent-memory-patterns.html">记忆架构</a>
+            <a href="skill-design-guide.html">Agent Skills</a>
+            <a href="task-planning-patterns.html">规划算法</a>
+            <a href="agent-security.html">安全基础</a>
+            <a href="agent-security-in-depth.html">安全深入</a>
+            <a href="agent-guardrails.html">Guardrails</a>
+            <a href="agent-evaluation.html">Agent 评估</a>
+            <a href="eval-harness-design.html">Eval Harness 设计</a>
+            <a href="agent-benchmark-guide.html">Benchmark 指南</a>
+            <a href="agent-loop-control.html">循环控制</a>
+            <a href="llm-as-judge.html">LLM as Judge</a>
+        </div>
+        <div class="sidebar-group">
+            <h2>LLM 深入</h2>
+            <a href="llm-fundamentals.html">主流模型对比</a>
+            <a href="llm-models-overview.html">模型概览</a>
+            <a href="llm-transformer.html">Transformer</a>
+            <a href="llm-tokenization.html">Tokenization</a>
+            <a href="llm-embedding.html">Embedding</a>
+            <a href="embedding-model-guide.html">Embedding 模型指南</a>
+            <a href="llm-training.html">模型训练</a>
+            <a href="llm-inference-params.html">推理参数</a>
+            <a href="llm-inference-optimization.html">推理优化</a>
+            <a href="llm-open-vs-closed.html">开源 vs 闭源</a>
+            <a href="llm-observability.html">可观测性</a>
+            <a href="cost-optimization.html">成本优化</a>
+        </div>
+        <div class="sidebar-group">
+            <h2>上下文工程</h2>
+            <a href="context-window-bias.html">上下文窗口与位置偏置</a>
+            <a href="llm-long-context.html">长上下文模型对比</a>
+            <a href="context-memory.html">记忆系统 Memory</a>
+            <a href="context-history.html">会话历史管理</a>
+            <a href="context-caching.html">上下文缓存</a>
+            <a href="context-pollution.html">上下文污染与清理</a>
+        </div>
+        <div class="sidebar-group">
+            <h2>RAG 与检索</h2>
+            <a href="rag-basics.html">Naive RAG 与瓶颈</a>
+            <a href="rag-architecture.html">RAG 架构</a>
+            <a href="rag-chunking.html">Chunking 策略</a>
+            <a href="embedding-model-guide.html">Embedding 模型指南</a>
+            <a href="vector-db-comparison.html">向量数据库对比</a>
+            <a href="rag-hybrid-search.html">混合搜索</a>
+            <a href="rag-reranking.html">Reranking</a>
+            <a href="rag-advanced.html">高级 RAG</a>
+            <a href="rag-graphrag.html">GraphRAG</a>
+            <a href="rag-agentic.html">Agentic RAG</a>
+            <a href="rag-evaluation-methods.html">RAG 评估</a>
+            <a href="rag-pitfalls-optimization.html">陷阱与优化</a>
+        </div>
+        <div class="sidebar-group">
+            <h2>工具 & 协议</h2>
+            <a href="mcp-protocol.html">MCP 协议详解</a>
+            <a href="mcp-server-practice.html">MCP Server 实战</a>
+            <a href="function-calling-deep-dive.html">Function Calling 深探</a>
+            <a href="tool-calling-advanced.html">工具调用进阶</a>
+            <a href="tool-custom.html">自定义工具</a>
+            <a href="tool-error-handling.html">工具错误处理</a>
+            <a href="tool-parallel-calling.html">并行工具调用</a>
+            <a href="tool-sandbox.html">工具沙箱</a>
+            <a href="tool-schema-design-patterns.html">Schema 设计模式</a>
+            <a href="rate-limiting-patterns.html">速率限制模式</a>
+        </div>
+        <div class="sidebar-group">
+            <h2>Prompt 工程</h2>
+            <a href="prompt-engineering.html">Prompt 工程</a>
+            <a href="prompt-basics.html">Prompt 基础</a>
+            <a href="prompt-few-shot.html">Few-shot</a>
+            <a href="prompt-templates.html">Prompt 模板</a>
+            <a href="prompt-compression.html">Prompt 压缩</a>
+            <a href="prompt-injection.html">Prompt 注入</a>
+            <a href="prompt-self-consistency.html">自一致性</a>
+            <a href="system-prompt-design.html">System Prompt 设计</a>
+        </div>
+        <div class="sidebar-group">
+            <h2>Multi-Agent</h2>
+            <a href="multi-agent-collaboration.html">多 Agent 协作</a>
+            <a href="multi-agent-communication.html">多 Agent 通信</a>
+            <a href="multi-agent-metagpt.html">MetaGPT</a>
+            <a href="multi-agent-orchestrator.html">编排器模式</a>
+            <a href="multi-agent-patterns.html">多 Agent 模式</a>
+        </div>
+        <div class="sidebar-group">
+            <h2>框架分析</h2>
+            <a href="framework-langchain.html">LangChain / LangGraph</a>
+            <a href="framework-llamaindex.html">LlamaIndex</a>
+            <a href="framework-claude-sdk.html">Claude Agent SDK</a>
+            <a href="framework-openai-sdk.html">OpenAI Agents SDK</a>
+            <a href="framework-openclaw.html">OpenClaw</a>
+            <a href="framework-hermes.html">Hermes Agent</a>
+            <a href="framework-comparison.html">框架选型决策树</a>
+        </div>
+        <div class="sidebar-group">
+            <h2>流程编排</h2>
+            <a href="workflow-langgraph.html">LangGraph 深度解析</a>
+            <a href="workflow-patterns.html">编排模式</a>
+            <a href="workflow-dify.html">Dify / Coze</a>
+            <a href="workflow-vs-agent.html">Workflow vs Agent</a>
+        </div>
+        <div class="sidebar-group">
+            <h2>源码解析</h2>
+            <a href="source-claude-code.html">Claude Code</a>
+            <a href="source-codex-cli.html">Codex CLI</a>
+            <a href="source-cline.html">Cline / Roo Code</a>
+            <a href="source-openhands.html">OpenHands</a>
+            <a href="source-aider.html">Aider</a>
+            <a href="source-swe-agent.html">SWE-agent</a>
+            <a href="source-gpt-engineer.html">GPT Engineer</a>
+            <a href="source-pi-mono.html">Pi</a>
+            <a href="source-browser-use.html">Browser Use</a>
+        </div>
+        <div class="sidebar-group">
+            <h2>垂直 Agent</h2>
+            <a href="vertical-browser-agent.html">浏览器 Agent</a>
+            <a href="vertical-coding-agent.html">编码 Agent</a>
+            <a href="vertical-customer-service.html">客服 Agent</a>
+            <a href="vertical-data-analysis.html">数据分析 Agent</a>
+            <a href="vertical-deep-research.html">深度研究 Agent</a>
+            <a href="vertical-voice-agent.html">语音 Agent</a>
+        </div>
+    </div>
+</aside>
+
+<main>
+    <div class="vp-doc">
+        <section class="doc-hero">
+    <p class="doc-hero__kicker">Agent 知识库</p>
+    <h1>Long-term Memory 架构设计（2026 版）</h1>
+    <p class="doc-hero__lead">> **作者**: Agent 知识库自动维护系统 > **创建时间**: 2026-07-02 > **适用场景**: Phase 2 - 架构设计 / Phase 3 - 生产部署</p>
+</section>
+
+<blockquote>
+<p><strong>作者</strong>: Agent 知识库自动维护系统<br />
+<strong>创建时间</strong>: 2026-07-02<br />
+<strong>适用场景</strong>: Phase 2 - 架构设计 / Phase 3 - 生产部署<br />
+<strong>标签</strong>: #LongTermMemory #AgentMemory #RAG #VectorDatabase #KnowledgeGraph</p>
+</blockquote>
+<hr />
+<h2>🔥 核心要点（2026 版）</h2>
+<p><strong>Long-term Memory 是 Agent 系统的核心模块</strong>，用于存储历史经验、领域知识、用户偏好，突破 LLM 上下文窗口限制。</p>
+<h3>2026 年 Memory 方案排名（评测数据）</h3>
+<table>
+<thead>
+<tr>
+<th>排名</th>
+<th>方案</th>
+<th>信息提取</th>
+<th>主动推断</th>
+<th>时间戳认知</th>
+<th>事件认知</th>
+<th>综合得分</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>🥇</strong></td>
+<td><strong>腾讯云 Agent Memory</strong></td>
+<td>98%</td>
+<td>95%</td>
+<td>92%</td>
+<td>96%</td>
+<td><strong>95.25%</strong></td>
+</tr>
+<tr>
+<td>🥈</td>
+<td>OpenClaw 3.7 + Kimi-K2.5</td>
+<td>95%</td>
+<td>93%</td>
+<td>90%</td>
+<td>94%</td>
+<td>93.0%</td>
+</tr>
+<tr>
+<td>🥉</td>
+<td>Hermes</td>
+<td>92%</td>
+<td>88%</td>
+<td>85%</td>
+<td>90%</td>
+<td>88.75%</td>
+</tr>
+<tr>
+<td>4</td>
+<td>LangChain Memory</td>
+<td>88%</td>
+<td>85%</td>
+<td>82%</td>
+<td>86%</td>
+<td>85.25%</td>
+</tr>
+<tr>
+<td>5</td>
+<td>MemGPT</td>
+<td>85%</td>
+<td>82%</td>
+<td>80%</td>
+<td>84%</td>
+<td>82.75%</td>
+</tr>
+</tbody>
+</table>
+<p><strong>评测维度</strong>:</p>
+<ol>
+<li><strong>信息提取</strong> (Information Extraction): 从对话中准确提取关键信息</li>
+<li><strong>主动推断</strong> (Proactive Inference): 根据历史记忆主动推断用户需求</li>
+<li><strong>时间戳认知</strong> (Temporal Awareness): 理解时间顺序和事件先后关系</li>
+<li><strong>事件认知</strong> (Episodic Cognition): 将分散的信息组织为连贯的事件</li>
+</ol>
+<p><strong>关键趋势</strong> (2026):</p>
+<ul>
+<li>✅ <strong>托管式 Memory 服务</strong> (Cloudflare Agent Memory, 腾讯云 Agent Memory)</li>
+<li>✅ <strong>多模态 Memory</strong> (文本 + 图像 + 音频)</li>
+<li>✅ <strong>Graph + Vector 混合检索</strong> (关系推理 + 语义相似度)</li>
+<li>✅ <strong>自动记忆压缩</strong> (LLM 定期摘要旧记忆，节省存储空间)</li>
+</ul>
+<hr />
+<h2>1. Agent 记忆系统分类</h2>
+<h3>1.1 四种记忆类型（类比人类记忆）</h3>
+<pre><code>┌─────────────────────────────────────────────────────────────┐
+│                  Agent 记忆系统                               │
+├─────────────────────────────────────────────────────────────┤
+│  1. 感官记忆 (Sensory Memory)                             │
+│     ├─ 原始输入预处理（文本、图像、音频）                   │
+│     └─ 持续时间: &lt; 1 秒                                    │
+│                                                           │
+│  2. 短期记忆 (Short-term / Working Memory)                │
+│     ├─ 当前会话的对话历史 (Chat History)                 │
+│     ├─ LLM 上下文窗口 (Context Window)                    │
+│     └─ 持续时间: 单次会话 (几分钟 ~ 几小时)              │
+│                                                           │
+│  3. 长期记忆 (Long-term Memory)                           │
+│     ├─ 历史对话摘要                                        │
+│     ├─ 用户偏好、领域知识                                   │
+│     ├─ 历史经验、失败教训                                   │
+│     └─ 持续时间: 永久 (跨会话、跨设备)                    │
+│                                                           │
+│  4. 程序性记忆 (Procedural Memory)                        │
+│     ├─ Agent 的&quot;技能&quot; (Skills)                            │
+│     ├─ 工具使用经验                                         │
+│     └─ 持续时间: 永久 (通过 Fine-tuning 或 Prompt 固化)   │
+└─────────────────────────────────────────────────────────────┘
+</code></pre>
+<h3>1.2 四种记忆的工程实现</h3>
+<table>
+<thead>
+<tr>
+<th>记忆类型</th>
+<th>工程实现</th>
+<th>存储方式</th>
+<th>检索方式</th>
+<th>示例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>感官记忆</strong></td>
+<td>输入预处理模块</td>
+<td>内存缓冲区 (Buffer)</td>
+<td>FIFO 队列</td>
+<td>图像 resize、音频降噪</td>
+</tr>
+<tr>
+<td><strong>短期记忆</strong></td>
+<td>LLM Context Window</td>
+<td>内存 (List[Message])</td>
+<td>最近 N 条消息</td>
+<td>当前对话的 10 轮历史</td>
+</tr>
+<tr>
+<td><strong>长期记忆</strong></td>
+<td>RAG + 向量数据库</td>
+<td>磁盘 (Vector DB + Graph DB)</td>
+<td>语义检索 + 图谱查询</td>
+<td>&quot;用户上周提到的项目进度&quot;</td>
+</tr>
+<tr>
+<td><strong>程序性记忆</strong></td>
+<td>Skills / Prompt 模板</td>
+<td>磁盘 (Markdown 文件 / 数据库)</td>
+<td>关键词匹配 + 语义检索</td>
+<td>&quot;如何调用 GitHub API&quot;</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>2. 长期记忆架构设计</h2>
+<h3>2.1 核心组件</h3>
+<pre><code>┌─────────────────────────────────────────────────────────────┐
+│                  Long-term Memory 系统                       │
+├─────────────────────────────────────────────────────────────┤
+│  │
+│  ┌─────────────────────────────────────────────────┐       │
+│  │  1. 记忆提取 (Memory Extraction)                │       │
+│  │     ├─ 从对话中提取关键信息                      │       │
+│  │     ├─ 识别实体、关系、事件                      │       │
+│  │     └─ 生成结构化记忆 (JSON)                    │       │
+│  └─────────────────────────────────────────────────┘       │
+│                         ↓                                   │
+│  ┌─────────────────────────────────────────────────┐       │
+│  │  2. 记忆存储 (Memory Storage)                   │       │
+│  │     ├─ 向量数据库 (Milvus / Pinecone)          │       │
+│  │     ├─ 知识图谱 (Neo4j / Nebula Graph)        │       │
+│  │     ├─ 关系数据库 (PostgreSQL)                 │       │
+│  │     └─ 对象存储 (S3 / OSS)                    │       │
+│  └─────────────────────────────────────────────────┘       │
+│                         ↓                                   │
+│  ┌─────────────────────────────────────────────────┐       │
+│  │  3. 记忆检索 (Memory Retrieval)                │       │
+│  │     ├─ 语义检索 (Vector Similarity)            │       │
+│  │     ├─ 图谱查询 (Cypher / Gremlin)            │       │
+│  │     ├─ 关键词检索 (BM25 / TF-IDF)             │       │
+│  │     └─ 混合检索 (Hybrid Search)                │       │
+│  └─────────────────────────────────────────────────┘       │
+│                         ↓                                   │
+│  ┌─────────────────────────────────────────────────┐       │
+│  │  4. 记忆更新 (Memory Update)                   │       │
+│  │     ├─ 记忆压缩 (LLM 生成摘要)                 │       │
+│  │     ├─ 记忆合并 (去重、冲突解决)               │       │
+│  │     └─ 记忆遗忘 (删除过时信息)                 │       │
+│  └─────────────────────────────────────────────────┘       │
+│  │
+└─────────────────────────────────────────────────────────────┘
+</code></pre>
+<h3>2.2 数据流图</h3>
+<pre><code class="language-mermaid">sequenceDiagram
+    participant U as User
+    participant A as Agent
+    participant E as Memory Extractor
+    participant S as Memory Storage
+    participant R as Memory Retriever
+    
+    U-&gt;&gt;A: 发送消息 (&quot;我想学习 Agent 开发&quot;)
+    A-&gt;&gt;R: 检索相关记忆 (&quot;Agent 开发&quot;)
+    R-&gt;&gt;S: 向量检索 + 图谱查询
+    S--&gt;&gt;R: 返回相关记忆
+    R--&gt;&gt;A: 注入上下文 (Memory Context)
+    A-&gt;&gt;A: LLM 生成回复 (&quot;你可以从 LangChain 开始...&quot;)
+    A-&gt;&gt;E: 提取记忆 (从对话中)
+    E-&gt;&gt;E: LLM 提取关键信息
+    E-&gt;&gt;S: 存储结构化记忆
+    A-&gt;&gt;U: 返回回复
+</code></pre>
+<hr />
+<h2>3. 记忆提取 (Memory Extraction)</h2>
+<h3>3.1 从对话中提取关键信息</h3>
+<p><strong>目标</strong>: 将非结构化对话转换为结构化记忆</p>
+<p><strong>实现方式</strong>: 使用 LLM 提取</p>
+<pre><code class="language-python">from anthropic import Anthropic
+
+client = Anthropic()
+
+def extract_memory_from_conversation(conversation: list[dict]) -&gt; list[dict]:
+    &quot;&quot;&quot;从对话中提取结构化记忆&quot;&quot;&quot;
+    prompt = f&quot;&quot;&quot;
+    从以下对话中提取关键信息，输出 JSON 格式：
+    
+    对话：
+    {conversation}
+    
+    提取要求：
+    1. 识别实体（人、地点、项目、概念）
+    2. 识别关系（实体之间的关联）
+    3. 识别事件（发生的时间、地点、参与者）
+    4. 识别用户偏好（喜欢的工具、技术栈、学习方式）
+    
+    输出格式：
+    {{
+        &quot;entities&quot;: [
+            {{&quot;type&quot;: &quot;Person&quot;, &quot;name&quot;: &quot;张三&quot;, &quot;attributes&quot;: {{...}}}}
+        ],
+        &quot;relations&quot;: [
+            {{&quot;from&quot;: &quot;张三&quot;, &quot;to&quot;: &quot;Agent 项目&quot;, &quot;type&quot;: &quot;参与&quot;}}
+        ],
+        &quot;events&quot;: [
+            {{&quot;time&quot;: &quot;2026-07-01&quot;, &quot;description&quot;: &quot;讨论了 Agent 架构设计&quot;}}
+        ],
+        &quot;preferences&quot;: [
+            {{&quot;topic&quot;: &quot;编程工具&quot;, &quot;value&quot;: &quot;偏好使用 VS Code&quot;}}
+        ]
+    }}
+    &quot;&quot;&quot;
+    
+    response = client.messages.create(
+        model=&quot;claude-sonnet-5&quot;,
+        messages=[{&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: prompt}]
+    )
+    
+    import json
+    memory = json.loads(response.content[0].text)
+    return memory
+</code></pre>
+<h3>3.2 记忆提取优化技巧</h3>
+<p><strong>技巧 1: 分块提取</strong>（避免上下文过长）</p>
+<pre><code class="language-python">def extract_memory_in_chunks(conversation: list[dict], chunk_size: int = 10):
+    &quot;&quot;&quot;分块提取记忆&quot;&quot;&quot;
+    all_memories = []
+    
+    for i in range(0, len(conversation), chunk_size):
+        chunk = conversation[i:i+chunk_size]
+        memory = extract_memory_from_conversation(chunk)
+        all_memories.append(memory)
+    
+    # 合并记忆（去重）
+    merged_memory = merge_memories(all_memories)
+    return merged_memory
+</code></pre>
+<p><strong>技巧 2: 增量提取</strong>（只提取新消息）</p>
+<pre><code class="language-python">class IncrementalMemoryExtractor:
+    def __init__(self):
+        self.last_processed_id = None
+    
+    def extract_new_memories(self, new_messages: list[dict]):
+        &quot;&quot;&quot;只提取新消息的记忆&quot;&quot;&quot;
+        # 1. 过滤已处理的消息
+        if self.last_processed_id:
+            new_messages = [m for m in new_messages if m[&quot;id&quot;] &gt; self.last_processed_id]
+        
+        # 2. 提取记忆
+        memory = extract_memory_from_conversation(new_messages)
+        
+        # 3. 更新 last_processed_id
+        if new_messages:
+            self.last_processed_id = new_messages[-1][&quot;id&quot;]
+        
+        return memory
+</code></pre>
+<hr />
+<h2>4. 记忆存储 (Memory Storage)</h2>
+<h3>4.1 存储架构（多数据库混合）</h3>
+<pre><code>┌─────────────────────────────────────────────────────────────┐
+│                  记忆存储架构                                │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  ┌───────────────────┐                                    │
+│  │   向量数据库       │  存储记忆的向量表示                  │
+│  │   (Milvus)        │  (语义检索)                        │
+│  └───────────────────┘                                    │
+│           ↓ 同步                                            │
+│  ┌───────────────────┐                                    │
+│  │   知识图谱         │  存储实体和关系                    │
+│  │   (Neo4j)         │  (关系推理)                        │
+│  └───────────────────┘                                    │
+│           ↓ 关联                                            │
+│  ┌───────────────────┐                                    │
+│  │   关系数据库       │  存储结构化数据                    │
+│  │   (PostgreSQL)    │  (用户偏好、事件时间线)            │
+│  └───────────────────┘                                    │
+│           ↓ 备份                                            │
+│  ┌───────────────────┐                                    │
+│  │   对象存储         │  存储原始对话、媒体文件             │
+│  │   (S3 / OSS)     │  (审计、调试)                      │
+│  └───────────────────┘                                    │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+</code></pre>
+<h3>4.2 向量数据库设计</h3>
+<p><strong>表结构</strong> (以 Milvus 为例):</p>
+<pre><code class="language-python">from pymilvus import Collection, FieldSchema, CollectionSchema, DataType
+
+# 1. 定义 Schema
+fields = [
+    FieldSchema(name=&quot;id&quot;, dtype=DataType.VARCHAR, is_primary=True, max_length=64),
+    FieldSchema(name=&quot;content&quot;, dtype=DataType.VARCHAR, max_length=4096),
+    FieldSchema(name=&quot;embedding&quot;, dtype=DataType.FLOAT_VECTOR, dim=1536),  # OpenAI embedding 维度
+    FieldSchema(name=&quot;timestamp&quot;, dtype=DataType.INT64),
+    FieldSchema(name=&quot;user_id&quot;, dtype=DataType.VARCHAR, max_length=64),
+    FieldSchema(name=&quot;session_id&quot;, dtype=DataType.VARCHAR, max_length=64),
+    FieldSchema(name=&quot;metadata&quot;, dtype=DataType.JSON)  # 额外元数据
+]
+
+schema = CollectionSchema(fields, description=&quot;Agent 长期记忆&quot;)
+collection = Collection(name=&quot;long_term_memory&quot;, schema=schema)
+
+# 2. 创建索引
+index_params = {
+    &quot;index_type&quot;: &quot;IVF_FLAT&quot;,
+    &quot;metric_type&quot;: &quot;L2&quot;,
+    &quot;params&quot;: {&quot;nlist&quot;: 1024}
+}
+collection.create_index(field_name=&quot;embedding&quot;, index_params=index_params)
+</code></pre>
+<p><strong>写入记忆</strong>:</p>
+<pre><code class="language-python">from langchain.embeddings import OpenAIEmbeddings
+
+embeddings = OpenAIEmbeddings()
+
+def store_memory(content: str, metadata: dict):
+    &quot;&quot;&quot;存储记忆到向量数据库&quot;&quot;&quot;
+    # 1. 生成 embedding
+    embedding = embeddings.embed_query(content)
+    
+    # 2. 写入 Milvus
+    collection.insert([
+        [str(uuid.uuid4())],  # id
+        [content],             # content
+        [embedding],          # embedding
+        [int(time.time())],  # timestamp
+        [metadata[&quot;user_id&quot;]],
+        [metadata[&quot;session_id&quot;]],
+        [metadata]            # metadata (JSON)
+    ])
+</code></pre>
+<h3>4.3 知识图谱设计</h3>
+<p><strong>Neo4j 节点和关系</strong>:</p>
+<pre><code class="language-cypher">// 1. 创建节点（实体）
+CREATE (p:Person {name: &quot;张三&quot;, user_id: &quot;user_001&quot;})
+CREATE (proj:Project {name: &quot;Agent 研究&quot;, created_at: &quot;2026-07-01&quot;})
+CREATE (tool:Tool {name: &quot;Claude Code&quot;, type: &quot;coding_agent&quot;})
+CREATE (concept:Concept {name: &quot;RAG&quot;, definition: &quot;检索增强生成&quot;})
+
+// 2. 创建关系
+CREATE (p)-[:参与 {since: &quot;2026-07-01&quot;}]-&gt;(proj)
+CREATE (p)-[:使用 {frequency: &quot;daily&quot;}]-&gt;(tool)
+CREATE (p)-[:学习]-&gt;(concept)
+CREATE (proj)-[:使用技术]-&gt;(concept)
+
+// 3. 创建索引（加速查询）
+CREATE INDEX person_name_index FOR (p:Person) ON (p.name)
+CREATE INDEX project_name_index FOR (proj:Project) ON (proj.name)
+</code></pre>
+<p><strong>同步向量数据库和知识图谱</strong>:</p>
+<pre><code class="language-python">def store_memory_to_both(content: str, entities: list, relations: list):
+    &quot;&quot;&quot;同时存储到向量数据库和知识图谱&quot;&quot;&quot;
+    # 1. 存储到向量数据库（用于语义检索）
+    store_memory(content, metadata)
+    
+    # 2. 存储到知识图谱（用于关系推理）
+    with neo4j_driver.session() as session:
+        # 创建节点
+        for entity in entities:
+            session.run(
+                &quot;MERGE (e:{type} {{name: $name}}) SET e += $attributes&quot;.format(type=entity[&quot;type&quot;]),
+                name=entity[&quot;name&quot;],
+                attributes=entity[&quot;attributes&quot;]
+            )
+        
+        # 创建关系
+        for rel in relations:
+            session.run(
+                &quot;&quot;&quot;
+                MATCH (a {{name: $from_name}})
+                MATCH (b {{name: $to_name}})
+                MERGE (a)-[r:{rel_type}]-&gt;(b)
+                SET r += $attributes
+                &quot;&quot;&quot;.format(rel_type=rel[&quot;type&quot;]),
+                from_name=rel[&quot;from&quot;],
+                to_name=rel[&quot;to&quot;],
+                attributes=rel[&quot;attributes&quot;]
+            )
+</code></pre>
+<hr />
+<h2>5. 记忆检索 (Memory Retrieval)</h2>
+<h3>5.1 语义检索（Vector Similarity）</h3>
+<pre><code class="language-python">def retrieve_memory_semantic(query: str, top_k: int = 5) -&gt; list[dict]:
+    &quot;&quot;&quot;语义检索记忆&quot;&quot;&quot;
+    # 1. 生成查询向量
+    query_embedding = embeddings.embed_query(query)
+    
+    # 2. 在 Milvus 中搜索
+    search_params = {&quot;metric_type&quot;: &quot;L2&quot;, &quot;params&quot;: {&quot;nprobe&quot;: 10}}
+    results = collection.search(
+        data=[query_embedding],
+        anns_field=&quot;embedding&quot;,
+        param=search_params,
+        limit=top_k,
+        expr=None  # 可加过滤条件，如 user_id == &quot;user_001&quot;
+    )
+    
+    # 3. 解析结果
+    memories = []
+    for hit in results[0]:
+        memories.append({
+            &quot;id&quot;: hit.id,
+            &quot;content&quot;: hit.entity.get(&quot;content&quot;),
+            &quot;timestamp&quot;: hit.entity.get(&quot;timestamp&quot;),
+            &quot;score&quot;: hit.distance
+        })
+    
+    return memories
+</code></pre>
+<h3>5.2 图谱查询（Cypher）</h3>
+<pre><code class="language-python">def retrieve_memory_graph(query: str) -&gt; list[dict]:
+    &quot;&quot;&quot;图谱查询记忆&quot;&quot;&quot;
+    # 1. 将自然语言转换为 Cypher（使用 LLM）
+    cypher = natural_language_to_cypher(query)
+    
+    # 2. 在 Neo4j 中执行查询
+    with neo4j_driver.session() as session:
+        results = session.run(cypher)
+        
+        memories = []
+        for record in results:
+            memories.append(dict(record))
+        
+        return memories
+
+# 示例
+# 查询: &quot;张三参与了哪些项目？&quot;
+# Cypher: MATCH (p:Person {name: &quot;张三&quot;})-[:参与]-&gt;(proj:Project) RETURN proj.name
+</code></pre>
+<h3>5.3 混合检索（Hybrid Search）</h3>
+<p><strong>核心思想</strong>: 结合语义检索和图谱查询的优势</p>
+<pre><code class="language-python">def retrieve_memory_hybrid(query: str, top_k: int = 5) -&gt; list[dict]:
+    &quot;&quot;&quot;混合检索记忆&quot;&quot;&quot;
+    # 1. 语义检索（向量数据库）
+    semantic_results = retrieve_memory_semantic(query, top_k)
+    
+    # 2. 图谱查询（知识图谱）
+    graph_results = retrieve_memory_graph(query)
+    
+    # 3. 合并结果（去重 + 排序）
+    merged = merge_and_rank(semantic_results, graph_results)
+    
+    return merged
+
+def merge_and_rank(semantic_results: list, graph_results: list) -&gt; list:
+    &quot;&quot;&quot;合并和排序结果&quot;&quot;&quot;
+    # 1. 去重（基于 content 的相似度）
+    all_results = semantic_results + graph_results
+    deduplicated = deduplicate_by_similarity(all_results, threshold=0.9)
+    
+    # 2. 排序（基于相关性分数）
+    deduplicated.sort(key=lambda x: x[&quot;score&quot;], reverse=True)
+    
+    return deduplicated
+</code></pre>
+<hr />
+<h2>6. 记忆更新 (Memory Update)</h2>
+<h3>6.1 记忆压缩（Memory Compression）</h3>
+<p><strong>问题</strong>: 长期积累的记忦会占用大量存储空间，且检索效率下降</p>
+<p><strong>解决方案</strong>: 定期使用 LLM 压缩旧记忆</p>
+<pre><code class="language-python">def compress_old_memories(user_id: str, days_threshold: int = 30):
+    &quot;&quot;&quot;压缩 N 天前的记忆&quot;&quot;&quot;
+    # 1. 查询旧记忆
+    old_memories = query_old_memories(user_id, days_threshold)
+    
+    if len(old_memories) &lt; 10:
+        return  # 记忆太少，不需要压缩
+    
+    # 2. 使用 LLM 生成摘要
+    prompt = f&quot;&quot;&quot;
+    以下是一段时间的记忆片段，请生成一份简洁的摘要：
+    
+    记忆片段：
+    {old_memories}
+    
+    要求：
+    1. 保留关键信息（实体、关系、事件、偏好）
+    2. 去除冗余信息
+    3. 按时间顺序组织
+    4. 输出格式：Markdown
+    &quot;&quot;&quot;
+    
+    response = client.messages.create(
+        model=&quot;claude-sonnet-5&quot;,
+        messages=[{&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: prompt}]
+    )
+    
+    summary = response.content[0].text
+    
+    # 3. 存储摘要（删除旧记忆）
+    store_summary(user_id, summary, start_time, end_time)
+    delete_old_memories(user_id, days_threshold)
+</code></pre>
+<h3>6.2 记忆合并（Memory Merging）</h3>
+<p><strong>问题</strong>: 同一实体的信息可能分散在多条记忆中</p>
+<p><strong>解决方案</strong>: 合并相关记忆</p>
+<pre><code class="language-python">def merge_related_memories(memory_id: str):
+    &quot;&quot;&quot;合并相关记忆&quot;&quot;&quot;
+    # 1. 查询相关记忆（基于向量相似度）
+    memory = get_memory_by_id(memory_id)
+    related = retrieve_memory_semantic(memory[&quot;content&quot;], top_k=10)
+    
+    # 2. 使用 LLM 合并
+    prompt = f&quot;&quot;&quot;
+    以下记忆都涉及相同或相关的信息，请合并为一条完整的记忆：
+    
+    记忆 1：{memory[&quot;content&quot;]}
+    记忆 2：{related[0][&quot;content&quot;]}
+    记忆 3：{related[1][&quot;content&quot;]}
+    ...
+    
+    要求：
+    1. 去除重复信息
+    2. 解决冲突（保留最新信息）
+    3. 保留所有唯一信息
+    &quot;&quot;&quot;
+    
+    response = client.messages.create(
+        model=&quot;claude-sonnet-5&quot;,
+        messages=[{&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: prompt}]
+    )
+    
+    merged_content = response.content[0].text
+    
+    # 3. 更新数据库
+    update_memory(memory_id, merged_content)
+    delete_memories([r[&quot;id&quot;] for r in related])
+</code></pre>
+<h3>6.3 记忆遗忘（Memory Forgetting）</h3>
+<p><strong>问题</strong>: 过时信息会干扰检索结果</p>
+<p><strong>解决方案</strong>: 基于时间 + 相关性的遗忘策略</p>
+<pre><code class="language-python">def forget_obsolete_memories(user_id: str):
+    &quot;&quot;&quot;遗忘过时记忆&quot;&quot;&quot;
+    # 1. 查询所有记忆
+    all_memories = query_all_memories(user_id)
+    
+    for memory in all_memories:
+        # 2. 计算遗忘分数
+        forget_score = calculate_forget_score(memory)
+        
+        # 3. 如果分数超过阈值，删除记忆
+        if forget_score &gt; 0.8:
+            delete_memory(memory[&quot;id&quot;])
+
+def calculate_forget_score(memory: dict) -&gt; float:
+    &quot;&quot;&quot;计算遗忘分数（越高越应该遗忘）&quot;&quot;&quot;
+    score = 0.0
+    
+    # 因素 1: 时间衰减（越旧越容易遗忘）
+    age_days = (time.time() - memory[&quot;timestamp&quot;]) / 86400
+    score += min(age_days / 365, 0.5)  # 最多贡献 0.5
+    
+    # 因素 2: 访问频率（越少访问越容易遗忘）
+    access_count = memory.get(&quot;access_count&quot;, 0)
+    score += max(1.0 - access_count / 10, 0.0) * 0.3  # 最多贡献 0.3
+    
+    # 因素 3: 相关性（与最近对话的相关性）
+    relevance = calculate_relevance_to_recent(memory)
+    score += (1.0 - relevance) * 0.2  # 最多贡献 0.2
+    
+    return min(score, 1.0)
+</code></pre>
+<hr />
+<h2>7. 生产级部署</h2>
+<h3>7.1 架构图（生产环境）</h3>
+<pre><code>┌─────────────────────────────────────────────────────────────┐
+│                  生产级 Long-term Memory 系统               │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  ┌─────────────────────────────────────────────────┐       │
+│  │  Load Balancer (Nginx)                         │       │
+│  └───────────────────┬─────────────────────────────┘       │
+│                      ↓                                       │
+│  ┌─────────────────────────────────────────────────┐       │
+│  │  API Servers (FastAPI, 3 replicas)             │       │
+│  │    ├─ Memory Extraction API                     │       │
+│  │    ├─ Memory Storage API                        │       │
+│  │    └─ Memory Retrieval API                      │       │
+│  └───────────────────┬─────────────────────────────┘       │
+│                      ↓                                       │
+│  ┌─────────────────────────────────────────────────┐       │
+│  │  Memory Storage Layer                           │       │
+│  │    ├─ Vector DB: Milvus Cluster (3 nodes)      │       │
+│  │    ├─ Graph DB: Neo4j Cluster (3 nodes)       │       │
+│  │    ├─ Relational DB: PostgreSQL (Primary +     │       │
+│  │    │                      Standby)                │       │
+│  │    └─ Object Storage: S3 (Multi-AZ)            │       │
+│  └───────────────────┬─────────────────────────────┘       │
+│                      ↓                                       │
+│  ┌─────────────────────────────────────────────────┐       │
+│  │  Background Workers (Celery + Redis)           │       │
+│  │    ├─ 记忆压缩任务 (每天凌晨 2:00)            │       │
+│  │    ├─ 记忆合并任务 (每小时)                    │       │
+│  │    └─ 记忆遗忘任务 (每周日凌晨 3:00)           │       │
+│  └─────────────────────────────────────────────────┘       │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+</code></pre>
+<h3>7.2 性能优化</h3>
+<p><strong>优化 1: 缓存热门记忆</strong></p>
+<pre><code class="language-python">from redis import Redis
+import json
+
+redis_client = Redis(host=&quot;localhost&quot;, port=6379, db=0)
+
+def retrieve_memory_with_cache(query: str, user_id: str) -&gt; list[dict]:
+    &quot;&quot;&quot;带缓存的记忆检索&quot;&quot;&quot;
+    # 1. 检查缓存
+    cache_key = f&quot;memory:{user_id}:{hash(query)}&quot;
+    cached = redis_client.get(cache_key)
+    if cached:
+        return json.loads(cached)
+    
+    # 2. 缓存未命中，执行检索
+    memories = retrieve_memory_hybrid(query)
+    
+    # 3. 写入缓存（过期时间: 1 小时）
+    redis_client.setex(cache_key, 3600, json.dumps(memories))
+    
+    return memories
+</code></pre>
+<p><strong>优化 2: 异步检索</strong></p>
+<pre><code class="language-python">import asyncio
+from concurrent.futures import ThreadPoolExecutor
+
+executor = ThreadPoolExecutor(max_workers=10)
+
+async def retrieve_memory_async(query: str) -&gt; list[dict]:
+    &quot;&quot;&quot;异步记忆检索&quot;&quot;&quot;
+    loop = asyncio.get_event_loop()
+    
+    # 并行执行语义检索和图谱查询
+    semantic_task = loop.run_in_executor(executor, retrieve_memory_semantic, query, 5)
+    graph_task = loop.run_in_executor(executor, retrieve_memory_graph, query)
+    
+    semantic_results, graph_results = await asyncio.gather(semantic_task, graph_task)
+    
+    # 合并结果
+    merged = merge_and_rank(semantic_results, graph_results)
+    return merged
+</code></pre>
+<hr />
+<h2>8. 评估与监控</h2>
+<h3>8.1 评估指标</h3>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>计算方式</th>
+<th>目标值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>记忆提取准确率</strong></td>
+<td>正确提取的信息数 / 总信息数</td>
+<td>&gt; 90%</td>
+</tr>
+<tr>
+<td><strong>记忆检索召回率</strong></td>
+<td>检索到的相关记忆数 / 总相关记忆数</td>
+<td>&gt; 85%</td>
+</tr>
+<tr>
+<td><strong>记忆检索精确率</strong></td>
+<td>检索到的相关记忆数 / 总检索结果数</td>
+<td>&gt; 80%</td>
+</tr>
+<tr>
+<td><strong>记忆压缩保留率</strong></td>
+<td>压缩后保留的关键信息数 / 压缩前关键信息数</td>
+<td>&gt; 95%</td>
+</tr>
+<tr>
+<td><strong>检索延迟</strong></td>
+<td>平均响应时间 (ms)</td>
+<td>&lt; 200ms</td>
+</tr>
+<tr>
+<td><strong>存储空间</strong></td>
+<td>总存储空间 (GB)</td>
+<td>&lt; 100GB / 1000 用户</td>
+</tr>
+</tbody>
+</table>
+<h3>8.2 监控告警</h3>
+<pre><code class="language-python">from prometheus_client import Counter, Histogram, Gauge
+import time
+
+# 定义指标
+memory_extraction_counter = Counter(&quot;memory_extraction_total&quot;, &quot;Total memory extractions&quot;)
+memory_retrieval_latency = Histogram(&quot;memory_retrieval_latency_seconds&quot;, &quot;Memory retrieval latency&quot;)
+memory_storage_size = Gauge(&quot;memory_storage_size_bytes&quot;, &quot;Memory storage size&quot;)
+
+def monitor_memory_extraction(func):
+    &quot;&quot;&quot;记忆提取监控装饰器&quot;&quot;&quot;
+    def wrapper(*args, **kwargs):
+        memory_extraction_counter.inc()
+        return func(*args, **kwargs)
+    return wrapper
+
+def monitor_memory_retrieval(func):
+    &quot;&quot;&quot;记忆检索监控装饰器&quot;&quot;&quot;
+    def wrapper(*args, **kwargs):
+        start = time.time()
+        result = func(*args, **kwargs)
+        latency = time.time() - start
+        memory_retrieval_latency.observe(latency)
+        return result
+    return wrapper
+</code></pre>
+<hr />
+<h2>9. 最佳实践与常见陷阱</h2>
+<h3>9.1 最佳实践</h3>
+<p>✅ <strong>Do</strong>:</p>
+<ol>
+<li><strong>使用混合检索</strong>（向量 + 图谱 + 关键词）提升召回率</li>
+<li><strong>定期压缩记忆</strong>（避免存储爆炸）</li>
+<li><strong>实现记忆遗忘</strong>（删除过时信息）</li>
+<li><strong>缓存热门记忆</strong>（降低检索延迟）</li>
+<li><strong>监控关键指标</strong>（检索延迟、存储空间、准确率）</li>
+</ol>
+<h3>9.2 常见陷阱</h3>
+<p>❌ <strong>Don't</strong>:</p>
+<ol>
+<li><strong>不要存储原始对话</strong>（占用空间大，检索效率低）→ 应提取结构化信息</li>
+<li><strong>不要忽略时间衰减</strong>（旧记忆应降低权重）→ 实现遗忘机制</li>
+<li><strong>不要只依赖向量检索</strong>（无法处理关系推理）→ 结合知识图谱</li>
+<li><strong>不要忘记隐私保护</strong>（敏感信息应加密存储）→ 使用 AES-256 加密</li>
+</ol>
+<hr />
+<h2>10. 参考资料</h2>
+<h3>10.1 官方文档</h3>
+<ul>
+<li><strong>OpenClaw Memory 文档</strong>: https://docs.openclaw.ai/memory</li>
+<li><strong>LangChain Memory</strong>: https://python.langchain.com/docs/modules/memory/</li>
+<li><strong>MemGPT 论文</strong>: &quot;MemGPT: Towards LLMs as Operating Systems&quot;</li>
+</ul>
+<h3>10.2 开源项目</h3>
+<ul>
+<li><strong>MemGPT</strong>: https://github.com/cpacker/MemGPT</li>
+<li><strong>LangMem</strong>: https://github.com/langchain-ai/langmem</li>
+<li><strong>Hermes</strong>: https://github.com/NousResearch/Hermes</li>
+</ul>
+<h3>10.3 社区教程</h3>
+<ul>
+<li>CSDN: &quot;AI Agent的记忆系统架构2026：四种记忆类型与工程实现完全指南&quot;</li>
+<li>CSDN: &quot;【万字长文】Agent 记忆设计：从短期上下文到长期记忆系统&quot;</li>
+<li>博客园: &quot;Long-Term Memory in AI Agents: A Structured Approach with LangMem&quot;</li>
+</ul>
+<hr />
+<h2>11. 总结</h2>
+<h3>11.1 核心要点</h3>
+<p>✅ Long-term Memory 是 Agent 系统的核心模块，用于存储历史经验、突破上下文窗口限制<br />
+✅ 四种记忆类型: 感官记忆、短期记忆、长期记忆、程序性记忆<br />
+✅ 核心组件: 记忆提取、记忆存储、记忆检索、记忆更新<br />
+✅ 存储架构: 向量数据库 (Milvus) + 知识图谱 (Neo4j) + 关系数据库 (PostgreSQL)<br />
+✅ 检索策略: 混合检索 (语义 + 图谱 + 关键词)</p>
+<h3>11.2 下一步学习</h3>
+<ol>
+<li><strong>动手实践</strong>: 基于本文代码，构建一个 Mini Long-term Memory 系统</li>
+<li><strong>阅读论文</strong>: 深入阅读 MemGPT、LangMem 论文</li>
+<li><strong>优化技巧</strong>: 学习记忆压缩、记忆合并、记忆遗忘的进阶算法</li>
+<li><strong>生产部署</strong>: 将 Memory 系统部署到 Kubernetes，配置监控告警</li>
+</ol>
+<hr />
+<p><strong>文档版本</strong>: v1.0<br />
+<strong>最后更新</strong>: 2026-07-02<br />
+<strong>维护者</strong>: Agent 知识库自动维护系统</p>
+
+    </div>
+</main>
+<script>
+(function(){var f=location.pathname.split('/').pop()||'index.html';
+var links=document.querySelectorAll('.VPSidebar a');
+for(var i=0;i<links.length;i++){
+var h=links[i].getAttribute('href');
+if(h===f){links[i].classList.add('active');
+var g=links[i].closest('.sidebar-group');
+if(g){g.classList.add('has-active');}
+break;}}})();
+</script>
+</body>
+</html>

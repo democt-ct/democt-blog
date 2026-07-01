@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG 生产监控与反馈循环 — Agent 知识库</title>
+    <meta name="description" content="> **核心目标**: 实时监控 RAG 系统性能，通过反馈循环持续优化检索和生成质量 > > **生产环境挑战**: 用户查询多样性、数据漂移、模型退化、成本失控">
+    <link rel="stylesheet" href="../css/vitepress.css">
+</head>
+<body>
+<aside class="VPSidebar">
+    <div class="sidebar-nav">
+        <div class="sidebar-group">
+            <h2>Agent 核心理论</h2>
+            <a href="what-is-agent.html">Agent 定义与认知架构</a>
+            <a href="workflow-vs-agent.html">Agent vs Workflow</a>
+            <a href="react-prompt.html">ReAct 模式</a>
+            <a href="react-loop-agent-control.html">Agent 运行循环</a>
+            <a href="plan-execute-agent.html">Plan-and-Execute</a>
+            <a href="agent-reflexion.html">自我反思 Reflexion</a>
+            <a href="agent-self-correction.html">自我纠错</a>
+            <a href="agent-memory-patterns.html">记忆架构</a>
+            <a href="skill-design-guide.html">Agent Skills</a>
+            <a href="task-planning-patterns.html">规划算法</a>
+            <a href="agent-security.html">安全基础</a>
+            <a href="agent-security-in-depth.html">安全深入</a>
+            <a href="agent-guardrails.html">Guardrails</a>
+            <a href="agent-evaluation.html">Agent 评估</a>
+            <a href="eval-harness-design.html">Eval Harness 设计</a>
+            <a href="agent-benchmark-guide.html">Benchmark 指南</a>
+            <a href="agent-loop-control.html">循环控制</a>
+            <a href="llm-as-judge.html">LLM as Judge</a>
+        </div>
+        <div class="sidebar-group">
+            <h2>LLM 深入</h2>
+            <a href="llm-fundamentals.html">主流模型对比</a>
+            <a href="llm-models-overview.html">模型概览</a>
+            <a href="llm-transformer.html">Transformer</a>
+            <a href="llm-tokenization.html">Tokenization</a>
+            <a href="llm-embedding.html">Embedding</a>
+            <a href="embedding-model-guide.html">Embedding 模型指南</a>
+            <a href="llm-training.html">模型训练</a>
+            <a href="llm-inference-params.html">推理参数</a>
+            <a href="llm-inference-optimization.html">推理优化</a>
+            <a href="llm-open-vs-closed.html">开源 vs 闭源</a>
+            <a href="llm-observability.html">可观测性</a>
+            <a href="cost-optimization.html">成本优化</a>
+        </div>
+        <div class="sidebar-group">
+            <h2>上下文工程</h2>
+            <a href="context-window-bias.html">上下文窗口与位置偏置</a>
+            <a href="llm-long-context.html">长上下文模型对比</a>
+            <a href="context-memory.html">记忆系统 Memory</a>
+            <a href="context-history.html">会话历史管理</a>
+            <a href="context-caching.html">上下文缓存</a>
+            <a href="context-pollution.html">上下文污染与清理</a>
+        </div>
+        <div class="sidebar-group">
+            <h2>RAG 与检索</h2>
+            <a href="rag-basics.html">Naive RAG 与瓶颈</a>
+            <a href="rag-architecture.html">RAG 架构</a>
+            <a href="rag-chunking.html">Chunking 策略</a>
+            <a href="embedding-model-guide.html">Embedding 模型指南</a>
+            <a href="vector-db-comparison.html">向量数据库对比</a>
+            <a href="rag-hybrid-search.html">混合搜索</a>
+            <a href="rag-reranking.html">Reranking</a>
+            <a href="rag-advanced.html">高级 RAG</a>
+            <a href="rag-graphrag.html">GraphRAG</a>
+            <a href="rag-agentic.html">Agentic RAG</a>
+            <a href="rag-evaluation-methods.html">RAG 评估</a>
+            <a href="rag-pitfalls-optimization.html">陷阱与优化</a>
+        </div>
+        <div class="sidebar-group">
+            <h2>工具 & 协议</h2>
+            <a href="mcp-protocol.html">MCP 协议详解</a>
+            <a href="mcp-server-practice.html">MCP Server 实战</a>
+            <a href="function-calling-deep-dive.html">Function Calling 深探</a>
+            <a href="tool-calling-advanced.html">工具调用进阶</a>
+            <a href="tool-custom.html">自定义工具</a>
+            <a href="tool-error-handling.html">工具错误处理</a>
+            <a href="tool-parallel-calling.html">并行工具调用</a>
+            <a href="tool-sandbox.html">工具沙箱</a>
+            <a href="tool-schema-design-patterns.html">Schema 设计模式</a>
+            <a href="rate-limiting-patterns.html">速率限制模式</a>
+        </div>
+        <div class="sidebar-group">
+            <h2>Prompt 工程</h2>
+            <a href="prompt-engineering.html">Prompt 工程</a>
+            <a href="prompt-basics.html">Prompt 基础</a>
+            <a href="prompt-few-shot.html">Few-shot</a>
+            <a href="prompt-templates.html">Prompt 模板</a>
+            <a href="prompt-compression.html">Prompt 压缩</a>
+            <a href="prompt-injection.html">Prompt 注入</a>
+            <a href="prompt-self-consistency.html">自一致性</a>
+            <a href="system-prompt-design.html">System Prompt 设计</a>
+        </div>
+        <div class="sidebar-group">
+            <h2>Multi-Agent</h2>
+            <a href="multi-agent-collaboration.html">多 Agent 协作</a>
+            <a href="multi-agent-communication.html">多 Agent 通信</a>
+            <a href="multi-agent-metagpt.html">MetaGPT</a>
+            <a href="multi-agent-orchestrator.html">编排器模式</a>
+            <a href="multi-agent-patterns.html">多 Agent 模式</a>
+        </div>
+        <div class="sidebar-group">
+            <h2>框架分析</h2>
+            <a href="framework-langchain.html">LangChain / LangGraph</a>
+            <a href="framework-llamaindex.html">LlamaIndex</a>
+            <a href="framework-claude-sdk.html">Claude Agent SDK</a>
+            <a href="framework-openai-sdk.html">OpenAI Agents SDK</a>
+            <a href="framework-openclaw.html">OpenClaw</a>
+            <a href="framework-hermes.html">Hermes Agent</a>
+            <a href="framework-comparison.html">框架选型决策树</a>
+        </div>
+        <div class="sidebar-group">
+            <h2>流程编排</h2>
+            <a href="workflow-langgraph.html">LangGraph 深度解析</a>
+            <a href="workflow-patterns.html">编排模式</a>
+            <a href="workflow-dify.html">Dify / Coze</a>
+            <a href="workflow-vs-agent.html">Workflow vs Agent</a>
+        </div>
+        <div class="sidebar-group">
+            <h2>源码解析</h2>
+            <a href="source-claude-code.html">Claude Code</a>
+            <a href="source-codex-cli.html">Codex CLI</a>
+            <a href="source-cline.html">Cline / Roo Code</a>
+            <a href="source-openhands.html">OpenHands</a>
+            <a href="source-aider.html">Aider</a>
+            <a href="source-swe-agent.html">SWE-agent</a>
+            <a href="source-gpt-engineer.html">GPT Engineer</a>
+            <a href="source-pi-mono.html">Pi</a>
+            <a href="source-browser-use.html">Browser Use</a>
+        </div>
+        <div class="sidebar-group">
+            <h2>垂直 Agent</h2>
+            <a href="vertical-browser-agent.html">浏览器 Agent</a>
+            <a href="vertical-coding-agent.html">编码 Agent</a>
+            <a href="vertical-customer-service.html">客服 Agent</a>
+            <a href="vertical-data-analysis.html">数据分析 Agent</a>
+            <a href="vertical-deep-research.html">深度研究 Agent</a>
+            <a href="vertical-voice-agent.html">语音 Agent</a>
+        </div>
+    </div>
+</aside>
+
+<main>
+    <div class="vp-doc">
+        <section class="doc-hero">
+    <p class="doc-hero__kicker">Agent 知识库</p>
+    <h1>RAG 生产监控与反馈循环</h1>
+    <p class="doc-hero__lead">> **核心目标**: 实时监控 RAG 系统性能，通过反馈循环持续优化检索和生成质量 > > **生产环境挑战**: 用户查询多样性、数据漂移、模型退化、成本失控</p>
+</section>
+
+<blockquote>
+<p><strong>核心目标</strong>: 实时监控 RAG 系统性能，通过反馈循环持续优化检索和生成质量</p>
+<p><strong>生产环境挑战</strong>: 用户查询多样性、数据漂移、模型退化、成本失控</p>
+</blockquote>
+<hr />
+<h2>1. 为什么需要生产监控？</h2>
+<h3>1.1 开发环境 vs 生产环境</h3>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>开发环境</th>
+<th>生产环境</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>数据分布</strong></td>
+<td>固定测试集</td>
+<td>真实用户查询（长尾分布）</td>
+</tr>
+<tr>
+<td><strong>负载</strong></td>
+<td>低，可预测</td>
+<td>高，突发流量</td>
+</tr>
+<tr>
+<td><strong>成本</strong></td>
+<td>不计较</td>
+<td>直接关联业务成本</td>
+</tr>
+<tr>
+<td><strong>用户期望</strong></td>
+<td>功能正确即可</td>
+<td>低延迟、高可用性</td>
+</tr>
+<tr>
+<td><strong>错误影响</strong></td>
+<td>影响开发进度</td>
+<td>影响用户体验、品牌信誉</td>
+</tr>
+</tbody>
+</table>
+<h3>1.2 RAG 系统的独特挑战</h3>
+<ul>
+<li><strong>检索质量难量化</strong>: 召回的文档是否相关？覆盖率如何？</li>
+<li><strong>生成质量主观</strong>: 答案是否准确？是否幻觉？</li>
+<li><strong>多组件依赖</strong>: 检索器、重排器、生成器任一处退化都会影响整体</li>
+<li><strong>数据漂移</strong>: 知识库过期、用户查询分布变化</li>
+</ul>
+<hr />
+<h2>2. 监控维度</h2>
+<h3>2.1 检索质量监控</h3>
+<h4>核心指标</h4>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>定义</th>
+<th>计算方法</th>
+<th>目标值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>召回率（Recall@K）</strong></td>
+<td>相关文档在前 K 个结果中的比例</td>
+<td>人工标注 / 自动评估</td>
+<td>≥ 0.8</td>
+</tr>
+<tr>
+<td><strong>精确率（Precision@K）</strong></td>
+<td>前 K 个结果中相关文档的比例</td>
+<td>人工标注 / 自动评估</td>
+<td>≥ 0.7</td>
+</tr>
+<tr>
+<td><strong>MRR（Mean Reciprocal Rank）</strong></td>
+<td>第一个相关文档排名的倒数均值</td>
+<td><code>1/rank</code> 的平均值</td>
+<td>≥ 0.75</td>
+</tr>
+<tr>
+<td><strong>NDCG@K</strong></td>
+<td>考虑排序位置的归一化折损累积增益</td>
+<td>信息检索标准公式</td>
+<td>≥ 0.85</td>
+</tr>
+<tr>
+<td><strong>覆盖率（Coverage）</strong></td>
+<td>检索结果覆盖问题所有方面的比例</td>
+<td>人工评估</td>
+<td>≥ 0.8</td>
+</tr>
+</tbody>
+</table>
+<h4>监控方法</h4>
+<p><strong>离线评估（定期执行）</strong>:</p>
+<pre><code class="language-python">from ragas.metrics import context_precision, context_recall
+
+def evaluate_retrieval_quality(test_set):
+    scores = []
+    for sample in test_set:
+        query = sample[&quot;query&quot;]
+        retrieved_docs = retriever.retrieve(query)
+        
+        # 计算 Precision@K 和 Recall@K
+        relevant_docs = sample[&quot;relevant_docs&quot;]
+        precision = compute_precision(retrieved_docs, relevant_docs, k=5)
+        recall = compute_recall(retrieved_docs, relevant_docs, k=5)
+        
+        scores.append({&quot;precision&quot;: precision, &quot;recall&quot;: recall})
+    
+    return aggregate_scores(scores)
+</code></pre>
+<p><strong>在线评估（采样用户查询）</strong>:</p>
+<pre><code class="language-python">def online_retrieval_evaluation(query, retrieved_docs):
+    # 方案1: 隐式反馈（用户点击）
+    clicks = track_user_clicks(query)
+    clicked_docs = [doc for doc in retrieved_docs if doc.id in clicks]
+    implicit_precision = len(clicked_docs) / len(retrieved_docs)
+    
+    # 方案2: 显式反馈（用户点赞/点踩）
+    feedback = get_user_feedback(query)
+    explicit_relevance = [doc for doc in retrieved_docs if feedback[doc.id] == &quot;like&quot;]
+    explicit_precision = len(explicit_relevance) / len(retrieved_docs)
+    
+    return {
+        &quot;implicit_precision&quot;: implicit_precision,
+        &quot;explicit_precision&quot;: explicit_precision
+    }
+</code></pre>
+<hr />
+<h3>2.2 生成质量监控</h3>
+<h4>核心指标</h4>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>定义</th>
+<th>计算方法</th>
+<th>目标值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>真实性（Faithfulness）</strong></td>
+<td>生成内容是否基于检索的文档</td>
+<td>自动评估（NLI 模型）</td>
+<td>≥ 0.9</td>
+</tr>
+<tr>
+<td><strong>答案相关性（Answer Relevancy）</strong></td>
+<td>答案是否切题</td>
+<td>自动评估（Embedding 相似度）</td>
+<td>≥ 0.85</td>
+</tr>
+<tr>
+<td><strong>完整性（Completeness）</strong></td>
+<td>答案是否覆盖问题的所有方面</td>
+<td>人工评估 / LLM 评分</td>
+<td>≥ 0.8</td>
+</tr>
+<tr>
+<td><strong>幻觉率（Hallucination Rate）</strong></td>
+<td>生成内容包含不支持于文档的陈述的比例</td>
+<td>人工抽样检查</td>
+<td>≤ 0.05</td>
+</tr>
+<tr>
+<td><strong>可读性（Readability）</strong></td>
+<td>答案是否流畅、易理解</td>
+<td>Flesch 评分 / LLM 评分</td>
+<td>≥ 0.8</td>
+</tr>
+</tbody>
+</table>
+<h4>监控方法</h4>
+<p><strong>自动评估（每次查询执行）</strong>:</p>
+<pre><code class="language-python">from ragas import evaluate
+from ragas.metrics import faithfulness, answer_relevancy
+
+def monitor_generation_quality(query, retrieved_docs, generated_answer):
+    # 使用 RAGAS 自动评估
+    test_data = {
+        &quot;question&quot;: [query],
+        &quot;contexts&quot;: [[doc.content for doc in retrieved_docs]],
+        &quot;answer&quot;: [generated_answer]
+    }
+    
+    results = evaluate(test_data, metrics=[faithfulness, answer_relevancy])
+    
+    return {
+        &quot;faithfulness&quot;: results[&quot;faithfulness&quot;],
+        &quot;answer_relevancy&quot;: results[&quot;answer_relevancy&quot;]
+    }
+</code></pre>
+<p><strong>人工抽样评估（每周执行）</strong>:</p>
+<pre><code class="language-python">def sample_for_human_evaluation(queries, sample_size=100):
+    # 按风险分层抽样
+    high_risk = [q for q in queries if is_high_stakes(q)]  # 如医疗、法律查询
+    medium_risk = [q for q in queries if is_medium_stakes(q)]
+    low_risk = [q for q in queries if is_low_stakes(q)]
+    
+    # 按比例抽样
+    samples = (
+        random.sample(high_risk, int(sample_size * 0.5)) +
+        random.sample(medium_risk, int(sample_size * 0.3)) +
+        random.sample(low_risk, int(sample_size * 0.2))
+    )
+    
+    # 发送给人工评估团队
+    send_to_human_evaluators(samples)
+</code></pre>
+<hr />
+<h3>2.3 系统性能监控</h3>
+<h4>核心指标</h4>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>定义</th>
+<th>计算方法</th>
+<th>告警阈值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>P50 延迟</strong></td>
+<td>50% 请求的延迟</td>
+<td>统计百分位</td>
+<td>&lt; 2s</td>
+</tr>
+<tr>
+<td><strong>P95 延迟</strong></td>
+<td>95% 请求的延迟</td>
+<td>统计百分位</td>
+<td>&lt; 5s</td>
+</tr>
+<tr>
+<td><strong>P99 延迟</strong></td>
+<td>99% 请求的延迟</td>
+<td>统计百分位</td>
+<td>&lt; 10s</td>
+</tr>
+<tr>
+<td><strong>吞吐量（QPS）</strong></td>
+<td>每秒查询数</td>
+<td>请求数 / 时间窗口</td>
+<td>根据容量规划</td>
+</tr>
+<tr>
+<td><strong>错误率</strong></td>
+<td>失败请求的比例</td>
+<td>错误数 / 总请求数</td>
+<td>&lt; 0.01</td>
+</tr>
+<tr>
+<td><strong>Token 消耗</strong></td>
+<td>每次查询的平均 Token 数</td>
+<td>Token 总数 / 查询数</td>
+<td>根据成本预算</td>
+</tr>
+</tbody>
+</table>
+<h4>监控方法</h4>
+<p><strong>实时指标收集</strong>:</p>
+<pre><code class="language-python">import time
+from prometheus_client import Counter, Histogram, Gauge
+
+# 定义 Prometheus 指标
+request_count = Counter(&quot;rag_requests_total&quot;, &quot;Total RAG requests&quot;, [&quot;status&quot;])
+latency_histogram = Histogram(&quot;rag_latency_seconds&quot;, &quot;RAG request latency&quot;)
+token_usage_gauge = Gauge(&quot;rag_token_usage&quot;, &quot;Token usage per request&quot;)
+
+def rag_pipeline(query):
+    start_time = time.time()
+    status = &quot;success&quot;
+    
+    try:
+        # 检索
+        retrieved_docs = retriever.retrieve(query)
+        
+        # 生成
+        answer = generator.generate(query, retrieved_docs)
+        
+        # 记录 Token 消耗
+        token_usage = generator.token_usage
+        token_usage_gauge.set(token_usage)
+        
+        return answer
+    except Exception as e:
+        status = &quot;error&quot;
+        raise e
+    finally:
+        # 记录延迟
+        latency = time.time() - start_time
+        latency_histogram.observe(latency)
+        
+        # 记录请求数
+        request_count.labels(status=status).inc()
+</code></pre>
+<p><strong>可视化（Grafana Dashboard）</strong>:</p>
+<pre><code class="language-yaml"># grafana/dashboards/rag_metrics.json
+{
+  &quot;dashboard&quot;: {
+    &quot;title&quot;: &quot;RAG Production Monitoring&quot;,
+    &quot;panels&quot;: [
+      {
+        &quot;title&quot;: &quot;Request Rate (QPS)&quot;,
+        &quot;targets&quot;: [{&quot;expr&quot;: &quot;rate(rag_requests_total[5m])&quot;}]
+      },
+      {
+        &quot;title&quot;: &quot;P95 Latency&quot;,
+        &quot;targets&quot;: [{&quot;expr&quot;: &quot;histogram_quantile(0.95, rag_latency_seconds)&quot;}]
+      },
+      {
+        &quot;title&quot;: &quot;Error Rate&quot;,
+        &quot;targets&quot;: [{&quot;expr&quot;: &quot;rate(rag_requests_total{status='error'}[5m]) / rate(rag_requests_total[5m])&quot;}]
+      },
+      {
+        &quot;title&quot;: &quot;Token Usage (avg)&quot;,
+        &quot;targets&quot;: [{&quot;expr&quot;: &quot;avg(rag_token_usage)&quot;}]
+      }
+    ]
+  }
+}
+</code></pre>
+<hr />
+<h3>2.4 用户反馈监控</h3>
+<h4>反馈类型</h4>
+<table>
+<thead>
+<tr>
+<th>反馈类型</th>
+<th>收集方式</th>
+<th>分析价值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>显式反馈</strong></td>
+<td>点赞/点踩、评分（1-5星）、文字评论</td>
+<td>直接反映用户满意度</td>
+</tr>
+<tr>
+<td><strong>隐式反馈</strong></td>
+<td>点击、停留时间、滚动深度、重试次数</td>
+<td>间接反映答案质量</td>
+</tr>
+<tr>
+<td><strong>行为反馈</strong></td>
+<td>是否分享、是否收藏、是否引用</td>
+<td>反映答案价值</td>
+</tr>
+</tbody>
+</table>
+<h4>分析方法</h4>
+<p><strong>显式反馈分析</strong>:</p>
+<pre><code class="language-python">def analyze_explicit_feedback():
+    feedback = get_user_feedback(last_n_days=7)
+    
+    # 按查询类型分组
+    feedback_by_category = group_by_category(feedback)
+    
+    for category, scores in feedback_by_category.items():
+        avg_score = sum(scores) / len(scores)
+        print(f&quot;{category}: {avg_score:.2f} / 5.00&quot;)
+    
+    # 识别低分查询
+    low_score_queries = [f for f in feedback if f[&quot;score&quot;] &lt;= 2]
+    print(f&quot;Low score queries: {len(low_score_queries)}&quot;)
+    
+    # 根因分析
+    for query in low_score_queries[:10]:
+        analyze_failure(query)
+</code></pre>
+<p><strong>隐式反馈分析</strong>:</p>
+<pre><code class="language-python">def analyze_implicit_feedback(query, user_behavior):
+    # 点击率（CTR）
+    ctr = user_behavior[&quot;clicks&quot;] / user_behavior[&quot;impressions&quot;]
+    
+    # 停留时间
+    dwell_time = user_behavior[&quot;dwell_time&quot;]
+    
+    # 重试率
+    retry_rate = user_behavior[&quot;retries&quot;] / user_behavior[&quot;total_sessions&quot;]
+    
+    # 综合评分
+    score = 0.4 * ctr + 0.4 * min(dwell_time / 60, 1.0) + 0.2 * (1 - retry_rate)
+    
+    return {
+        &quot;ctr&quot;: ctr,
+        &quot;dwell_time&quot;: dwell_time,
+        &quot;retry_rate&quot;: retry_rate,
+        &quot;implicit_score&quot;: score
+    }
+</code></pre>
+<hr />
+<h2>3. 反馈循环设计</h2>
+<h3>3.1 主动学习（Active Learning）</h3>
+<p><strong>核心思想</strong>: 优先标注那些模型&quot;最不确定&quot;的样本，最大化标注效率。</p>
+<p><strong>不确定性度量</strong>:</p>
+<pre><code class="language-python">def compute_uncertainty(query, retrieved_docs):
+    # 方法1: 熵（Entropy）
+    probabilities = model.predict_proba(query, retrieved_docs)
+    entropy = -sum(p * log(p) for p in probabilities)
+    
+    # 方法2: 边际置信度（Margin Confidence）
+    sorted_probs = sorted(probabilities, reverse=True)
+    margin = sorted_probs[0] - sorted_probs[1]
+    uncertainty = 1 - margin
+    
+    # 方法3: 最小置信度（Least Confidence）
+    min_confidence = 1 - max(probabilities)
+    
+    return {&quot;entropy&quot;: entropy, &quot;margin&quot;: uncertainty, &quot;least_confidence&quot;: min_confidence}
+</code></pre>
+<p><strong>主动学习循环</strong>:</p>
+<pre><code class="language-python">def active_learning_loop(unlabeled_queries, model, iterations=5):
+    for i in range(iterations):
+        # 选择最不确定的样本
+        uncertainties = [compute_uncertainty(q, model) for q in unlabeled_queries]
+        most_uncertain = sorted(uncertainties, key=lambda x: x[&quot;entropy&quot;], reverse=True)[:100]
+        
+        # 发送给人工标注
+        labeled_data = human_labeling(most_uncertain)
+        
+        # 重新训练模型
+        model.retrain(labeled_data)
+        
+        # 从未标注池中移除已标注样本
+        unlabeled_queries = [q for q in unlabeled_queries if q not in most_uncertain]
+</code></pre>
+<hr />
+<h3>3.2 持续微调（Continuous Fine-tuning）</h3>
+<p><strong>触发条件</strong>:</p>
+<ul>
+<li>每周收集到 ≥ 100 条高质量标注数据</li>
+<li>用户满意度下降 ≥ 10%</li>
+<li>新领域数据占比 ≥ 20%</li>
+</ul>
+<p><strong>微调流程</strong>:</p>
+<pre><code class="language-mermaid">graph LR
+    A[收集用户反馈] --&gt; B[质量过滤]
+    B --&gt; C[标注数据]
+    C --&gt; D[微调模型]
+    D --&gt; E[离线评估]
+    E --&gt; F{通过阈值?}
+    F --&gt;|是| G[A/B 测试]
+    F --&gt;|否| C
+    G --&gt; H{优于线上?}
+    H --&gt;|是| I[全量部署]
+    H --&gt;|否| C
+</code></pre>
+<p><strong>实现示例</strong>:</p>
+<pre><code class="language-python">def continuous_finetuning():
+    # 1. 收集反馈
+    feedback = get_user_feedback(last_n_days=7)
+    high_quality_samples = [f for f in feedback if f[&quot;score&quot;] &gt;= 4]
+    
+    if len(high_quality_samples) &lt; 100:
+        print(&quot;Not enough samples, waiting...&quot;)
+        return
+    
+    # 2. 微调
+    model = load_current_model()
+    model.finetune(high_quality_samples, epochs=3, learning_rate=1e-5)
+    
+    # 3. 离线评估
+    eval_results = evaluate_model(model, test_set)
+    if eval_results[&quot;accuracy&quot;] &lt; 0.85:
+        print(&quot;Model accuracy too low, not deploying&quot;)
+        return
+    
+    # 4. A/B 测试
+    deploy_for_ab_test(model, traffic_percentage=10)
+    
+    # 5. 监控 A/B 测试结果
+    if is_better_than_baseline(model, metric=&quot;user_satisfaction&quot;):
+        deploy_full(model)
+        print(&quot;Model deployed to production!&quot;)
+</code></pre>
+<hr />
+<h3>3.3 检索器优化循环</h3>
+<p><strong>优化策略</strong>:</p>
+<ol>
+<li><strong>负样本挖掘</strong>: 使用用户点踩的答案作为负样本，重新训练检索器</li>
+<li><strong>查询扩展</strong>: 分析用户原始查询和成功查询的差异，优化查询改写模型</li>
+<li><strong>混合检索调参</strong>: 调整向量检索、关键词检索、知识图谱检索的权重</li>
+</ol>
+<p><strong>示例: 负样本挖掘</strong>:</p>
+<pre><code class="language-python">def mine_hard_negatives():
+    # 获取用户点踩的查询
+    negative_feedback = get_negative_feedback(last_n_days=30)
+    
+    for sample in negative_feedback:
+        query = sample[&quot;query&quot;]
+        bad_doc = sample[&quot;retrieved_docs&quot;][0]  # 假设第一个结果最差
+        
+        # 获取正样本（用户点赞的类似查询）
+        similar_positive_queries = find_similar_queries(query, min_score=4)
+        good_doc = similar_positive_queries[0][&quot;retrieved_docs&quot;][0]
+        
+        # 添加到训练集
+        training_data.append({
+            &quot;query&quot;: query,
+            &quot;positive_doc&quot;: good_doc,
+            &quot;negative_doc&quot;: bad_doc
+        })
+    
+    # 重新训练检索器（对比学习）
+    retriever.retrain(training_data, loss=&quot;contrastive&quot;)
+</code></pre>
+<hr />
+<h3>3.4 生成器优化循环</h3>
+<p><strong>优化策略</strong>:</p>
+<ol>
+<li><strong>RLHF（Reinforcement Learning from Human Feedback）</strong>: 基于用户反馈强化学习</li>
+<li><strong>RAGAS 评分优化</strong>: 以 RAGAS 指标（真实性、相关性）为目标微调</li>
+<li><strong>Prompt 工程</strong>: A/B 测试不同 Prompt，选择最优</li>
+</ol>
+<p><strong>示例: RLHF</strong>:</p>
+<pre><code class="language-python">from trl import PPOTrainer, PPOConfig
+
+def rlhf_finetuning():
+    # 加载当前模型
+    model = load_current_model()
+    
+    # 配置 PPO
+    ppo_config = PPOConfig(
+        learning_rate=1e-5,
+        batch_size=32,
+        ppo_epochs=4
+    )
+    
+    ppo_trainer = PPOTrainer(model=model, config=ppo_config)
+    
+    # 获取用户反馈数据
+    feedback_data = get_user_feedback(last_n_days=7)
+    
+    for sample in feedback_data:
+        query = sample[&quot;query&quot;]
+        response = sample[&quot;response&quot;]
+        reward = sample[&quot;score&quot;]  # 用户评分（1-5）作为奖励
+        
+        # PPO 更新
+        ppo_trainer.step([query], [response], [reward])
+    
+    # 保存模型
+    model.save_pretrained(&quot;rag_generator_rlhf&quot;)
+</code></pre>
+<hr />
+<h2>4. 实战工具</h2>
+<h3>4.1 LangSmith</h3>
+<p><strong>功能</strong>: Trace 可视化、数据集管理、自动化评估、在线监控。</p>
+<p><strong>使用示例</strong>:</p>
+<pre><code class="language-python">from langsmith import Client, traceable
+
+client = Client()
+
+@traceable
+def rag_pipeline(query):
+    # 检索
+    docs = retriever.retrieve(query)
+    
+    # 生成
+    answer = generator.generate(query, docs)
+    
+    return answer
+
+# 监控生产环境
+def monitor_production():
+    runs = client.list_runs(
+        project_name=&quot;rag_production&quot;,
+        start_time=&quot;2026-07-01T00:00:00Z&quot;,
+        end_time=&quot;2026-07-02T00:00:00Z&quot;
+    )
+    
+    for run in runs:
+        if run[&quot;latency&quot;] &gt; 5:
+            print(f&quot;Slow query: {run['inputs']['query']}&quot;)
+        if run[&quot;error&quot;]:
+            print(f&quot;Error: {run['error']}&quot;)
+</code></pre>
+<hr />
+<h3>4.2 Helicone</h3>
+<p><strong>功能</strong>: LLM API 调用监控、成本追踪、缓存优化、A/B 测试。</p>
+<p><strong>使用示例</strong>:</p>
+<pre><code class="language-python">import helicone
+
+helicone.init(api_key=&quot;your_api_key&quot;)
+
+def rag_generate(query, docs):
+    # Helicone 自动记录 Token 消耗、延迟、成本
+    response = openai.ChatCompletion.create(
+        model=&quot;gpt-4&quot;,
+        messages=[
+            {&quot;role&quot;: &quot;system&quot;, &quot;content&quot;: &quot;You are a helpful assistant.&quot;},
+            {&quot;role&quot;: &quot;user&quot;, &quot;content&quot;: f&quot;Query: {query}\nDocs: {docs}&quot;}
+        ]
+    )
+    return response.choices[0].message.content
+</code></pre>
+<p><strong>Dashboard 功能</strong>:</p>
+<ul>
+<li><strong>成本追踪</strong>: 每日/每月 Token 消耗，预测月底成本</li>
+<li><strong>缓存命中率</strong>: 相同查询的缓存命中率</li>
+<li><strong>模型对比</strong>: 不同模型的性能、成本对比</li>
+</ul>
+<hr />
+<h3>4.3 Grafana + Prometheus</h3>
+<p><strong>功能</strong>: 自定义指标监控、告警、可视化。</p>
+<p><strong>部署</strong>:</p>
+<pre><code class="language-yaml"># docker-compose.yml
+version: '3'
+services:
+  prometheus:
+    image: prom/prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - &quot;9090:9090&quot;
+  
+  grafana:
+    image: grafana/grafana
+    ports:
+      - &quot;3000:3000&quot;
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+</code></pre>
+<p><strong>告警规则</strong>:</p>
+<pre><code class="language-yaml"># prometheus/alerts.yml
+groups:
+  - name: rag_alerts
+    rules:
+      - alert: HighLatency
+        expr: histogram_quantile(0.95, rate(rag_latency_seconds_bucket[5m])) &gt; 5
+        for: 5m
+        annotations:
+          summary: &quot;RAG P95 latency &gt; 5s&quot;
+      
+      - alert: HighErrorRate
+        expr: rate(rag_requests_total{status='error'}[5m]) / rate(rag_requests_total[5m]) &gt; 0.05
+        for: 5m
+        annotations:
+          summary: &quot;RAG error rate &gt; 5%&quot;
+      
+      - alert: HighCost
+        expr: increase(rag_token_usage_total[1d]) &gt; 1000000
+        for: 0m
+        annotations:
+          summary: &quot;RAG daily token usage &gt; 1M&quot;
+</code></pre>
+<hr />
+<h3>4.4 WhyLabs</h3>
+<p><strong>功能</strong>: 数据漂移检测、模型退化监控、异常检测。</p>
+<p><strong>使用示例</strong>:</p>
+<pre><code class="language-python">import whylogs
+
+# 初始化 WhyLabs
+whylogs.init(api_key=&quot;your_api_key&quot;)
+
+def monitor_data_drift():
+    # 记录检索的文档
+    docs = retriever.retrieve(query)
+    whylogs.log({&quot;retrieved_docs&quot;: [doc.content for doc in docs]})
+    
+    # 检测漂移
+    drift_report = whylogs.detect_drift(
+        baseline=&quot;knowledge_base_snapshot_jan_2026&quot;,
+        current=&quot;retrieved_docs_last_7_days&quot;
+    )
+    
+    if drift_report[&quot;drift_detected&quot;]:
+        print(&quot;Data drift detected! Consider updating knowledge base.&quot;)
+</code></pre>
+<hr />
+<h2>5. 最佳实践</h2>
+<h3>5.1 监控策略</h3>
+<table>
+<thead>
+<tr>
+<th>策略</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>分层监控</strong></td>
+<td>检索层、生成层、系统层分别监控</td>
+</tr>
+<tr>
+<td><strong>采样监控</strong></td>
+<td>高频指标全量监控，低频指标采样监控（降低成本）</td>
+</tr>
+<tr>
+<td><strong>告警分级</strong></td>
+<td>P0（立即响应）、P1（1小时内）、P2（1天内）</td>
+</tr>
+<tr>
+<td><strong>回滚机制</strong></td>
+<td>监控到异常时自动回滚到上一版本</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3>5.2 反馈循环优化</h3>
+<p><strong>原则</strong>:</p>
+<ol>
+<li><strong>快速迭代</strong>: 每周至少一次模型更新</li>
+<li><strong>小步快跑</strong>: 每次只改一个变量，便于归因</li>
+<li><strong>数据驱动</strong>: 所有决策基于数据，而非直觉</li>
+<li><strong>用户中心</strong>: 最终指标是用户满意度，而非离线指标</li>
+</ol>
+<p><strong>示例: 优化迭代计划</strong>:</p>
+<pre><code>Week 1: 优化检索器（负样本挖掘）
+Week 2: 优化生成器（RLHF）
+Week 3: 优化 Prompt（A/B 测试）
+Week 4: 优化知识库（数据更新）
+</code></pre>
+<hr />
+<h3>5.3 成本控制</h3>
+<p><strong>策略</strong>:</p>
+<ol>
+<li><strong>缓存</strong>: 相同查询缓存结果（Redis、Memcached）</li>
+<li><strong>模型选择</strong>: 简单查询用小模型，复杂查询用大模型</li>
+<li><strong>截断</strong>: 限制检索文档数量（如 top-5）、生成 Token 数（如 max_tokens=500）</li>
+<li><strong>异步处理</strong>: 非实时查询异步处理，降低成本</li>
+</ol>
+<p><strong>示例: 缓存策略</strong>:</p>
+<pre><code class="language-python">import redis
+
+cache = redis.Redis()
+
+def rag_with_cache(query):
+    # 检查缓存
+    cached = cache.get(query)
+    if cached:
+        return cached
+    
+    # 执行 RAG
+    result = rag_pipeline(query)
+    
+    # 缓存结果（TTL 1小时）
+    cache.setex(query, 3600, result)
+    
+    return result
+</code></pre>
+<hr />
+<h3>5.4 文档与协作</h3>
+<p><strong>监控文档</strong>:</p>
+<ul>
+<li><strong>指标字典</strong>: 每个指标的定义、计算方法、目标值</li>
+<li><strong>告警手册</strong>: 每个告警的处理步骤、联系人</li>
+<li><strong>复盘报告</strong>: 每次重大故障的根因分析、改进措施</li>
+</ul>
+<p><strong>协作流程</strong>:</p>
+<pre><code>监控发现异常
+  ↓
+自动创建 Jira Ticket
+  ↓
+分配给对应负责人
+  ↓
+修复 + 编写测试用例
+  ↓
+部署 + 验证
+  ↓
+关闭 Ticket + 更新文档
+</code></pre>
+<hr />
+<h2>6. 案例研究</h2>
+<h3>6.1 案例: 某电商客服 RAG 系统</h3>
+<p><strong>背景</strong>:</p>
+<ul>
+<li>日均查询量: 100 万次</li>
+<li>知识库: 10 万篇文档（商品信息、FAQ、政策）</li>
+<li>模型: GPT-3.5（检索器）+ GPT-4（生成器）</li>
+</ul>
+<p><strong>监控发现的问题</strong>:</p>
+<ol>
+<li><strong>检索质量下降</strong>: Recall@5 从 0.85 降至 0.70（数据漂移）</li>
+<li><strong>幻觉率上升</strong>: 从 3% 升至 8%（知识库过期）</li>
+<li><strong>成本失控</strong>: 每月 Token 费用从 $5,000 升至 $12,000</li>
+</ol>
+<p><strong>优化措施</strong>:</p>
+<ol>
+<li><strong>每周更新知识库</strong>: 爬取最新商品信息、政策变化</li>
+<li><strong>负样本挖掘</strong>: 使用用户点踩的查询重新训练检索器</li>
+<li><strong>缓存优化</strong>: 缓存高频查询（如&quot;退货政策&quot;），缓存命中率从 10% 升至 40%</li>
+<li><strong>模型降级</strong>: 简单查询（如&quot;订单状态&quot;）使用 GPT-3.5，成本降低 50%</li>
+</ol>
+<p><strong>优化效果</strong>:</p>
+<ul>
+<li>Recall@5: 0.70 → 0.88</li>
+<li>幻觉率: 8% → 2%</li>
+<li>成本: $12,000/月 → $6,000/月</li>
+<li>用户满意度: 3.8/5.0 → 4.5/5.0</li>
+</ul>
+<hr />
+<h2>7. 未来方向</h2>
+<h3>7.1 自动化反馈循环</h3>
+<p><strong>愿景</strong>: 监控 → 检测异常 → 自动优化 → 部署，全链路自动化。</p>
+<p><strong>技术栈</strong>:</p>
+<ul>
+<li><strong>监控</strong>: LangSmith、WhyLabs</li>
+<li><strong>异常检测</strong>: 统计过程控制（SPC）、机器学习</li>
+<li><strong>自动优化</strong>: AutoML（超参数调优、模型选择）</li>
+<li><strong>自动部署</strong>: CI/CD（GitHub Actions、Jenkins）</li>
+</ul>
+<hr />
+<h3>7.2 多模态 RAG 监控</h3>
+<p><strong>挑战</strong>: 图像、音频、视频的检索和生成质量难以自动化评估。</p>
+<p><strong>解决思路</strong>:</p>
+<ul>
+<li><strong>图像</strong>: 使用 CLIP 评分（图像-文本相关性）</li>
+<li><strong>音频</strong>: 使用 ASR 转文字后评估</li>
+<li><strong>视频</strong>: 提取关键帧后评估</li>
+</ul>
+<hr />
+<h3>7.3 联邦 RAG 监控</h3>
+<p><strong>场景</strong>: 多个组织共享 RAG 系统，但数据不共享（隐私保护）。</p>
+<p><strong>技术</strong>: 联邦学习（Federated Learning）+ 差分隐私（Differential Privacy）</p>
+<hr />
+<h2>8. 参考资料</h2>
+<ul>
+<li><strong>RAGAS 文档</strong>: https://docs.ragas.io/</li>
+<li><strong>LangSmith 文档</strong>: https://docs.smith.langchain.com/</li>
+<li><strong>Helicone 文档</strong>: https://docs.helicone.ai/</li>
+<li><strong>Prometheus 文档</strong>: https://prometheus.io/docs/</li>
+<li><strong>Grafana 文档</strong>: https://grafana.com/docs/</li>
+<li><strong>论文</strong>: &quot;Monitoring and Debugging RAG Systems in Production&quot;</li>
+</ul>
+<hr />
+<h2>9. 总结</h2>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>关键要点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>监控维度</strong></td>
+<td>检索质量、生成质量、系统性能、用户反馈</td>
+</tr>
+<tr>
+<td><strong>反馈循环</strong></td>
+<td>主动学习、持续微调、检索器/生成器优化</td>
+</tr>
+<tr>
+<td><strong>实战工具</strong></td>
+<td>LangSmith（Trace）、Helicone（成本）、Grafana（指标）、WhyLabs（漂移）</td>
+</tr>
+<tr>
+<td><strong>最佳实践</strong></td>
+<td>分层监控、快速迭代、成本控制、文档协作</td>
+</tr>
+<tr>
+<td><strong>未来方向</strong></td>
+<td>自动化反馈、多模态监控、联邦学习</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><strong>撰写时间</strong>: 2026-07-02
+<strong>作者</strong>: AI Agent (OpenClaw)
+<strong>标签</strong>: #rag #monitoring #feedback-loop #production</p>
+
+    </div>
+</main>
+<script>
+(function(){var f=location.pathname.split('/').pop()||'index.html';
+var links=document.querySelectorAll('.VPSidebar a');
+for(var i=0;i<links.length;i++){
+var h=links[i].getAttribute('href');
+if(h===f){links[i].classList.add('active');
+var g=links[i].closest('.sidebar-group');
+if(g){g.classList.add('has-active');}
+break;}}})();
+</script>
+</body>
+</html>

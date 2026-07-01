@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GraphRAG 实践指南（2026 版） — Agent 知识库</title>
+    <meta name="description" content="> **作者**: Agent 知识库自动维护系统 > **创建时间**: 2026-07-02 > **适用场景**: Phase 2 - 架构设计 > **标签**: #GraphRAG #RAG #知识图谱 #Neo4j #LangChain">
+    <link rel="stylesheet" href="../css/vitepress.css">
+</head>
+<body>
+<aside class="VPSidebar">
+    <div class="sidebar-nav">
+        <div class="sidebar-group">
+            <h2>Agent 核心理论</h2>
+            <a href="what-is-agent.html">Agent 定义与认知架构</a>
+            <a href="workflow-vs-agent.html">Agent vs Workflow</a>
+            <a href="react-prompt.html">ReAct 模式</a>
+            <a href="react-loop-agent-control.html">Agent 运行循环</a>
+            <a href="plan-execute-agent.html">Plan-and-Execute</a>
+            <a href="agent-reflexion.html">自我反思 Reflexion</a>
+            <a href="agent-self-correction.html">自我纠错</a>
+            <a href="agent-memory-patterns.html">记忆架构</a>
+            <a href="skill-design-guide.html">Agent Skills</a>
+            <a href="task-planning-patterns.html">规划算法</a>
+            <a href="agent-security.html">安全基础</a>
+            <a href="agent-security-in-depth.html">安全深入</a>
+            <a href="agent-guardrails.html">Guardrails</a>
+            <a href="agent-evaluation.html">Agent 评估</a>
+            <a href="eval-harness-design.html">Eval Harness 设计</a>
+            <a href="agent-benchmark-guide.html">Benchmark 指南</a>
+            <a href="agent-loop-control.html">循环控制</a>
+            <a href="llm-as-judge.html">LLM as Judge</a>
+        </div>
+        <div class="sidebar-group">
+            <h2>LLM 深入</h2>
+            <a href="llm-fundamentals.html">主流模型对比</a>
+            <a href="llm-models-overview.html">模型概览</a>
+            <a href="llm-transformer.html">Transformer</a>
+            <a href="llm-tokenization.html">Tokenization</a>
+            <a href="llm-embedding.html">Embedding</a>
+            <a href="embedding-model-guide.html">Embedding 模型指南</a>
+            <a href="llm-training.html">模型训练</a>
+            <a href="llm-inference-params.html">推理参数</a>
+            <a href="llm-inference-optimization.html">推理优化</a>
+            <a href="llm-open-vs-closed.html">开源 vs 闭源</a>
+            <a href="llm-observability.html">可观测性</a>
+            <a href="cost-optimization.html">成本优化</a>
+        </div>
+        <div class="sidebar-group">
+            <h2>上下文工程</h2>
+            <a href="context-window-bias.html">上下文窗口与位置偏置</a>
+            <a href="llm-long-context.html">长上下文模型对比</a>
+            <a href="context-memory.html">记忆系统 Memory</a>
+            <a href="context-history.html">会话历史管理</a>
+            <a href="context-caching.html">上下文缓存</a>
+            <a href="context-pollution.html">上下文污染与清理</a>
+        </div>
+        <div class="sidebar-group">
+            <h2>RAG 与检索</h2>
+            <a href="rag-basics.html">Naive RAG 与瓶颈</a>
+            <a href="rag-architecture.html">RAG 架构</a>
+            <a href="rag-chunking.html">Chunking 策略</a>
+            <a href="embedding-model-guide.html">Embedding 模型指南</a>
+            <a href="vector-db-comparison.html">向量数据库对比</a>
+            <a href="rag-hybrid-search.html">混合搜索</a>
+            <a href="rag-reranking.html">Reranking</a>
+            <a href="rag-advanced.html">高级 RAG</a>
+            <a href="rag-graphrag.html">GraphRAG</a>
+            <a href="rag-agentic.html">Agentic RAG</a>
+            <a href="rag-evaluation-methods.html">RAG 评估</a>
+            <a href="rag-pitfalls-optimization.html">陷阱与优化</a>
+        </div>
+        <div class="sidebar-group">
+            <h2>工具 & 协议</h2>
+            <a href="mcp-protocol.html">MCP 协议详解</a>
+            <a href="mcp-server-practice.html">MCP Server 实战</a>
+            <a href="function-calling-deep-dive.html">Function Calling 深探</a>
+            <a href="tool-calling-advanced.html">工具调用进阶</a>
+            <a href="tool-custom.html">自定义工具</a>
+            <a href="tool-error-handling.html">工具错误处理</a>
+            <a href="tool-parallel-calling.html">并行工具调用</a>
+            <a href="tool-sandbox.html">工具沙箱</a>
+            <a href="tool-schema-design-patterns.html">Schema 设计模式</a>
+            <a href="rate-limiting-patterns.html">速率限制模式</a>
+        </div>
+        <div class="sidebar-group">
+            <h2>Prompt 工程</h2>
+            <a href="prompt-engineering.html">Prompt 工程</a>
+            <a href="prompt-basics.html">Prompt 基础</a>
+            <a href="prompt-few-shot.html">Few-shot</a>
+            <a href="prompt-templates.html">Prompt 模板</a>
+            <a href="prompt-compression.html">Prompt 压缩</a>
+            <a href="prompt-injection.html">Prompt 注入</a>
+            <a href="prompt-self-consistency.html">自一致性</a>
+            <a href="system-prompt-design.html">System Prompt 设计</a>
+        </div>
+        <div class="sidebar-group">
+            <h2>Multi-Agent</h2>
+            <a href="multi-agent-collaboration.html">多 Agent 协作</a>
+            <a href="multi-agent-communication.html">多 Agent 通信</a>
+            <a href="multi-agent-metagpt.html">MetaGPT</a>
+            <a href="multi-agent-orchestrator.html">编排器模式</a>
+            <a href="multi-agent-patterns.html">多 Agent 模式</a>
+        </div>
+        <div class="sidebar-group">
+            <h2>框架分析</h2>
+            <a href="framework-langchain.html">LangChain / LangGraph</a>
+            <a href="framework-llamaindex.html">LlamaIndex</a>
+            <a href="framework-claude-sdk.html">Claude Agent SDK</a>
+            <a href="framework-openai-sdk.html">OpenAI Agents SDK</a>
+            <a href="framework-openclaw.html">OpenClaw</a>
+            <a href="framework-hermes.html">Hermes Agent</a>
+            <a href="framework-comparison.html">框架选型决策树</a>
+        </div>
+        <div class="sidebar-group">
+            <h2>流程编排</h2>
+            <a href="workflow-langgraph.html">LangGraph 深度解析</a>
+            <a href="workflow-patterns.html">编排模式</a>
+            <a href="workflow-dify.html">Dify / Coze</a>
+            <a href="workflow-vs-agent.html">Workflow vs Agent</a>
+        </div>
+        <div class="sidebar-group">
+            <h2>源码解析</h2>
+            <a href="source-claude-code.html">Claude Code</a>
+            <a href="source-codex-cli.html">Codex CLI</a>
+            <a href="source-cline.html">Cline / Roo Code</a>
+            <a href="source-openhands.html">OpenHands</a>
+            <a href="source-aider.html">Aider</a>
+            <a href="source-swe-agent.html">SWE-agent</a>
+            <a href="source-gpt-engineer.html">GPT Engineer</a>
+            <a href="source-pi-mono.html">Pi</a>
+            <a href="source-browser-use.html">Browser Use</a>
+        </div>
+        <div class="sidebar-group">
+            <h2>垂直 Agent</h2>
+            <a href="vertical-browser-agent.html">浏览器 Agent</a>
+            <a href="vertical-coding-agent.html">编码 Agent</a>
+            <a href="vertical-customer-service.html">客服 Agent</a>
+            <a href="vertical-data-analysis.html">数据分析 Agent</a>
+            <a href="vertical-deep-research.html">深度研究 Agent</a>
+            <a href="vertical-voice-agent.html">语音 Agent</a>
+        </div>
+    </div>
+</aside>
+
+<main>
+    <div class="vp-doc">
+        <section class="doc-hero">
+    <p class="doc-hero__kicker">Agent 知识库</p>
+    <h1>GraphRAG 实践指南（2026 版）</h1>
+    <p class="doc-hero__lead">> **作者**: Agent 知识库自动维护系统 > **创建时间**: 2026-07-02 > **适用场景**: Phase 2 - 架构设计 > **标签**: #GraphRAG #RAG #知识图谱 #Neo4j #LangChain</p>
+</section>
+
+<blockquote>
+<p><strong>作者</strong>: Agent 知识库自动维护系统<br />
+<strong>创建时间</strong>: 2026-07-02<br />
+<strong>适用场景</strong>: Phase 2 - 架构设计<br />
+<strong>标签</strong>: #GraphRAG #RAG #知识图谱 #Neo4j #LangChain</p>
+</blockquote>
+<hr />
+<h2>1. 传统 RAG 的痛点</h2>
+<h3>1.1 Vector RAG 的三大失败模式</h3>
+<p><strong>失败模式 1: 全局理解缺失</strong></p>
+<ul>
+<li><strong>问题</strong>: 只能检索局部文本片段，无法捕捉数据集全貌</li>
+<li><strong>示例</strong>: 用户问&quot;过去一年我们团队在 Agent 项目上取得了哪些进展？&quot;
+<ul>
+<li>Vector RAG 只能找到包含&quot;Agent&quot;的片段</li>
+<li>无法关联时间线、团队协作、项目演进等跨文档信息</li>
+</ul>
+</li>
+</ul>
+<p><strong>失败模式 2: 关系推理失败</strong></p>
+<ul>
+<li><strong>问题</strong>: 无法理解实体之间的复杂关系</li>
+<li><strong>示例</strong>: &quot;张三和李四共同参与了哪些项目？&quot;
+<ul>
+<li>Vector RAG 可能找到提到&quot;张三&quot;或&quot;李四&quot;的片段</li>
+<li>但无法推理&quot;共同参与&quot;这种关系</li>
+</ul>
+</li>
+</ul>
+<p><strong>失败模式 3: 多跳推理失效</strong></p>
+<ul>
+<li><strong>问题</strong>: 需要多步推理的查询无法处理</li>
+<li><strong>示例</strong>: &quot;那个在 QCon 上演讲的工程师最近发表了什么论文？&quot;
+<ul>
+<li>需要从 QCon → 演讲者 → 工程师 → 论文，多跳关联</li>
+<li>Vector RAG 无法实现这种链式推理</li>
+</ul>
+</li>
+</ul>
+<hr />
+<h2>2. GraphRAG 核心原理</h2>
+<h3>2.1 什么是 GraphRAG？</h3>
+<p><strong>定义</strong>: GraphRAG = Knowledge Graph + RAG</p>
+<ul>
+<li>
+<p><strong>Knowledge Graph (知识图谱)</strong>: 用图结构存储实体和关系</p>
+<ul>
+<li>节点 (Node): 实体（人、地点、概念、项目等）</li>
+<li>边 (Edge): 实体之间的关系（参与、属于、依赖等）</li>
+</ul>
+</li>
+<li>
+<p><strong>RAG (检索增强生成)</strong>: 用知识图谱增强 LLM 的检索能力</p>
+</li>
+</ul>
+<h3>2.2 GraphRAG 的工作流程</h3>
+<pre><code>┌─────────────────────────────────────────────────────────────┐
+│                    GraphRAG 构建阶段                         │
+├─────────────────────────────────────────────────────────────┤
+│  1. 文档分块 → 2. 实体关系抽取 → 3. 知识图谱构建           │
+│  4. 社区检测 → 5. 社区摘要生成                             │
+└─────────────────────────────────────────────────────────────┘
+                         ↓
+┌─────────────────────────────────────────────────────────────┐
+│                    GraphRAG 查询阶段                         │
+├─────────────────────────────────────────────────────────────┤
+│  1. 自然语言转查询 → 2. 图谱检索 → 3. 子图提取            │
+│  4. 上下文组装 → 5. LLM 生成答案                           │
+└─────────────────────────────────────────────────────────────┘
+</code></pre>
+<h3>2.3 核心技术组件</h3>
+<h4>2.3.1 实体关系抽取</h4>
+<ul>
+<li><strong>工具</strong>: LLM (GPT-4.5, Claude Sonnet 5, DeepSeek V4)</li>
+<li><strong>输出格式</strong>:<pre><code class="language-json">{
+  &quot;entities&quot;: [
+    {&quot;id&quot;: &quot;E1&quot;, &quot;type&quot;: &quot;Person&quot;, &quot;name&quot;: &quot;张三&quot;},
+    {&quot;id&quot;: &quot;E2&quot;, &quot;type&quot;: &quot;Project&quot;, &quot;name&quot;: &quot;Agent 研究&quot;}
+  ],
+  &quot;relations&quot;: [
+    {&quot;from&quot;: &quot;E1&quot;, &quot;to&quot;: &quot;E2&quot;, &quot;type&quot;: &quot;参与&quot;, &quot;context&quot;: &quot;...&quot;}
+  ]
+}
+</code></pre>
+</li>
+</ul>
+<h4>2.3.2 知识图谱存储</h4>
+<ul>
+<li><strong>Neo4j</strong> (推荐): 原生图数据库，支持 Cypher 查询</li>
+<li><strong>Nebula Graph</strong>: 分布式图数据库，适合大规模数据</li>
+<li><strong>ArangoDB</strong>: 多模型数据库，支持图+文档混合存储</li>
+</ul>
+<h4>2.3.3 社区检测</h4>
+<ul>
+<li><strong>算法</strong>: Leiden 算法 (改进版 Louvain)</li>
+<li><strong>作用</strong>: 将图谱划分为紧密相关的社区，便于分层摘要</li>
+</ul>
+<hr />
+<h2>3. 技术栈选型</h2>
+<h3>3.1 推荐组合（2026 主流）</h3>
+<table>
+<thead>
+<tr>
+<th>组件</th>
+<th>推荐方案</th>
+<th>备选方案</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>图数据库</strong></td>
+<td>Neo4j 5.x</td>
+<td>Nebula Graph</td>
+<td>Neo4j 生态成熟，Cypher 易上手</td>
+</tr>
+<tr>
+<td><strong>LLM</strong></td>
+<td>DeepSeek V4 / Claude Sonnet 5</td>
+<td>GPT-4.5 / Qwen-3</td>
+<td>中文场景优先 DeepSeek</td>
+</tr>
+<tr>
+<td><strong>框架</strong></td>
+<td>LangChain 0.3+</td>
+<td>LlamaIndex</td>
+<td>LangChain 对 GraphRAG 支持更好</td>
+</tr>
+<tr>
+<td><strong>向量数据库</strong></td>
+<td>Milvus / Qdrant</td>
+<td>Chroma</td>
+<td>用于混合检索（向量+图谱）</td>
+</tr>
+<tr>
+<td><strong>图谱可视化</strong></td>
+<td>Neo4j Browser / D3.js</td>
+<td>Cytoscape.js</td>
+<td>调试和展示用</td>
+</tr>
+</tbody>
+</table>
+<h3>3.2 技术栈架构图</h3>
+<pre><code class="language-mermaid">graph TB
+    A[原始文档] --&gt; B(文本分块)
+    B --&gt; C{LLM 抽取}
+    C --&gt; D[实体关系 JSON]
+    D --&gt; E[(Neo4j 知识图谱)]
+    
+    F[用户查询] --&gt; G{自然语言转查询}
+    G --&gt; H[图谱检索]
+    H --&gt; I[子图提取]
+    I --&gt; J[上下文组装]
+    J --&gt; K[LLM 生成答案]
+    
+    L[向量数据库] --&gt; M[混合检索]
+    I --&gt; M
+    M --&gt; J
+    
+    style E fill:#f9f,stroke:#333
+    style L fill:#bbf,stroke:#333
+</code></pre>
+<hr />
+<h2>4. 实战案例：Agent 知识库 GraphRAG</h2>
+<h3>4.1 场景描述</h3>
+<p><strong>需求</strong>: 为 Agent 研究团队构建一个知识库系统，支持复杂查询：</p>
+<ul>
+<li>&quot;哪些论文提到了 Multi-Agent 协作？&quot;</li>
+<li>&quot;张三和李四共同参与了哪些项目？&quot;</li>
+<li>&quot;从 2024 到 2026 年，Agent 技术演进的关键节点是什么？&quot;</li>
+</ul>
+<h3>4.2 实现步骤</h3>
+<h4>Step 1: 环境准备</h4>
+<pre><code class="language-bash"># 安装 Neo4j（Docker 方式）
+docker run -d \
+  --name neo4j \
+  -p 7474:7474 -p 7687:7687 \
+  -e NEO4J_AUTH=neo4j/password \
+  -e NEO4J_PLUGINS='[&quot;apoc&quot;]' \
+  neo4j:5.15
+
+# 安装 Python 依赖
+pip install neo4j langchain openai milvus pymupdf
+</code></pre>
+<h4>Step 2: 文档分块与实体抽取</h4>
+<pre><code class="language-python">from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain.llms import DeepSeek
+import json
+
+# 1. 文档分块
+splitter = RecursiveCharacterTextSplitter(
+    chunk_size=1000,
+    chunk_overlap=200
+)
+chunks = splitter.split_documents(documents)
+
+# 2. 实体关系抽取 Prompt
+extract_prompt = &quot;&quot;&quot;
+从以下文本中提取实体和关系，输出 JSON 格式：
+
+文本：{text}
+
+要求：
+1. 识别实体类型：Person, Project, Paper, Concept, Tool
+2. 识别关系类型：参与、提出、使用、依赖、改进
+3. 输出格式：
+{{
+  &quot;entities&quot;: [{{&quot;id&quot;: &quot;E1&quot;, &quot;type&quot;: &quot;Person&quot;, &quot;name&quot;: &quot;张三&quot;}}],
+  &quot;relations&quot;: [{{&quot;from&quot;: &quot;E1&quot;, &quot;to&quot;: &quot;E2&quot;, &quot;type&quot;: &quot;参与&quot;}}]
+}}
+&quot;&quot;&quot;
+
+# 3. 调用 LLM 抽取
+llm = DeepSeek(model=&quot;deepseek-v4&quot;)
+for chunk in chunks:
+    result = llm(extract_prompt.format(text=chunk.page_content))
+    graph_data = json.loads(result)
+    # 写入 Neo4j（见下一步）
+</code></pre>
+<h4>Step 3: 写入 Neo4j</h4>
+<pre><code class="language-python">from neo4j import GraphDatabase
+
+class Neo4jWriter:
+    def __init__(self, uri, user, password):
+        self.driver = GraphDatabase.driver(uri, auth=(user, password))
+    
+    def write_graph(self, entities, relations):
+        with self.driver.session() as session:
+            # 写入实体
+            for entity in entities:
+                session.run(
+                    &quot;MERGE (e:{type} {{id: $id}}) SET e.name = $name&quot;.format(type=entity[&quot;type&quot;]),
+                    id=entity[&quot;id&quot;],
+                    name=entity[&quot;name&quot;]
+                )
+            
+            # 写入关系
+            for rel in relations:
+                session.run(
+                    &quot;&quot;&quot;
+                    MATCH (a {{id: $from_id}})
+                    MATCH (b {{id: $to_id}})
+                    MERGE (a)-[r:{rel_type}]-&gt;(b)
+                    &quot;&quot;&quot;.format(rel_type=rel[&quot;type&quot;]),
+                    from_id=rel[&quot;from&quot;],
+                    to_id=rel[&quot;to&quot;]
+                )
+
+# 使用
+writer = Neo4jWriter(&quot;bolt://localhost:7687&quot;, &quot;neo4j&quot;, &quot;password&quot;)
+writer.write_graph(graph_data[&quot;entities&quot;], graph_data[&quot;relations&quot;])
+</code></pre>
+<h4>Step 4: 查询阶段 - 自然语言转 Cypher</h4>
+<pre><code class="language-python">def natural_language_to_cypher(query: str) -&gt; str:
+    &quot;&quot;&quot;将自然语言转换为 Cypher 查询&quot;&quot;&quot;
+    prompt = f&quot;&quot;&quot;
+    将以下自然语言查询转换为 Neo4j Cypher 查询：
+    
+    查询：{query}
+    
+    数据库 Schema：
+    - 节点标签：Person, Project, Paper, Concept, Tool
+    - 关系类型：参与、提出、使用、依赖、改进
+    
+    示例：
+    输入：&quot;张三参与了哪些项目？&quot;
+    输出：MATCH (p:Person {{name: '张三'}})-[:参与]-&gt;(proj:Project) RETURN proj.name
+    
+    只输出 Cypher 语句，不要输出其他内容。
+    &quot;&quot;&quot;
+    cypher = llm(prompt)
+    return cypher.strip()
+
+# 执行查询
+query = &quot;张三和李四共同参与了哪些项目？&quot;
+cypher = natural_language_to_cypher(query)
+
+with driver.session() as session:
+    result = session.run(cypher)
+    for record in result:
+        print(record)
+</code></pre>
+<h4>Step 5: 混合检索（向量 + 图谱）</h4>
+<pre><code class="language-python">from langchain.vectorstores import Milvus
+from langchain.embeddings import DeepSeekEmbeddings
+
+# 1. 向量检索（初步筛选）
+embeddings = DeepSeekEmbeddings(model=&quot;deepseek-v4-embedding&quot;)
+vector_db = Milvus(embeddings, collection_name=&quot;agent_kb&quot;)
+vector_results = vector_db.similarity_search(query, k=10)
+
+# 2. 图谱检索（精确关系）
+cypher_results = session.run(cypher)
+
+# 3. 合并结果
+context = {
+    &quot;vector_results&quot;: vector_results,
+    &quot;graph_results&quot;: cypher_results
+}
+
+# 4. LLM 生成答案
+answer_prompt = &quot;&quot;&quot;
+基于以下上下文回答问题：
+
+上下文：
+{context}
+
+问题：{query}
+
+要求：
+1. 综合向量检索和图谱检索的结果
+2. 如果图谱中有明确的关系路径，优先使用
+3. 给出可解释的答案（引用具体实体和关系）
+&quot;&quot;&quot;
+answer = llm(answer_prompt.format(context=context, query=query))
+</code></pre>
+<hr />
+<h2>5. 高级优化技巧</h2>
+<h3>5.1 增量更新策略</h3>
+<p><strong>问题</strong>: 知识库持续更新，如何避免全量重建图谱？</p>
+<p><strong>解决方案</strong>: 增量抽取 + 图谱合并</p>
+<pre><code class="language-python">def incremental_update(new_documents):
+    &quot;&quot;&quot;增量更新知识图谱&quot;&quot;&quot;
+    # 1. 抽取新文档的实体关系
+    new_graph_data = extract_entities(new_documents)
+    
+    # 2. 实体对齐（避免重复）
+    for entity in new_graph_data[&quot;entities&quot;]:
+        # 使用名字相似度 + 类型匹配进行对齐
+        existing = session.run(
+            &quot;MATCH (e:{type}) WHERE e.name CONTAINS $name RETURN e&quot;.format(type=entity[&quot;type&quot;]),
+            name=entity[&quot;name&quot;]
+        )
+        if existing:
+            entity[&quot;id&quot;] = existing.single()[&quot;e&quot;][&quot;id&quot;]  # 使用已有 ID
+    
+    # 3. 合并到已有图谱
+    writer.write_graph(new_graph_data[&quot;entities&quot;], new_graph_data[&quot;relations&quot;])
+</code></pre>
+<h3>5.2 社区摘要生成</h3>
+<p><strong>作用</strong>: 提升全局查询的性能（如&quot;总结过去一年的研究进展&quot;）</p>
+<pre><code class="language-python">def generate_community_summaries():
+    &quot;&quot;&quot;为每个社区生成摘要&quot;&quot;&quot;
+    # 1. 使用 Leiden 算法检测社区
+    communities = session.run(&quot;&quot;&quot;
+        CALL gds.leiden.stream('myGraph')
+        YIELD nodeId, communityId
+        RETURN gds.util.asNode(nodeId).name AS entity, communityId
+    &quot;&quot;&quot;)
+    
+    # 2. 为每个社区生成摘要
+    for community_id, entities in communities.groupby(&quot;communityId&quot;):
+        # 提取社区内的所有实体和关系
+        subgraph = extract_subgraph(community_id)
+        
+        # LLM 生成摘要
+        summary_prompt = f&quot;总结以下实体和关系：{subgraph}&quot;
+        summary = llm(summary_prompt)
+        
+        # 存储摘要
+        session.run(
+            &quot;CREATE (s:Summary {community_id: $cid, content: $content})&quot;,
+            cid=community_id,
+            content=summary
+        )
+</code></pre>
+<h3>5.3 图谱质量评估</h3>
+<table>
+<thead>
+<tr>
+<th>指标</th>
+<th>计算方式</th>
+<th>目标值</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>实体覆盖率</strong></td>
+<td>抽取实体数 / 人工标注实体数</td>
+<td>&gt; 85%</td>
+</tr>
+<tr>
+<td><strong>关系准确率</strong></td>
+<td>正确关系数 / 自动抽取关系数</td>
+<td>&gt; 90%</td>
+</tr>
+<tr>
+<td><strong>查询准确率</strong></td>
+<td>正确回答数 / 总查询数</td>
+<td>&gt; 80%</td>
+</tr>
+<tr>
+<td><strong>查询延迟</strong></td>
+<td>平均响应时间 (ms)</td>
+<td>&lt; 500ms</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2>6. 常见问题与解决方案</h2>
+<h3>6.1 中文分词问题</h3>
+<p><strong>问题</strong>: LLM 抽取实体时，中文分词不准确</p>
+<p><strong>解决方案</strong>:</p>
+<ol>
+<li>使用 jieba 分词预处理</li>
+<li>在 Prompt 中指定实体类型（降低歧义）</li>
+<li>后处理：合并同名实体（如&quot;张三&quot;和&quot;张先生&quot;）</li>
+</ol>
+<pre><code class="language-python">import jieba.posseg as pseg
+
+def chinese_entity_recognition(text):
+    words = pseg.cut(text)
+    entities = []
+    for word, flag in words:
+        if flag in ['nr', 'ns', 'nt']:  # 人名、地名、机构名
+            entities.append({&quot;name&quot;: word, &quot;type&quot;: flag})
+    return entities
+</code></pre>
+<h3>6.2 内存爆炸问题</h3>
+<p><strong>问题</strong>: 大规模图谱构建时，Neo4j 内存溢出</p>
+<p><strong>解决方案</strong>:</p>
+<ol>
+<li>分批导入（每批 1000 个实体）</li>
+<li>使用 Neo4j 的 <code>apoc.periodic.iterate</code> 批量写入</li>
+<li>调整 Neo4j 堆内存配置</li>
+</ol>
+<pre><code class="language-cypher">// 批量写入示例
+CALL apoc.periodic.iterate(
+  &quot;UNWIND $entities AS entity RETURN entity&quot;,
+  &quot;MERGE (e:Entity {id: entity.id}) SET e.name = entity.name&quot;,
+  {batchSize: 1000, params: {entities: $entities}}
+)
+</code></pre>
+<h3>6.3 图谱稀疏性问题</h3>
+<p><strong>问题</strong>: 抽取的图谱关系太少，无法支撑多跳推理</p>
+<p><strong>解决方案</strong>:</p>
+<ol>
+<li>使用推理模型（如 Claude Sonnet 5）增强抽取</li>
+<li>引入外部知识库（如 Wikidata）补充关系</li>
+<li>使用 TransE / RotatE 等知识图谱嵌入模型预测缺失关系</li>
+</ol>
+<hr />
+<h2>7. GraphRAG vs. 其他 RAG 方案对比</h2>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>Vector RAG</th>
+<th>GraphRAG</th>
+<th>Hybrid RAG</th>
+<th>Vectorless RAG</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>复杂关系推理</strong></td>
+<td>❌</td>
+<td>✅</td>
+<td>✅</td>
+<td>⚠️</td>
+</tr>
+<tr>
+<td><strong>全局理解</strong></td>
+<td>❌</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><strong>实现复杂度</strong></td>
+<td>低</td>
+<td>高</td>
+<td>中</td>
+<td>中</td>
+</tr>
+<tr>
+<td><strong>查询延迟</strong></td>
+<td>低</td>
+<td>中</td>
+<td>中</td>
+<td>高</td>
+</tr>
+<tr>
+<td><strong>可解释性</strong></td>
+<td>低</td>
+<td>高</td>
+<td>中</td>
+<td>中</td>
+</tr>
+<tr>
+<td><strong>适用场景</strong></td>
+<td>简单 QA</td>
+<td>复杂推理</td>
+<td>通用</td>
+<td>文档结构推理</td>
+</tr>
+</tbody>
+</table>
+<p><strong>选型建议</strong>:</p>
+<ul>
+<li><strong>简单 FAQ / 单文档 QA</strong>: Vector RAG</li>
+<li><strong>复杂关系查询 / 多跳推理</strong>: GraphRAG</li>
+<li><strong>通用场景</strong>: Hybrid RAG (Vector + Graph)</li>
+<li><strong>文档结构清晰</strong>: Vectorless RAG</li>
+</ul>
+<hr />
+<h2>8. 2026 年 GraphRAG 新趋势</h2>
+<h3>8.1 Agentic GraphRAG</h3>
+<p><strong>核心思想</strong>: 让 Agent 主动探索图谱，而非一次性检索</p>
+<pre><code class="language-python">class GraphRAGAgent:
+    def __init__(self, llm, neo4j_driver):
+        self.llm = llm
+        self.driver = neo4j_driver
+    
+    def answer(self, query):
+        # Agent 迭代探索图谱
+        current_node = self.identify_start_node(query)
+        visited = set()
+        path = []
+        
+        while not self.is_answer_found():
+            # 1. 从当前节点扩展邻居
+            neighbors = self.expand_neighbors(current_node)
+            
+            # 2. LLM 决策：下一步走向哪个邻居？
+            decision_prompt = f&quot;&quot;&quot;
+            当前节点：{current_node}
+            已访问：{visited}
+            邻居节点：{neighbors}
+            
+            问题：{query}
+            
+            选择下一个要访问的节点（或回答已找到）
+            &quot;&quot;&quot;
+            decision = self.llm(decision_prompt)
+            
+            # 3. 更新路径
+            if decision == &quot;ANSWER_FOUND&quot;:
+                return self.generate_answer(path)
+            else:
+                current_node = decision
+                visited.add(current_node)
+                path.append(current_node)
+</code></pre>
+<h3>8.2 多模态 GraphRAG</h3>
+<p><strong>扩展</strong>: 图谱不仅包含文本实体，还包含图像、表格、代码</p>
+<ul>
+<li><strong>图像实体</strong>: 使用 CLIP 提取图像特征，构建图像相似度边</li>
+<li><strong>表格实体</strong>: 使用表格理解模型（如 TAPAS）抽取表格关系</li>
+<li><strong>代码实体</strong>: 使用代码分析工具（如 Tree-sitter）构建 AST 图谱</li>
+</ul>
+<h3>8.3 实时图谱更新</h3>
+<p><strong>技术</strong>: 使用流式处理框架（如 Flink / Kafka Streams）</p>
+<pre><code>文档流 → 实体抽取流 → 图谱增量更新
+</code></pre>
+<hr />
+<h2>9. 参考资料</h2>
+<h3>9.1 官方文档</h3>
+<ul>
+<li><strong>Microsoft GraphRAG</strong>: https://github.com/microsoft/graphrag</li>
+<li><strong>Neo4j Python Driver</strong>: https://neo4j.com/docs/python-manual/current/</li>
+<li><strong>LangChain GraphRAG</strong>: https://python.langchain.com/docs/use_cases/graph/rag/</li>
+</ul>
+<h3>9.2 论文</h3>
+<ol>
+<li><strong>GraphRAG (Microsoft, 2024)</strong>: &quot;From Local to Global: A Graph RAG Approach to Query-Focused Summarization&quot;</li>
+<li><strong>G-RAG (2024)</strong>: &quot;G-RAG: Graph-based Retrieval Augmented Generation&quot;</li>
+<li><strong>HippoRAG (2024)</strong>: &quot;HippoRAG: Neurobiologically Inspired Long-Term Memory for Large Language Models&quot;</li>
+</ol>
+<h3>9.3 实战教程</h3>
+<ul>
+<li>CSDN: &quot;2026 收藏版 GraphRAG 实战指南&quot;</li>
+<li>博客园: &quot;从向量到图谱：2026 年 GraphRAG 如何重塑企业后端智能架构&quot;</li>
+<li>Chitika: &quot;GraphRAG Implementation with Local LLaMA Models&quot;</li>
+</ul>
+<hr />
+<h2>10. 总结与下一步</h2>
+<h3>10.1 核心要点</h3>
+<p>✅ GraphRAG 通过知识图谱增强 RAG 的关系推理能力<br />
+✅ 适用场景：复杂关系查询、多跳推理、全局理解<br />
+✅ 技术栈：Neo4j + LangChain + DeepSeek V4/Claude Sonnet 5<br />
+✅ 关键是实体抽取质量和图谱设计</p>
+<h3>10.2 下一步学习</h3>
+<ol>
+<li><strong>动手实践</strong>: 用 Neo4j + LangChain 搭建一个 Mini GraphRAG 系统</li>
+<li><strong>阅读论文</strong>: 深入理解 Microsoft GraphRAG 的社区检测算法</li>
+<li><strong>优化技巧</strong>: 学习增量更新和图谱质量评估</li>
+<li><strong>前沿跟踪</strong>: 关注 Agentic GraphRAG 和多模态 GraphRAG</li>
+</ol>
+<hr />
+<p><strong>文档版本</strong>: v1.0<br />
+<strong>最后更新</strong>: 2026-07-02<br />
+<strong>维护者</strong>: Agent 知识库自动维护系统</p>
+
+    </div>
+</main>
+<script>
+(function(){var f=location.pathname.split('/').pop()||'index.html';
+var links=document.querySelectorAll('.VPSidebar a');
+for(var i=0;i<links.length;i++){
+var h=links[i].getAttribute('href');
+if(h===f){links[i].classList.add('active');
+var g=links[i].closest('.sidebar-group');
+if(g){g.classList.add('has-active');}
+break;}}})();
+</script>
+</body>
+</html>

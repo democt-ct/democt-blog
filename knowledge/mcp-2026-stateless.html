@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCP 2026 无状态架构迁移指南 — Agent 知识库</title>
+    <meta name="description" content="**Model Context Protocol (MCP)** 是由 Anthropic 于 2024 年 11 月推出的开放标准协议，旨在为大型语言模型（LLM）与外部工具、数据源之间提供标准化的通信方式。MCP 采用客户端-主机-服务器（Client-Host-Server）三层架构，基于 JSON-RPC 2.">
+    <link rel="stylesheet" href="../css/vitepress.css">
+</head>
+<body>
+<aside class="VPSidebar">
+    <div class="sidebar-nav">
+        <div class="sidebar-group">
+            <h2>Agent 核心理论</h2>
+            <a href="what-is-agent.html">Agent 定义与认知架构</a>
+            <a href="workflow-vs-agent.html">Agent vs Workflow</a>
+            <a href="react-prompt.html">ReAct 模式</a>
+            <a href="react-loop-agent-control.html">Agent 运行循环</a>
+            <a href="plan-execute-agent.html">Plan-and-Execute</a>
+            <a href="agent-reflexion.html">自我反思 Reflexion</a>
+            <a href="agent-self-correction.html">自我纠错</a>
+            <a href="agent-memory-patterns.html">记忆架构</a>
+            <a href="skill-design-guide.html">Agent Skills</a>
+            <a href="task-planning-patterns.html">规划算法</a>
+            <a href="agent-security.html">安全基础</a>
+            <a href="agent-security-in-depth.html">安全深入</a>
+            <a href="agent-guardrails.html">Guardrails</a>
+            <a href="agent-evaluation.html">Agent 评估</a>
+            <a href="eval-harness-design.html">Eval Harness 设计</a>
+            <a href="agent-benchmark-guide.html">Benchmark 指南</a>
+            <a href="agent-loop-control.html">循环控制</a>
+            <a href="llm-as-judge.html">LLM as Judge</a>
+        </div>
+        <div class="sidebar-group">
+            <h2>LLM 深入</h2>
+            <a href="llm-fundamentals.html">主流模型对比</a>
+            <a href="llm-models-overview.html">模型概览</a>
+            <a href="llm-transformer.html">Transformer</a>
+            <a href="llm-tokenization.html">Tokenization</a>
+            <a href="llm-embedding.html">Embedding</a>
+            <a href="embedding-model-guide.html">Embedding 模型指南</a>
+            <a href="llm-training.html">模型训练</a>
+            <a href="llm-inference-params.html">推理参数</a>
+            <a href="llm-inference-optimization.html">推理优化</a>
+            <a href="llm-open-vs-closed.html">开源 vs 闭源</a>
+            <a href="llm-observability.html">可观测性</a>
+            <a href="cost-optimization.html">成本优化</a>
+        </div>
+        <div class="sidebar-group">
+            <h2>上下文工程</h2>
+            <a href="context-window-bias.html">上下文窗口与位置偏置</a>
+            <a href="llm-long-context.html">长上下文模型对比</a>
+            <a href="context-memory.html">记忆系统 Memory</a>
+            <a href="context-history.html">会话历史管理</a>
+            <a href="context-caching.html">上下文缓存</a>
+            <a href="context-pollution.html">上下文污染与清理</a>
+        </div>
+        <div class="sidebar-group">
+            <h2>RAG 与检索</h2>
+            <a href="rag-basics.html">Naive RAG 与瓶颈</a>
+            <a href="rag-architecture.html">RAG 架构</a>
+            <a href="rag-chunking.html">Chunking 策略</a>
+            <a href="embedding-model-guide.html">Embedding 模型指南</a>
+            <a href="vector-db-comparison.html">向量数据库对比</a>
+            <a href="rag-hybrid-search.html">混合搜索</a>
+            <a href="rag-reranking.html">Reranking</a>
+            <a href="rag-advanced.html">高级 RAG</a>
+            <a href="rag-graphrag.html">GraphRAG</a>
+            <a href="rag-agentic.html">Agentic RAG</a>
+            <a href="rag-evaluation-methods.html">RAG 评估</a>
+            <a href="rag-pitfalls-optimization.html">陷阱与优化</a>
+        </div>
+        <div class="sidebar-group">
+            <h2>工具 & 协议</h2>
+            <a href="mcp-protocol.html">MCP 协议详解</a>
+            <a href="mcp-server-practice.html">MCP Server 实战</a>
+            <a href="function-calling-deep-dive.html">Function Calling 深探</a>
+            <a href="tool-calling-advanced.html">工具调用进阶</a>
+            <a href="tool-custom.html">自定义工具</a>
+            <a href="tool-error-handling.html">工具错误处理</a>
+            <a href="tool-parallel-calling.html">并行工具调用</a>
+            <a href="tool-sandbox.html">工具沙箱</a>
+            <a href="tool-schema-design-patterns.html">Schema 设计模式</a>
+            <a href="rate-limiting-patterns.html">速率限制模式</a>
+        </div>
+        <div class="sidebar-group">
+            <h2>Prompt 工程</h2>
+            <a href="prompt-engineering.html">Prompt 工程</a>
+            <a href="prompt-basics.html">Prompt 基础</a>
+            <a href="prompt-few-shot.html">Few-shot</a>
+            <a href="prompt-templates.html">Prompt 模板</a>
+            <a href="prompt-compression.html">Prompt 压缩</a>
+            <a href="prompt-injection.html">Prompt 注入</a>
+            <a href="prompt-self-consistency.html">自一致性</a>
+            <a href="system-prompt-design.html">System Prompt 设计</a>
+        </div>
+        <div class="sidebar-group">
+            <h2>Multi-Agent</h2>
+            <a href="multi-agent-collaboration.html">多 Agent 协作</a>
+            <a href="multi-agent-communication.html">多 Agent 通信</a>
+            <a href="multi-agent-metagpt.html">MetaGPT</a>
+            <a href="multi-agent-orchestrator.html">编排器模式</a>
+            <a href="multi-agent-patterns.html">多 Agent 模式</a>
+        </div>
+        <div class="sidebar-group">
+            <h2>框架分析</h2>
+            <a href="framework-langchain.html">LangChain / LangGraph</a>
+            <a href="framework-llamaindex.html">LlamaIndex</a>
+            <a href="framework-claude-sdk.html">Claude Agent SDK</a>
+            <a href="framework-openai-sdk.html">OpenAI Agents SDK</a>
+            <a href="framework-openclaw.html">OpenClaw</a>
+            <a href="framework-hermes.html">Hermes Agent</a>
+            <a href="framework-comparison.html">框架选型决策树</a>
+        </div>
+        <div class="sidebar-group">
+            <h2>流程编排</h2>
+            <a href="workflow-langgraph.html">LangGraph 深度解析</a>
+            <a href="workflow-patterns.html">编排模式</a>
+            <a href="workflow-dify.html">Dify / Coze</a>
+            <a href="workflow-vs-agent.html">Workflow vs Agent</a>
+        </div>
+        <div class="sidebar-group">
+            <h2>源码解析</h2>
+            <a href="source-claude-code.html">Claude Code</a>
+            <a href="source-codex-cli.html">Codex CLI</a>
+            <a href="source-cline.html">Cline / Roo Code</a>
+            <a href="source-openhands.html">OpenHands</a>
+            <a href="source-aider.html">Aider</a>
+            <a href="source-swe-agent.html">SWE-agent</a>
+            <a href="source-gpt-engineer.html">GPT Engineer</a>
+            <a href="source-pi-mono.html">Pi</a>
+            <a href="source-browser-use.html">Browser Use</a>
+        </div>
+        <div class="sidebar-group">
+            <h2>垂直 Agent</h2>
+            <a href="vertical-browser-agent.html">浏览器 Agent</a>
+            <a href="vertical-coding-agent.html">编码 Agent</a>
+            <a href="vertical-customer-service.html">客服 Agent</a>
+            <a href="vertical-data-analysis.html">数据分析 Agent</a>
+            <a href="vertical-deep-research.html">深度研究 Agent</a>
+            <a href="vertical-voice-agent.html">语音 Agent</a>
+        </div>
+    </div>
+</aside>
+
+<main>
+    <div class="vp-doc">
+        <section class="doc-hero">
+    <p class="doc-hero__kicker">MCP</p>
+    <h1>MCP 2026 无状态架构迁移指南</h1>
+    <p class="doc-hero__lead">**Model Context Protocol (MCP)** 是由 Anthropic 于 2024 年 11 月推出的开放标准协议，旨在为大型语言模型（LLM）与外部工具、数据源之间提供标准化的通信方式。MCP 采用客户端-主机-服务器（Client-Host-Server）三层架构，基于 JSON-RPC 2.</p>
+</section>
+
+<h2>1. 概述</h2>
+<h3>1.1 什么是 MCP</h3>
+<p><strong>Model Context Protocol (MCP)</strong> 是由 Anthropic 于 2024 年 11 月推出的开放标准协议，旨在为大型语言模型（LLM）与外部工具、数据源之间提供标准化的通信方式。MCP 采用客户端-主机-服务器（Client-Host-Server）三层架构，基于 JSON-RPC 2.0 进行消息编码，通过 Tools（工具）、Resources（资源）、Prompts（提示模板）三大原语暴露能力。MCP 常被类比为「AI 世界的 USB-C 接口」。</p>
+<h3>1.2 MCP 协议的版本演进</h3>
+<table>
+<thead>
+<tr>
+<th>版本</th>
+<th>发布日期</th>
+<th>关键变更</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>2024-11-05</code></td>
+<td>2024-11</td>
+<td>初始版本，定义基础协议、stdio/SSE 传输、三大原语</td>
+</tr>
+<tr>
+<td><code>2025-03-26</code></td>
+<td>2025-03-26</td>
+<td>引入 OAuth 2.1 授权框架；新增 Streamable HTTP 传输层</td>
+</tr>
+<tr>
+<td><code>2025-06-18</code></td>
+<td>2025-06-18</td>
+<td>正式发布 Authorization 规范章节；SSE 逐步边缘化</td>
+</tr>
+<tr>
+<td><code>2025-11-25</code></td>
+<td>2025-11-25</td>
+<td>增强授权流程、增量 Scope 协商、OAuth Client ID Metadata 等</td>
+</tr>
+<tr>
+<td><code>2026-07-28</code> (RC)</td>
+<td>2026-05-21 (RC发布)</td>
+<td><strong>无状态核心架构</strong>、Extensions 框架、Tasks、MCP Apps、正式弃用策略</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>注意</strong>：<code>2026-07-28</code> 规范在 2026-05-21 发布了 Release Candidate，这是 MCP 自诞生以来最大的一次协议修订。本章基于此 RC 版本及社区讨论撰写，部分细节可能随正式版发布调整。</p>
+</blockquote>
+<h3>1.3 2026 规范的核心变更</h3>
+<ol>
+<li><strong>无状态核心（Stateless Core）</strong>：去除服务端会话管理，每个请求独立鉴权，使 MCP Server 可以在普通 HTTP 基础设施上水平扩展。</li>
+<li><strong>OAuth 2.1 全面接入</strong>：PKCE 强制、隐式流废除、动态客户端注册、Resource Indicators (RFC 8707)。</li>
+<li><strong>Extensions 框架</strong>：引入 MCP Apps（服务端渲染 UI）和 Tasks（长时间运行工作）等扩展能力。</li>
+<li><strong>正式弃用策略（Formal Deprecation Policy）</strong>：协议演进不影响已有实现。</li>
+</ol>
+<hr />
+<h2>2. 核心变更详解</h2>
+<h3>2.1 去除会话管理：Why &amp; How</h3>
+<h4>2.1.1 旧版架构的问题</h4>
+<p>在 <code>2024-11-05</code> 到 <code>2025-06-18</code> 期间，基于 SSE（Server-Sent Events）的 MCP Server 使用 <code>Mcp-Session-Id</code> HTTP Header 来维护客户端-服务端之间的会话状态：</p>
+<pre><code>旧的 SSE 模式：
+┌──────────┐    GET /sse (建立 SSE 长连接)    ┌──────────┐
+│  Client  │ ←─────────────────────────────→ │  Server  │
+│          │    POST /message?sessionId=xxx   │ (有状态) │
+└──────────┘    (携带 Session ID 发消息)       └──────────┘
+</code></pre>
+<p><strong>固有缺陷</strong>：</p>
+<ul>
+<li><strong>无法水平扩展</strong>：会话状态绑定在单个 Server 进程/实例上，无法在负载均衡器后方运行多个副本。</li>
+<li><strong>连接状态耦合</strong>：客户端与 Server 之间存在长连接依赖，任何一端断开都导致会话丢失。</li>
+<li><strong>资源消耗</strong>：每个活跃客户端需要 Server 维护一个常驻连接和内存状态。</li>
+<li><strong>不兼容 Serverless</strong>：无法部署在 AWS Lambda、Cloudflare Workers 等无状态计算平台上。</li>
+<li><strong>安全模型不清晰</strong>：Session ID 本质上是一种不透明的 Bearer Token，但其管理机制不规范。</li>
+</ul>
+<h4>2.1.2 新架构的设计</h4>
+<p><code>2026-07-28</code> RC 规范将 MCP 核心定义为<strong>完全无状态</strong>：</p>
+<pre><code>新的无状态模式：
+┌──────────┐    POST /mcp (Authorization: Bearer &lt;token&gt;)   ┌──────────┐
+│  Client  │ ←────────────────────────────────────────────→ │  Server  │
+│          │    每个请求独立鉴权，无服务端 Session            │ (无状态) │
+└──────────┘                                                └──────────┘
+                                     ↕
+                            ┌──────────────────┐
+                            │   负载均衡器      │
+                            └──┬───────┬───────┘
+                               ↓       ↓
+                          ┌────────┐ ┌────────┐
+                          │Server A│ │Server B│
+                          └────────┘ └────────┘
+</code></pre>
+<p><strong>关键特性</strong>：</p>
+<ul>
+<li><strong>每个 HTTP 请求独立</strong>：<code>Authorization: Bearer &lt;access-token&gt;</code> 必须出现在每一个请求中。</li>
+<li><strong>无服务端状态</strong>：Server 不保存客户端会话上下文，所有必要状态由 Client 在请求中携带。</li>
+<li><strong>可水平扩展</strong>：任何无状态的 MCP Server 实例可以处理任何请求，适合 K8s、Serverless 部署。</li>
+<li><strong>HTTP-only 传输</strong>：Streamable HTTP 成为远程通信的标准传输方式。</li>
+</ul>
+<h4>2.1.3 对 Server 实现的影响</h4>
+<p>需要移除旧版 Server 中的以下实现：</p>
+<pre><code>移除项：
+  ✗ Mcp-Session-Id header 的生成和管理
+  ✗ 会话存储（内存 Map / Redis / 数据库）
+  ✗ SSE 长连接维护逻辑
+  ✗ 会话超时与清理定时任务
+  ✗ 客户端重连时的会话恢复逻辑
+</code></pre>
+<h3>2.2 OAuth 2.1 全面接入</h3>
+<p>MCP 的授权机制基于 <strong>OAuth 2.1 IETF 草案</strong> (<code>draft-ietf-oauth-v2-1-13</code>)，并补充了以下 RFC 标准：</p>
+<table>
+<thead>
+<tr>
+<th>标准</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>RFC 8414</td>
+<td>Authorization Server Metadata — 授权服务器元数据发现</td>
+</tr>
+<tr>
+<td>RFC 7591</td>
+<td>Dynamic Client Registration — 动态客户端注册</td>
+</tr>
+<tr>
+<td>RFC 9728</td>
+<td>Protected Resource Metadata — 资源服务器元数据</td>
+</tr>
+<tr>
+<td>RFC 8707</td>
+<td>Resource Indicators — Token 与资源绑定</td>
+</tr>
+</tbody>
+</table>
+<h4>2.2.1 PKCE 强制执行</h4>
+<p>OAuth 2.1 中，<strong>PKCE（Proof Key for Code Exchange）</strong> 对所有使用 Authorization Code Flow 的客户端都是强制性的，包括公开客户端（Public Clients，如 SPA/CLI）。</p>
+<pre><code class="language-python"># PKCE 参数生成 (Python)
+import hashlib, base64, os
+
+def generate_code_verifier():
+    &quot;&quot;&quot;生成 code_verifier: 43-128 字符的随机字符串&quot;&quot;&quot;
+    return base64.urlsafe_b64encode(os.urandom(32)).rstrip(b'=').decode()
+
+def generate_code_challenge(verifier: str) -&gt; str:
+    &quot;&quot;&quot;生成 code_challenge: SHA256(code_verifier) 的 Base64URL 编码&quot;&quot;&quot;
+    digest = hashlib.sha256(verifier.encode()).digest()
+    return base64.urlsafe_b64encode(digest).rstrip(b'=').decode()
+</code></pre>
+<p>在授权请求和 Token 请求中：</p>
+<pre><code class="language-http"># 授权请求 (浏览器)
+GET /authorize?
+  response_type=code&amp;
+  client_id=xxx&amp;
+  code_challenge=&lt;challenge&gt;&amp;
+  code_challenge_method=S256&amp;
+  resource=https%3A%2F%2Fmcp.example.com
+
+# Token 请求 (服务端)
+POST /token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=authorization_code&amp;
+code=&lt;auth_code&gt;&amp;
+code_verifier=&lt;verifier&gt;&amp;
+resource=https://mcp.example.com
+</code></pre>
+<h4>2.2.2 隐式流 (Implicit Grant) 废除</h4>
+<p>OAuth 2.1 正式废除了 Implicit Grant Flow。所有 MCP 客户端 <strong>必须</strong> 使用 Authorization Code Flow + PKCE，不再支持直接从授权端点获取 Access Token。</p>
+<h4>2.2.3 DPoP (Demonstrating Proof-of-Possession) 支持</h4>
+<blockquote>
+<p>⚠️ <strong>待验证</strong>：截至 2026-07，DPoP (RFC 9449) 在 MCP 规范中的支持状态尚未在公开 spec 草案中明确。社区讨论表明 DPoP 可能作为 Extensions 的一部分在未来引入，用于增强 Token 持有者证明。以下为前瞻性内容。</p>
+</blockquote>
+<p><strong>DPoP 的核心价值</strong>：将 Access Token 绑定到特定的非对称密钥对，即使 Token 泄露，攻击者也无法使用（因为没有私钥）。在 MCP 场景中，这对工具调用特别重要——一个泄露的 Bearer Token 可能允许攻击者通过 MCP Server 执行危险操作（文件删除、数据库修改等）。</p>
+<pre><code class="language-javascript">// DPoP Proof 的结构 (Node.js - 前瞻示例，待验证)
+const dpopProof = {
+  header: {
+    typ: &quot;dpop+jwt&quot;,
+    alg: &quot;ES256&quot;,
+    jwk: { /* 公钥 */ }
+  },
+  payload: {
+    jti: crypto.randomUUID(),  // 唯一 nonce
+    htm: &quot;POST&quot;,                // HTTP 方法
+    htu: &quot;https://mcp.example.com/mcp&quot;,  // 请求 URL
+    iat: Math.floor(Date.now() / 1000),
+  }
+};
+
+// 在请求中同时携带 Access Token 和 DPoP Proof
+// Authorization: DPoP &lt;access-token&gt;
+// DPoP: &lt;dpop-proof-jwt&gt;
+</code></pre>
+<h3>2.3 无状态架构深入</h3>
+<h4>2.3.1 认证-授权-请求 全流程</h4>
+<pre><code>Client              MCP Server           Authorization Server
+  │                     │                       │
+  │──① POST /mcp ──────→│                       │
+  │   (无 Token)        │                       │
+  │←──401 + WWW-Auth ───│                       │
+  │   (含 resource_     │                       │
+  │    metadata URL)     │                       │
+  │                     │                       │
+  │──② GET /.well-known/oauth-protected-resource─→│
+  │←──Resource Metadata ─────────────────────────│
+  │   (含 authorization_servers[])                │
+  │                                              │
+  │──③ GET /.well-known/oauth-authorization-server→│
+  │←──AS Metadata ───────────────────────────────│
+  │   (token_endpoint, authorization_endpoint)    │
+  │                                              │
+  │──④ POST /register (动态注册) ────────────────→│
+  │←──client_id + client_secret ─────────────────│
+  │                                              │
+  │──⑤ 浏览器跳转 authorize + PKCE ──────────────→│
+  │←──authorization_code ────────────────────────│
+  │                                              │
+  │──⑥ POST /token (code + code_verifier) ──────→│
+  │←──access_token + refresh_token ──────────────│
+  │                                              │
+  │──⑦ POST /mcp ──────→│                       │
+  │   (Bearer token)     │                       │
+  │←──MCP Response ──────│                       │
+  │                                              │
+  │──⑧ POST /mcp ──────→│  (每个后续请求重复⑦)   │
+  │   (Bearer token)     │                       │
+</code></pre>
+<h4>2.3.2 Token 验证流程</h4>
+<p>MCP Server 作为 OAuth 2.1 Resource Server，在每个请求中：</p>
+<ol>
+<li>提取 <code>Authorization: Bearer &lt;token&gt;</code> 头</li>
+<li>验证 JWT 签名（使用 Authorization Server 的公钥 / JWKS）</li>
+<li>验证 <code>aud</code> (audience) — Token 是否颁发给本 Server</li>
+<li>验证 <code>exp</code> (expiration) — Token 是否过期</li>
+<li>验证 <code>scope</code> — Token 是否包含所需权限</li>
+<li>失败则返回 <code>HTTP 401</code> 或 <code>HTTP 403</code></li>
+</ol>
+<pre><code class="language-python"># MCP Server Token 验证中间件 (Python/FastAPI 示例)
+from fastapi import Request, HTTPException
+from jose import jwt, JWTError
+import httpx
+
+class MCPAuthMiddleware:
+    def __init__(self, jwks_url: str, expected_audience: str):
+        self.jwks_url = jwks_url
+        self.expected_audience = expected_audience
+
+    async def __call__(self, request: Request):
+        auth_header = request.headers.get(&quot;Authorization&quot;)
+        if not auth_header or not auth_header.startswith(&quot;Bearer &quot;):
+            raise HTTPException(status_code=401,
+                headers={&quot;WWW-Authenticate&quot;: f'Bearer resource_metadata=&quot;/.well-known/oauth-protected-resource&quot;'})
+
+        token = auth_header.split(&quot; &quot;)[1]
+
+        # 获取 JWKS
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(self.jwks_url)
+            jwks = resp.json()
+
+        try:
+            payload = jwt.decode(
+                token,
+                jwks,
+                audience=self.expected_audience,
+                algorithms=[&quot;RS256&quot;, &quot;ES256&quot;],
+                options={&quot;verify_exp&quot;: True}
+            )
+        except JWTError as e:
+            raise HTTPException(status_code=401, detail=f&quot;Invalid token: {e}&quot;)
+
+        request.state.user_id = payload.get(&quot;sub&quot;)
+        request.state.scopes = payload.get(&quot;scope&quot;, &quot;&quot;).split()
+</code></pre>
+<hr />
+<h2>3. 迁移指南</h2>
+<h3>3.1 旧版 MCP Server 需要改什么</h3>
+<h4>3.1.1 改动清单</h4>
+<table>
+<thead>
+<tr>
+<th>改动项</th>
+<th>旧版（2024-11 ~ 2025-06）</th>
+<th>新版（2026-07-28 RC+）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>传输层</strong></td>
+<td>SSE + Mcp-Session-Id</td>
+<td>Streamable HTTP（无 Session）</td>
+</tr>
+<tr>
+<td><strong>鉴权</strong></td>
+<td>无标准（或自定义 API Key）</td>
+<td>OAuth 2.1 Bearer Token</td>
+</tr>
+<tr>
+<td><strong>会话管理</strong></td>
+<td>服务端维护 Session Map</td>
+<td>无服务端状态</td>
+</tr>
+<tr>
+<td><strong>Token 存储</strong></td>
+<td>Session ID 绑定</td>
+<td>Client 端管理 Access Token</td>
+</tr>
+<tr>
+<td><strong>TTL</strong></td>
+<td>会话超时 (Session timeout)</td>
+<td>Token expiry + refresh</td>
+</tr>
+<tr>
+<td><strong>缩放</strong></td>
+<td>单实例（SSE sticky session）</td>
+<td>无状态水平扩展</td>
+</tr>
+<tr>
+<td><strong>元数据</strong></td>
+<td>无标准发现</td>
+<td><code>/.well-known/oauth-protected-resource</code></td>
+</tr>
+</tbody>
+</table>
+<h4>3.1.2 迁移步骤</h4>
+<p><strong>Step 1: 移除会话管理代码</strong></p>
+<pre><code class="language-python"># 旧代码 — 删除这些
+session_store: dict[str, Session] = {}  # ✗ 删除
+McpSessionId = request.headers.get(&quot;Mcp-Session-Id&quot;)  # ✗ 删除
+session = session_store.get(McpSessionId)  # ✗ 删除
+</code></pre>
+<p><strong>Step 2: 引入 OAuth 2.1 Token 验证</strong></p>
+<p>见上文 2.3.2 节的中间件代码。</p>
+<p><strong>Step 3: 实现 Protected Resource Metadata 端点</strong></p>
+<pre><code class="language-python"># GET /.well-known/oauth-protected-resource
+@app.get(&quot;/.well-known/oauth-protected-resource&quot;)
+async def protected_resource_metadata():
+    return {
+        &quot;resource&quot;: &quot;https://mcp.example.com&quot;,
+        &quot;authorization_servers&quot;: [
+            &quot;https://auth.example.com&quot;
+        ],
+        &quot;bearer_methods_supported&quot;: [&quot;header&quot;],
+        &quot;resource_scopes&quot;: [
+            &quot;mcp:tools:read&quot;,
+            &quot;mcp:tools:execute&quot;,
+            &quot;mcp:resources:read&quot;
+        ]
+    }
+</code></pre>
+<p><strong>Step 4: 切换到 Streamable HTTP 传输</strong></p>
+<pre><code class="language-python"># 新版 Server 启动 (使用 MCP Python SDK v2.x)
+# ⚠️ 以下代码基于 SDK v2 预览 API，待正式版确认
+
+from mcp.server import MCPServer
+from mcp.server.auth import OAuth2BearerAuth
+
+server = MCPServer(
+    name=&quot;my-mcp-server&quot;,
+    transport=&quot;streamable-http&quot;,  # 使用 Streamable HTTP
+    auth=OAuth2BearerAuth(
+        jwks_url=&quot;https://auth.example.com/.well-known/jwks.json&quot;,
+        audience=&quot;https://mcp.example.com&quot;
+    )
+)
+
+# 注册工具 — 业务逻辑不变
+@server.tool(&quot;search_docs&quot;)
+async def search_docs(query: str) -&gt; list[dict]:
+    # 工具逻辑不需要改
+    return await search_index(query)
+
+server.run(host=&quot;0.0.0.0&quot;, port=8080)
+</code></pre>
+<h3>3.2 新版 MCP Server 实现范例</h3>
+<h4>3.2.1 Node.js (TypeScript) 实现</h4>
+<pre><code class="language-typescript">// mcp-server-stateless.ts
+// 使用 @modelcontextprotocol/sdk v2.x (待验证确切 API)
+
+import { McpServer, StreamableHTTPServerTransport } from &quot;@modelcontextprotocol/sdk/server/index.js&quot;;
+import * as jose from &quot;jose&quot;;
+
+interface TokenClaims {
+  sub: string;
+  aud: string;
+  exp: number;
+  scope: string;
+}
+
+class StatelessMcpServer {
+  private jwks: jose.JSONWebKeySet;
+  private audience: string;
+
+  constructor(jwksUrl: string, audience: string) {
+    this.audience = audience;
+    this.loadJwks(jwksUrl);
+  }
+
+  private async loadJwks(url: string) {
+    const response = await fetch(url);
+    this.jwks = await response.json();
+  }
+
+  // Token 验证中间件
+  async verifyToken(authHeader: string): Promise&lt;TokenClaims&gt; {
+    if (!authHeader?.startsWith(&quot;Bearer &quot;)) {
+      throw { status: 401, message: &quot;Missing or invalid Authorization header&quot; };
+    }
+
+    const token = authHeader.slice(7);
+    try {
+      const { payload } = await jose.jwtVerify(token, jose.createLocalJWKSet(this.jwks), {
+        audience: this.audience,
+        requiredClaims: [&quot;sub&quot;, &quot;exp&quot;],
+      });
+      return payload as unknown as TokenClaims;
+    } catch (err) {
+      throw { status: 401, message: `Token validation failed: ${err}` };
+    }
+  }
+
+  // 创建 Streamable HTTP Server
+  async start(port: number = 3000) {
+    const server = new McpServer({
+      name: &quot;stateless-mcp-demo&quot;,
+      version: &quot;1.0.0&quot;,
+    });
+
+    // 注册工具 — 与旧版完全相同的 API
+    server.tool(&quot;calculator&quot;, &quot;执行数学计算&quot;, {
+      expression: { type: &quot;string&quot;, description: &quot;数学表达式&quot; }
+    }, async (args) =&gt; {
+      try {
+        const result = eval(args.expression); // 生产环境使用安全沙箱
+        return {
+          content: [{ type: &quot;text&quot;, text: String(result) }]
+        };
+      } catch (e) {
+        return {
+          content: [{ type: &quot;text&quot;, text: `Error: ${e}` }],
+          isError: true
+        };
+      }
+    });
+
+    const transport = new StreamableHTTPServerTransport({
+      endpoint: &quot;/mcp&quot;,
+      authenticate: async (authHeader: string) =&gt; {
+        const claims = await this.verifyToken(authHeader);
+        return { userId: claims.sub, scopes: claims.scope?.split(&quot; &quot;) ?? [] };
+      }
+    });
+
+    await server.connect(transport);
+    console.log(`MCP Server running on http://localhost:${port}/mcp`);
+  }
+}
+
+// 启动
+const srv = new StatelessMcpServer(
+  &quot;https://auth.example.com/.well-known/jwks.json&quot;,
+  &quot;https://mcp.example.com&quot;
+);
+srv.start(3000);
+</code></pre>
+<h4>3.2.2 Python 实现</h4>
+<pre><code class="language-python"># mcp_server_stateless.py
+# 使用 mcp SDK v2.x (待验证确切 API)
+
+from mcp.server import MCPServer, StreamableHTTPTransport
+from mcp.server.auth import TokenValidator
+import httpx
+from jose import jwt
+from jose.exceptions import JWTError
+
+class StatelessTokenValidator(TokenValidator):
+    def __init__(self, jwks_url: str, audience: str):
+        self.jwks_url = jwks_url
+        self.audience = audience
+        self._jwks = None
+
+    async def _get_jwks(self):
+        if self._jwks is None:
+            async with httpx.AsyncClient() as client:
+                resp = await client.get(self.jwks_url)
+                self._jwks = resp.json()
+        return self._jwks
+
+    async def validate(self, token: str) -&gt; dict:
+        jwks = await self._get_jwks()
+        try:
+            payload = jwt.decode(
+                token, jwks,
+                audience=self.audience,
+                algorithms=[&quot;RS256&quot;, &quot;ES256&quot;],
+                options={&quot;verify_exp&quot;: True, &quot;verify_aud&quot;: True}
+            )
+            return {
+                &quot;user_id&quot;: payload.get(&quot;sub&quot;),
+                &quot;scopes&quot;: payload.get(&quot;scope&quot;, &quot;&quot;).split(),
+            }
+        except JWTError as e:
+            raise PermissionError(f&quot;Token validation failed: {e}&quot;)
+
+# 创建 Server
+server = MCPServer(
+    name=&quot;stateless-demo&quot;,
+    version=&quot;1.0.0&quot;,
+    transport=StreamableHTTPTransport(endpoint=&quot;/mcp&quot;),
+    token_validator=StatelessTokenValidator(
+        jwks_url=&quot;https://auth.example.com/.well-known/jwks.json&quot;,
+        audience=&quot;https://mcp.example.com&quot;
+    )
+)
+
+@server.tool(&quot;get_weather&quot;)
+async def get_weather(city: str) -&gt; str:
+    &quot;&quot;&quot;获取城市天气&quot;&quot;&quot;
+    # 业务逻辑不变
+    return f&quot;The weather in {city} is sunny, 22°C.&quot;
+
+if __name__ == &quot;__main__&quot;:
+    server.run(host=&quot;0.0.0.0&quot;, port=8080)
+</code></pre>
+<h3>3.3 客户端适配要点</h3>
+<p>MCP Client 端同样需要适配：</p>
+<h4>3.3.1 核心变更</h4>
+<table>
+<thead>
+<tr>
+<th>变更</th>
+<th>旧版 Client</th>
+<th>新版 Client</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>连接建立</strong></td>
+<td>建立 SSE 连接 + 获取 Session ID</td>
+<td>直接 POST JSON-RPC 请求</td>
+</tr>
+<tr>
+<td><strong>每次请求</strong></td>
+<td>携带 <code>Mcp-Session-Id</code></td>
+<td>携带 <code>Authorization: Bearer</code></td>
+</tr>
+<tr>
+<td><strong>Token 管理</strong></td>
+<td>无</td>
+<td>管理 Access Token + Refresh Token</td>
+</tr>
+<tr>
+<td><strong>401 处理</strong></td>
+<td>无</td>
+<td>自动触发 OAuth 2.1 授权流程</td>
+</tr>
+<tr>
+<td><strong>服务发现</strong></td>
+<td>无</td>
+<td>解析 <code>WWW-Authenticate</code> → 发现 AS</td>
+</tr>
+</tbody>
+</table>
+<h4>3.3.2 Client 伪代码</h4>
+<pre><code class="language-python"># MCP Client 适配示例 (Python)
+import httpx
+
+class StatelessMCPClient:
+    def __init__(self, server_url: str):
+        self.server_url = server_url
+        self.access_token: str | None = None
+        self.refresh_token: str | None = None
+
+    async def _ensure_auth(self):
+        &quot;&quot;&quot;确保有有效的 access token&quot;&quot;&quot;
+        if self.access_token:
+            # 测试 token 是否仍然有效
+            resp = await self._make_request(&quot;ping&quot;)
+            if resp.status_code != 401:
+                return
+
+        # 需要重新授权 — 启动 OAuth 2.1 流程
+        await self._perform_oauth_flow()
+
+    async def _perform_oauth_flow(self):
+        &quot;&quot;&quot;完整的 OAuth 2.1 Authorization Code + PKCE 流程&quot;&quot;&quot;
+        # 1. 从 MCP Server 获取 Authorization Server 信息
+        resp = await httpx.AsyncClient().get(
+            f&quot;{self.server_url}/.well-known/oauth-protected-resource&quot;
+        )
+        resource_meta = resp.json()
+        as_url = resource_meta[&quot;authorization_servers&quot;][0]
+
+        # 2. 获取 AS 元数据
+        resp = await httpx.AsyncClient().get(
+            f&quot;{as_url}/.well-known/oauth-authorization-server&quot;
+        )
+        as_meta = resp.json()
+
+        # 3. 动态注册 (RFC 7591)
+        resp = await httpx.AsyncClient().post(
+            as_meta[&quot;registration_endpoint&quot;],
+            json={&quot;client_name&quot;: &quot;MCP Client&quot;, &quot;grant_types&quot;: [&quot;authorization_code&quot;]}
+        )
+        client_reg = resp.json()
+
+        # 4. PKCE + Authorization Code 流程...
+        # (浏览器跳转, 用户授权, 获取 code, 兑换 token)
+        # 代码省略，参见 2.2.1 节
+
+        self.access_token = &quot;...&quot;
+        self.refresh_token = &quot;...&quot;
+
+    async def _make_request(self, method: str, params: dict | None = None):
+        headers = {}
+        if self.access_token:
+            headers[&quot;Authorization&quot;] = f&quot;Bearer {self.access_token}&quot;
+        async with httpx.AsyncClient() as client:
+            return await client.post(
+                self.server_url,
+                json={&quot;jsonrpc&quot;: &quot;2.0&quot;, &quot;id&quot;: 1, &quot;method&quot;: method, &quot;params&quot;: params or {}},
+                headers=headers
+            )
+
+    async def call_tool(self, tool_name: str, args: dict):
+        await self._ensure_auth()
+        return await self._make_request(&quot;tools/call&quot;, {&quot;name&quot;: tool_name, &quot;arguments&quot;: args})
+
+    async def list_tools(self):
+        await self._ensure_auth()
+        return await self._make_request(&quot;tools/list&quot;)
+</code></pre>
+<hr />
+<h2>4. 兼容性处理</h2>
+<h3>4.1 过渡期策略</h3>
+<p>MCP 社区明确声明了<strong>正式的弃用策略</strong>，意味着旧版传输（SSE）不会立即移除，而是有一个逐步淘汰的过程。在此过渡期内，推荐以下策略：</p>
+<pre><code>推荐的兼容性架构：
+
+                    ┌─────────────────────────┐
+                    │     MCP Server (v2)      │
+                    │                         │
+                    │  /mcp (Streamable HTTP)  │
+                    │  ← OAuth 2.1 鉴权        │
+                    │                         │
+                    │  /mcp-legacy (SSE)       │
+                    │  ← Session ID 鉴权       │
+                    │  ← Deprecation Warning   │
+                    └─────────────────────────┘
+</code></pre>
+<ul>
+<li><strong>新 Client</strong> → 直接使用 <code>/mcp</code> 端点 (Streamable HTTP + OAuth 2.1)</li>
+<li><strong>旧 Client</strong> → 仍可使用 <code>/mcp-legacy</code> 端点 (SSE + Session ID)，但 Server 应返回 <code>Deprecation</code> warning header</li>
+</ul>
+<h3>4.2 双模式 Server 实现</h3>
+<pre><code class="language-python"># 同时支持新旧两种模式的 MCP Server
+from mcp.server import MCPServer, StreamableHTTPTransport, SSETransport
+
+class DualModeMCPServer:
+    def __init__(self):
+        # 核心业务逻辑（工具、资源、提示）只定义一次
+        self.tools = self._register_tools()
+
+    def _register_tools(self):
+        return {
+            &quot;search&quot;: SearchTool(),
+            &quot;calculate&quot;: CalculateTool(),
+        }
+
+    async def start_streamable(self):
+        &quot;&quot;&quot;新版无状态端点&quot;&quot;&quot;
+        server = MCPServer(
+            name=&quot;dual-mode-server&quot;,
+            transport=StreamableHTTPTransport(endpoint=&quot;/mcp&quot;),
+            token_validator=StatelessTokenValidator(...)
+        )
+        # 注册工具
+        ...
+        server.run(port=8080)
+
+    async def start_sse_legacy(self):
+        &quot;&quot;&quot;旧版 SSE 端点（带弃用警告）&quot;&quot;&quot;
+        server = MCPServer(
+            name=&quot;dual-mode-server-legacy&quot;,
+            transport=SSETransport(endpoint=&quot;/mcp-legacy&quot;)
+        )
+        # 相同的工具，但通过 SSE 暴露
+        ...
+        server.run(port=8080)
+</code></pre>
+<h3>4.3 Client 端降级策略</h3>
+<pre><code class="language-typescript">// Client 自动检测并适配
+async function connectToMcpServer(serverUrl: string): Promise&lt;McpClient&gt; {
+  try {
+    // 先尝试新版 Streamable HTTP + OAuth
+    const client = new StatelessMCPClient(serverUrl);
+    await client.ping();
+    return client;
+  } catch (err) {
+    if (err.status === 401) {
+      // 启动 OAuth 2.1 流程
+      await client.authorize();
+      return client;
+    }
+    console.warn(&quot;新版连接失败，降级到 SSE 模式&quot;);
+    // 降级到 SSE
+    return new LegacySSEMCPClient(serverUrl);
+  }
+}
+</code></pre>
+<hr />
+<h2>5. 安全最佳实践</h2>
+<h3>5.1 Token 安全</h3>
+<ol>
+<li><strong>短生命周期 Access Token</strong>：建议 5-15 分钟，使用 Refresh Token 轮换。</li>
+<li><strong>Token 绑定（Audience Restriction）</strong>：通过 RFC 8707 Resource Indicators 确保 Token 仅用于特定 MCP Server。</li>
+<li><strong>最小权限 Scope</strong>：每个 Token 仅包含该 Client 实际需要的 scope（如 <code>mcp:tools:read</code> 而非 <code>mcp:*</code>）。</li>
+<li><strong>Token 不可出现在 URL 中</strong>：MCP 规范明确禁止 <code>access_token</code> 作为 query parameter。</li>
+<li><strong>Refresh Token Rotation</strong>：每次使用 Refresh Token 时颁发新的 Refresh Token，旧的立即失效。</li>
+</ol>
+<h3>5.2 传输层安全</h3>
+<ol>
+<li><strong>强制 HTTPS</strong>：生产环境的所有 MCP 通信必须使用 TLS。</li>
+<li><strong>Certificate Pinning</strong>（可选）：移动/M2M 场景建议固定证书指纹。</li>
+<li><strong>HSTS Header</strong>：Server 应设置 <code>Strict-Transport-Security</code>。</li>
+</ol>
+<h3>5.3 Server 端防护</h3>
+<ol>
+<li><strong>Rate Limiting</strong>：基于 Client ID 或 IP 的请求频率限制。</li>
+<li><strong>Request Validation</strong>：严格的 JSON Schema 验证，防止注入攻击。</li>
+<li><strong>Tool 权限检查</strong>：不仅在 Token 层面校验 scope，还应在每个 tool 调用时二次验证权限。</li>
+<li><strong>Audit Logging</strong>：记录所有 tool 调用（who、what、when、result）。</li>
+</ol>
+<pre><code class="language-python"># Tool 级别权限检查示例
+@server.tool(&quot;delete_file&quot;, scopes=[&quot;mcp:admin&quot;])
+async def delete_file(path: str, user: User):
+    if &quot;mcp:admin&quot; not in user.scopes:
+        raise PermissionError(&quot;Insufficient permissions to delete files&quot;)
+    logger.info(f&quot;User {user.id} deleted file: {path}&quot;)
+    os.remove(path)
+    return &quot;File deleted&quot;
+</code></pre>
+<h3>5.4 安全清单</h3>
+<ul>
+<li>[ ] 是否使用 OAuth 2.1 而非自行实现的认证？</li>
+<li>[ ] 是否强制 PKCE？</li>
+<li>[ ] Token 是否绑定 Audience？</li>
+<li>[ ] 是否启用 Refresh Token Rotation？</li>
+<li>[ ] 是否使用 HTTPS？</li>
+<li>[ ] 是否实现了 Rate Limiting？</li>
+<li>[ ] 每个 Tool 是否有独立的 Scope 检查？</li>
+<li>[ ] 是否记录了 Audit Log？</li>
+</ul>
+<hr />
+<h2>6. 参考资源</h2>
+<h3>官方规范</h3>
+<ul>
+<li><strong>MCP Specification (2025-06-18)</strong>: <a href="https://modelcontextprotocol.io/specification/2025-06-18/">https://modelcontextprotocol.io/specification/2025-06-18/</a></li>
+<li><strong>MCP Authorization</strong>: <a href="https://modelcontextprotocol.io/specification/2025-06-18/basic/authorization">https://modelcontextprotocol.io/specification/2025-06-18/basic/authorization</a></li>
+<li><strong>MCP Blog — 2026-07-28 RC</strong>: <a href="https://blog.modelcontextprotocol.io/posts/2026-07-28-release-candidate/">https://blog.modelcontextprotocol.io/posts/2026-07-28-release-candidate/</a></li>
+<li><strong>GitHub Repository</strong>: <a href="https://github.com/modelcontextprotocol/modelcontextprotocol">https://github.com/modelcontextprotocol/modelcontextprotocol</a></li>
+</ul>
+<h3>OAuth / Security 标准</h3>
+<ul>
+<li><strong>OAuth 2.1 Draft</strong>: <a href="https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1-13">https://datatracker.ietf.org/doc/html/draft-ietf-oauth-v2-1-13</a></li>
+<li><strong>RFC 8414</strong> (AS Metadata): <a href="https://datatracker.ietf.org/doc/html/rfc8414">https://datatracker.ietf.org/doc/html/rfc8414</a></li>
+<li><strong>RFC 7591</strong> (Dynamic Registration): <a href="https://datatracker.ietf.org/doc/html/rfc7591">https://datatracker.ietf.org/doc/html/rfc7591</a></li>
+<li><strong>RFC 9728</strong> (Protected Resource Metadata): <a href="https://datatracker.ietf.org/doc/html/rfc9728">https://datatracker.ietf.org/doc/html/rfc9728</a></li>
+<li><strong>RFC 8707</strong> (Resource Indicators): <a href="https://www.rfc-editor.org/rfc/rfc8707">https://www.rfc-editor.org/rfc/rfc8707</a></li>
+<li><strong>RFC 9449</strong> (DPoP): <a href="https://datatracker.ietf.org/doc/html/rfc9449">https://datatracker.ietf.org/doc/html/rfc9449</a></li>
+</ul>
+<h3>SDK</h3>
+<ul>
+<li><strong>Python SDK (v2 alpha)</strong>: <a href="https://github.com/modelcontextprotocol/python-sdk">https://github.com/modelcontextprotocol/python-sdk</a></li>
+<li><strong>TypeScript SDK</strong>: <a href="https://github.com/modelcontextprotocol/typescript-sdk">https://github.com/modelcontextprotocol/typescript-sdk</a></li>
+</ul>
+<h3>社区文章 (推荐阅读)</h3>
+<ul>
+<li>「MCP协议演进：从SSE到Streamable HTTP的技术革命」— 腾讯云开发者社区</li>
+<li>「MCP Server 的身份认证方案」— 安全风信子 (腾讯云)</li>
+<li>「MCP Registry v1.4.0 最新进展」— 腾讯云</li>
+</ul>
+<hr />
+<h2>总结</h2>
+<p>MCP 2026 无状态架构迁移的核心要点：</p>
+<ol>
+<li><strong>SSE → Streamable HTTP</strong>：去除长连接依赖和 Mcp-Session-Id，每个请求独立。</li>
+<li><strong>自研认证 → OAuth 2.1</strong>：PKCE 强制，隐式流废除，Bearer Token 鉴权。</li>
+<li><strong>有状态 → 无状态</strong>：Server 可以水平扩展，适配 K8s/Serverless。</li>
+<li><strong>渐进式迁移</strong>：双模式兼容期间可以同时支持新旧客户端。</li>
+<li><strong>安全优先</strong>：Token 绑定 Audience、最小权限 Scope、Refresh Token Rotation 是最低配置。</li>
+</ol>
+<blockquote>
+<p>⚠️ <strong>声明</strong>：本文基于截至 2026-07-01 的公开信息和 <code>2026-07-28</code> Release Candidate 撰写。标注「待验证」的内容基于社区讨论与推断，最终实现请以 MCP 正式规范文档为准。</p>
+</blockquote>
+
+    </div>
+</main>
+<script>
+(function(){var f=location.pathname.split('/').pop()||'index.html';
+var links=document.querySelectorAll('.VPSidebar a');
+for(var i=0;i<links.length;i++){
+var h=links[i].getAttribute('href');
+if(h===f){links[i].classList.add('active');
+var g=links[i].closest('.sidebar-group');
+if(g){g.classList.add('has-active');}
+break;}}})();
+</script>
+</body>
+</html>
